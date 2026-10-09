@@ -1,3 +1,4 @@
+import { useT } from '../i18n';
 import { useEffect, useRef, type ReactNode } from 'react';
 import { create } from 'zustand';
 import { useDialogFocus } from './dialogFocus';
@@ -43,6 +44,7 @@ export function ConfirmDialog() {
 }
 
 function Question({ ask }: { ask: Ask }) {
+  const t = useT();
   const box = useRef<HTMLDivElement>(null);
   useDialogFocus(box);
   useEffect(() => {
@@ -68,14 +70,14 @@ function Question({ ask }: { ask: Ask }) {
         {ask.body && <div className="confirm-body">{ask.body}</div>}
         <div className="confirm-actions">
           <button className="btn btn-ghost" data-answer="cancel" onClick={() => answer(false)}>
-            {ask.cancel ?? 'Cancel'}
+            {ask.cancel ?? t('core.confirm.cancel')}
           </button>
           <button className={`btn ${tone === 'danger' ? 'btn-bad' : tone === 'warn' ? 'btn-warn' : 'btn-good'}`} onClick={() => answer(true)} autoFocus>
-            {ask.confirm ?? 'OK'}
+            {ask.confirm ?? t('core.confirm.ok')}
           </button>
         </div>
         <div className="confirm-keys muted small">
-          <kbd>Enter</kbd> {ask.confirm ?? 'OK'} · <kbd>Esc</kbd> {ask.cancel ?? 'Cancel'}
+          <kbd>{t('core.confirm.enter')}</kbd> {ask.confirm ?? t('core.confirm.ok')} · <kbd>{t('core.confirm.escape')}</kbd> {ask.cancel ?? t('core.confirm.cancel')}
         </div>
       </div>
     </div>

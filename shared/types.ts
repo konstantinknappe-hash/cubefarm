@@ -303,6 +303,7 @@ export interface QaShotView {
 }
 
 export interface SwarmSettings {
+  language: 'de' | 'en';
   sessionLimit: number; // most agent sessions running at once; 0 = no limit
   defaultModel: string;
   defaultEffort: EffortLevel;

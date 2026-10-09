@@ -1,3 +1,4 @@
+import { LanguageSettings } from '../i18n/LanguageSettings';
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { TeamStats } from './CareerCard';
 import { api } from '../api';
@@ -613,6 +614,7 @@ function SettingsTab() {
   const defaultCli = terminal ? settings.defaultCli : 'claude';
   return (
     <div className="tab-grid">
+      <LanguageSettings />
       <div className="card">
         <h3>🧠 Agents</h3>
         {terminal && (
