@@ -211,3 +211,7 @@ Client (`client/`, Vite root; React 19, R3F, drei, zustand):
 - Before opening it: `typecheck`, `test` and `build`. `test:e2e` only when an issue asks for it; CI doesn't run it.
 - Say how you verified it and list your assumptions. UI changes get screenshots from the demo office.
 - Never push to `main`, never force-push, never merge your own PR.
+
+## Fork
+
+This is a fork of leonvanzyl/cubefarm: see docs/fork.md. AGENTS.md repeats the safety rules for Codex and OpenCode.
