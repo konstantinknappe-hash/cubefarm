@@ -69,6 +69,6 @@ Codex and OpenCode. Use only the isolated demo command below for local office ch
 
 Keep one line per fork-specific change: its PR, what it does, and which upstream files it hooks into.
 
-- This PR (issue [#1](https://github.com/konstantinknappe-hash/cubefarm/issues/1)): adds `AGENTS.md` and this fork guide; hooks into upstream `CLAUDE.md` only through the appended `## Fork` section.
+- [PR #8](https://github.com/konstantinknappe-hash/cubefarm/pull/8): adds `AGENTS.md` and this fork guide; hooks into upstream `CLAUDE.md` only through the appended `## Fork` section.
 
 Last synced with upstream: not yet recorded. After each sync, record the upstream commit, date and sync PR here.
