@@ -273,18 +273,120 @@ const FLOOR_COLORS = ['#ff8a5b', '#4fb3e8', '#8fd14f', '#c77dff', '#ffc93c', '#f
 const SHIRTS = ['#e63946', '#457b9d', '#2a9d8f', '#f4a261', '#9b5de5', '#f15bb5', '#00bbf9', '#06d6a0', '#ffbe0b', '#8338ec', '#fb5607', '#3a86ff'];
 const HAIR = HAIR_COLORS;
 const SKIN = SKIN_TONES;
-// New agents are named after computing pioneers, then fictional detectives.
+// German agent names and office wordplay.
 const NAMES = [
-  'Ada', 'Linus', 'Grace', 'Alan', 'Margaret', 'Dennis', 'Barbara', 'Ken', 'Radia', 'Guido', 'Hedy', 'Tim', 'Katherine',
-  'Bjarne', 'Frances', 'Edsger', 'Anita', 'Donald', 'Sophie', 'Yukihiro', 'Jean', 'Niklaus', 'Karen', 'Brendan',
-  'Sherlock', 'Marple', 'Poirot', 'Nancy', 'Columbo', 'Fletcher', 'Watson', 'Morse', 'Holmes', 'Maigret',
+  'Uta',
+  'Frank',
+  'Chris',
+  'Fred',
+  'Gerd',
+  'Volker Racho',
+  'Rainer Winkler',
+  'Torsten',
+  'Uwe',
+  'Brunhilde',
+  'Andreas',
+  'Günther',
+  'Gisela',
+  'Horst',
+  'Waltraud',
+  'Dieter',
+  'Ingeborg',
+  'Rüdiger',
+  'Manfred',
+  'Edeltraud',
+  'Wolfgang',
+  'Bärbel',
+  'Herbert',
+  'Sieglinde',
+  'Erwin',
+  'Hildegard',
+  'Klaus',
+  'Gertrud',
+  'Bernd',
+  'Helga',
+  'Jürgen',
+  'Irmgard',
+  'Heinz',
+  'Renate',
+  'Waldemar',
+  'Brigitte',
+  'Siegfried',
+  'Elke',
+  'Hartmut',
+  'Ursula',
+  'Lothar',
+  'Heidrun',
+  'Roswitha',
+  'Detlef',
+  'Christel',
+  'Norbert',
+  'Hannelore',
+  'Rolf',
+  'Gudrun',
+  'Joachim',
+  'Traudel',
+  'Wilfried',
+  'Erika',
+  'Klaus-Dieter',
+  'Ernst',
+  'Margot',
+  'Achim',
+  'Anneliese',
+  'Günter',
+  'Heike',
+  'Egon',
+  'Friedhelm',
+  'Petra',
+  'Sigrid',
+  'Rainer Zufall',
+  'Ernst Haft',
+  'Axel Schweiß',
+  'Klaus Trophobie',
+  'Frank Reich',
+  'Peter Silie',
+  'Kai Ahnung',
+  'Willi Wichtig',
+  'Herta Wurst',
+  'Rolf Laden',
+  'Günther Genehmigung',
+  'Uta Umsatz',
+  'Fred Feierabend',
+  'Volker Kontrolle',
+  'Gerd Geduld',
+  'Rainer Wahnsinn',
+  'Klaus Kleber',
+  'Bernd Bürokratie',
+  'Horst Schlemmer',
+  'Uwe Unterlagen',
+  'Dieter Drucker',
+  'Herbert Haftung',
+  'Manfred Mittagspause',
+  'Rüdiger Rückfrage',
+  'Siegfried Sicherheitskopie',
+  'Erwin Excel',
+  'Brunhilde Buchhaltung',
+  'Waltraud Warteschleife',
+  'Hildegard Hotline',
+  'Gisela Gehaltsabrechnung',
+  'Edeltraud Eskalation',
+  'Ingeborg Insolvenz',
+  'Helga Homeoffice',
+  'Gertrud Geschäftsführung',
+  'Renate Rendite',
+  'Roswitha Rechnung',
+  'Ursula Überstunden',
+  'Bärbel Betriebsrat',
+  'Fred Flatrate',
+  'Klaus Krawatte',
+  'Volker Vollzug',
 ];
 
 // Names that get the feminine character look: everyone in the name pool above, plus common first names
 // for agents the manager names themselves. The manager can always change an agent's look in the console.
 const FEMININE_NAMES = new Set(
   (
-    'ada grace margaret barbara radia hedy katherine frances anita sophie jean karen marple nancy fletcher ' +
+    'uta brunhilde gisela waltraud ingeborg edeltraud bärbel sieglinde hildegard gertrud helga irmgard renate brigitte elke ursula heidrun roswitha christel hannelore gudrun traudel erika margot anneliese heike petra sigrid herta ada grace margaret barbara radia hedy katherine frances anita sophie jean karen marple nancy fletcher ' +
     'alice amanda amelia amy ana anna anne aisha astrid ava bella beth carla caroline charlotte chloe claire clara ' +
     'diana elena elizabeth ella ellie emily emma eva fatima fiona freya georgia hannah harper helen holly ingrid iris ' +
     'isabella ivy jane jasmine jessica julia kate laura leah leila lena lily linda lisa lucy maria marie mary maya mei ' +
@@ -2076,7 +2178,10 @@ export class Swarm {
   /** A name from the pool that no agent or waiting candidate has. */
   private freeName() {
     const taken = new Set([...this.state.agents.map((a) => a.name), ...this.state.requests.filter((r) => r.status === 'pending').map((r) => r.name)]);
-    return NAMES.find((n) => !taken.has(n)) || `Agent ${this.state.agents.length + 1}`;
+    const available = NAMES.filter((n) => !taken.has(n));
+    return available.length
+      ? available[Math.floor(Math.random() * available.length)]
+      : `Agent ${this.state.agents.length + 1}`;
   }
 
   /** The coding agent is installed here (or the office hasn't looked yet: then the session says so if it isn't). */

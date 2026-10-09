@@ -1,3 +1,4 @@
+import { useT } from '../i18n';
 import { LanguageSettings } from '../i18n/LanguageSettings';
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { TeamStats } from './CareerCard';
@@ -602,6 +603,7 @@ function IssuesTab({ initialRepo }: { initialRepo?: string }) {
 // ---------- settings ----------
 
 function SettingsTab() {
+  const t = useT();
   const settings = useStore((s) => s.settings);
   const clis = useStore((s) => s.clis);
   const user = useStore((s) => s.user);
@@ -616,22 +618,22 @@ function SettingsTab() {
     <div className="tab-grid">
       <LanguageSettings />
       <div className="card">
-        <h3>🧠 Agents</h3>
+        <h3>🧠 {t('settings.agents')}</h3>
         {terminal && (
           <label className="field">
-            <span>Default coding agent</span>
+            <span>{t('settings.defaultCli')}</span>
             <select value={settings.defaultCli} onChange={(e) => set({ defaultCli: e.target.value as AgentCli })}>
               <CliOptions clis={clis} />
             </select>
           </label>
         )}
         <label className="field">
-          <span>Default model{terminal ? ` for ${cliName(clis, settings.defaultCli)}` : ''}</span>
+          <span>{t('settings.defaultModel')}{terminal ? ` for ${cliName(clis, settings.defaultCli)}` : ''}</span>
           <input
             key={`${settings.defaultCli}:${settings.defaultModel}`}
             list={defaultCli === 'claude' ? 'models-s' : undefined}
             defaultValue={settings.defaultModel}
-            placeholder="the agent's own default"
+            placeholder={t('settings.modelPlaceholder')}
             onBlur={(e) => e.target.value !== settings.defaultModel && set({ defaultModel: e.target.value })}
           />
           <datalist id="models-s">
@@ -641,7 +643,7 @@ function SettingsTab() {
           </datalist>
         </label>
         <label className="field">
-          <span>Default effort</span>
+          <span>{t('settings.defaultEffort')}</span>
           <select value={settings.defaultEffort} onChange={(e) => set({ defaultEffort: e.target.value as EffortLevel })}>
             {EFFORTS.map((x) => (
               <option key={x} value={x}>
@@ -656,15 +658,15 @@ function SettingsTab() {
             : 'The Agent SDK runs Claude Code. Each agent can use their own model and effort (Team tab).'}
         </p>
         <label className="field">
-          <span>Session limit</span>
-          <input type="number" min={0} placeholder="No limit" defaultValue={settings.sessionLimit || ''} onBlur={(e) => set({ sessionLimit: Number(e.target.value) || 0 })} />
+          <span>{t('settings.sessionLimit')}</span>
+          <input type="number" min={0} placeholder={t('settings.noLimit')} defaultValue={settings.sessionLimit || ''} onBlur={(e) => set({ sessionLimit: Number(e.target.value) || 0 })} />
         </label>
         <p className="muted small">
           Leave empty so every agent with work runs at once. Agents on the same coding agent share its subscription's usage limits, and each one is its own process on this PC, so set a limit if
           you hit either.
         </p>
         <label className="field">
-          <span>Sessions while pacing</span>
+          <span>{t('settings.pacingSessions')}</span>
           <input
             key={settings.pacingSessions}
             type="number"
@@ -676,7 +678,7 @@ function SettingsTab() {
         </label>
         <p className="muted small">When Claude warns that usage is getting high, new issues only start while fewer sessions than this are running. QA, fixes and the CEO carry on.</p>
         <label className="field">
-          <span>Most agents per floor</span>
+          <span>{t('settings.maxAgents')}</span>
           <input
             key={settings.maxAgents}
             type="number"
@@ -690,68 +692,68 @@ function SettingsTab() {
           />
         </label>
         <p className="muted small">At most {FLOOR_SEATS}, one per desk. Adding agents past it is refused, by hand or by the CEO.</p>
-        <h3>🧠 The CEO</h3>
-        <div role="radiogroup" aria-label="Team changes from the CEO">
+        <h3>🧠 {t('settings.ceo')}</h3>
+        <div role="radiogroup" aria-label={t('settings.teamChanges')}>
           <div className="small">
-            <b>Team changes from the CEO</b>
+            <b>{t('settings.teamChanges')}</b>
           </div>
           <label className="toggle block">
             <input type="radio" name="scaling" checked={settings.scaling === 'approve'} onChange={() => set({ scaling: 'approve' })} />
             <span>
-              <b>I approve each one</b> (recommended): new agents wait in the lobby, where you can change their coding agent, model and effort before hiring them,
+              <b>{t('settings.approve')}</b> (recommended): new agents wait in the lobby, where you can change their coding agent, model and effort before hiring them,
               and a let-go waits as an envelope on their desk.
             </span>
           </label>
           <label className="toggle block">
             <input type="radio" name="scaling" checked={settings.scaling === 'auto'} onChange={() => set({ scaling: 'auto' })} />
             <span>
-              <b>Apply straight away</b>, up to the most agents per floor. Idle agents leave first; busy ones finish their task.
+              <b>{t('settings.automatic')}</b>, up to the most agents per floor. Idle agents leave first; busy ones finish their task.
             </span>
           </label>
         </div>
         <label className="field">
-          <span>Company review every (minutes, 0 = off)</span>
+          <span>{t('settings.ceoReview')}</span>
           <input type="number" min={0} max={1440} defaultValue={settings.ceoHeartbeatMin} onBlur={(e) => set({ ceoHeartbeatMin: Number(e.target.value) })} />
         </label>
         <p className="muted small">A review checks team sizes, stuck PRs and floor profiles, and is skipped when nothing changed since the last one. It never files issues: new work only comes from you. The CEO's own model and effort are on the CEO tab.</p>
       </div>
       <div className="card">
-        <h3>⌨️ How agents run</h3>
+        <h3>⌨️ {t('settings.runtime')}</h3>
         <label className="toggle block">
           <input type="radio" checked={settings.runtime === 'terminal'} onChange={() => set({ runtime: 'terminal' })} />
           <span>
-            <b>Real terminals</b> (recommended): every agent is its actual coding agent running in its own terminal. Open a desk to watch it live or type into it.
+            <b>{t('settings.terminals')}</b> (recommended): every agent is its actual coding agent running in its own terminal. Open a desk to watch it live or type into it.
           </span>
         </label>
         <label className="toggle block">
           <input type="radio" checked={settings.runtime === 'sdk'} onChange={() => set({ runtime: 'sdk' })} />
           <span>
-            <b>Agent SDK</b>: Claude Code through the Claude Agent SDK, shown as a log of its steps. Claude Code only.
+            <b>{t('settings.sdk')}</b>: Claude Code through the Claude Agent SDK, shown as a log of its steps. Claude Code only.
           </span>
         </label>
         <p className="muted small">
           Agents work like your own coding agents in a terminal, with your skills, MCP servers and settings, and don't stop to ask. The office's workflow (branches, pull requests, QA reporting
           back) is in their instructions.
         </p>
-        <h3>🏢 Company</h3>
+        <h3>🏢 {t('settings.company')}</h3>
         <label className="field">
-          <span>Your name</span>
+          <span>{t('settings.yourName')}</span>
           <input defaultValue={settings.managerName} placeholder={user ?? 'Boss'} onBlur={(e) => e.target.value !== settings.managerName && set({ managerName: e.target.value })} />
         </label>
         <label className="field">
-          <span>Company name</span>
+          <span>{t('settings.companyName')}</span>
           <input defaultValue={settings.companyName} placeholder="cubefarm" onBlur={(e) => e.target.value !== settings.companyName && set({ companyName: e.target.value })} />
         </label>
         <label className="field">
-          <span>The office dog's name</span>
+          <span>{t('settings.dogName')}</span>
           <input key={settings.dogName} defaultValue={settings.dogName} placeholder="Biscuit" maxLength={24} onBlur={(e) => e.target.value.trim() !== settings.dogName && set({ dogName: e.target.value })} />
         </label>
         <label className="field">
-          <span>Projects folder (new projects are created here)</span>
+          <span>{t('settings.projectsDir')}</span>
           <input key={settings.projectsDir} defaultValue={settings.projectsDir} onBlur={(e) => e.target.value.trim() && e.target.value !== settings.projectsDir && set({ projectsDir: e.target.value })} />
         </label>
         <label className="field">
-          <span>Free idle desks after (minutes, 0 = never)</span>
+          <span>{t('settings.idleDesks')}</span>
           <input
             key={settings.trimIdleDesksMin}
             type="number"
@@ -764,12 +766,12 @@ function SettingsTab() {
         <p className="muted small">A desk left idle this long loses its node_modules and build output to save disk space. Its next task installs them again.</p>
         <div className="row">
           <button className="btn btn-small" onClick={() => set({ tutorialStep: 0 })}>
-            🧭 Replay the tour
+            🧭 {t('settings.tour')}
           </button>
         </div>
-        <h3>ℹ️ Environment</h3>
+        <h3>ℹ️ {t('settings.environment')}</h3>
         <div className="small">
-          cubefarm: <b>{version ?? 'unknown'}</b>
+          cubefarm: <b>{version ?? t('settings.unknown')}</b>
           {commit && (
             <>
               {' '}
@@ -777,10 +779,10 @@ function SettingsTab() {
             </>
           )}
           <br />
-          GitHub: <b>{user ?? 'not signed in'}</b>
-          {demo && ' (demo)'}
+          GitHub: <b>{user ?? t('settings.notSignedIn')}</b>
+          {demo && t('settings.demo')}
           <br />
-          Agents' machines: <code>{machinesRoot}</code>
+          {t('settings.machines')} <code>{machinesRoot}</code>
         </div>
       </div>
       <ProfileSettings />
