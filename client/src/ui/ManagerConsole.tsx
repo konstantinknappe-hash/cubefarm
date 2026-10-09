@@ -40,6 +40,7 @@ const NO_LAUNCHER = 'Start the office with npm run dev or npm start so it can in
 
 /** The office itself: the commit it runs and its own update. Hidden on servers that can't update themselves. */
 function OfficeRow({ update }: { update: OfficeUpdateView }) {
+  const t = useT();
   const commit = useStore((s) => s.officeCommit);
   const autoUpdate = useStore((s) => s.settings.autoUpdate);
   const [busy, setBusy] = useState(false);
@@ -58,7 +59,7 @@ function OfficeRow({ update }: { update: OfficeUpdateView }) {
           🏢
         </span>
         <div className="grow">
-          <b>Office</b> <span className="muted small">running {commit ? <code>{commit}</code> : 'an unknown commit'}</span>
+          <b>{t("project.office")}</b> <span className="muted small">running {commit ? <code>{commit}</code> : t("project.unknownCommit")}</span>
           <div className={`small office-state ${tone}`} role="status">
             {officeUpdateText(update)}
           </div>
@@ -71,10 +72,10 @@ function OfficeRow({ update }: { update: OfficeUpdateView }) {
               title={tip(canUpdateNow(update), 'Start nothing new, let running sessions finish, then update and restart the office')}
               onClick={() => act('now')}
             >
-              Update now
+              {t("project.updateNow")}
             </button>
             <button className="btn btn-small btn-ghost" disabled={busy || !canPostpone(update)} title={tip(canPostpone(update), 'Keep working; ask again in 2 hours or when a newer commit lands')} onClick={() => act('later')}>
-              Later
+              {t("project.later")}
             </button>
           </div>
         )}
@@ -86,7 +87,7 @@ function OfficeRow({ update }: { update: OfficeUpdateView }) {
       {!update.launcher && pending && <div className="muted small">{NO_LAUNCHER}</div>}
       {typeof autoUpdate === 'boolean' && (
         <label className="toggle" title="When an update is ready, start nothing new, let running sessions finish, then update and restart the office">
-          <input type="checkbox" checked={autoUpdate} onChange={(e) => void attempt(() => api.updateSettings({ autoUpdate: e.target.checked }))} /> Update automatically
+          <input type="checkbox" checked={autoUpdate} onChange={(e) => void attempt(() => api.updateSettings({ autoUpdate: e.target.checked }))} /> {t("project.autoUpdate")}
         </label>
       )}
     </div>
@@ -94,6 +95,7 @@ function OfficeRow({ update }: { update: OfficeUpdateView }) {
 }
 
 function FloorRow({ repo, all }: { repo: RepoView; all: RepoView[] }) {
+  const t = useT();
   const agents = useStore((s) => s.agents);
   const goToFloor = useStore((s) => s.goToFloor);
   const openOverlay = useStore((s) => s.openOverlay);
@@ -119,26 +121,26 @@ function FloorRow({ repo, all }: { repo: RepoView; all: RepoView[] }) {
             📁 <code>{repo.checkoutPath}</code>
             {officeFolder ? " · the office's own folder, updated from the Office row" : repo.folderSync && <span title={repo.folderSync}> · {repo.folderSync}</span>}{' '}
             <button className="btn btn-small btn-ghost" title="Fast-forward it to GitHub's default branch, when that's safe" onClick={() => void attempt(() => api.syncFolder(repo.id))}>
-              ⟳ Sync now
+              ⟳ {t("project.syncNow")}
             </button>
           </div>
           {repo.cloneError && <div className="term-error small">clone failed: {repo.cloneError}</div>}
           {repo.syncError && <div className="term-error small">sync failed: {repo.syncError}</div>}
         </div>
-        <input type="color" value={repo.color} onChange={(e) => patch({ color: e.target.value })} title="Floor colour" aria-label={`Floor ${repo.floor} colour`} />
+        <input type="color" value={repo.color} onChange={(e) => patch({ color: e.target.value })} title={t("project.floorColor")} aria-label={`Floor ${repo.floor} colour`} />
         <button className="btn btn-small" onClick={() => goToFloor(repo.floor)}>
-          Visit
+          {t("project.visit")}
         </button>
       </div>
       <div className="row wrap">
         <label className="toggle">
-          <input type="checkbox" checked={repo.autoAssign} onChange={(e) => patch({ autoAssign: e.target.checked })} /> ⚡ Auto-assign issues
+          <input type="checkbox" checked={repo.autoAssign} onChange={(e) => patch({ autoAssign: e.target.checked })} /> ⚡ {t("project.autoAssign")}
         </label>
         <label className="toggle" title="Merge a PR as soon as QA has signed off on its latest commit and GitHub's checks are green">
-          <input type="checkbox" checked={repo.autoMerge} onChange={(e) => patch({ autoMerge: e.target.checked })} /> 🔀 Auto-merge
+          <input type="checkbox" checked={repo.autoMerge} onChange={(e) => patch({ autoMerge: e.target.checked })} /> 🔀 {t("project.autoMerge")}
         </label>
         <label className="toggle">
-          <input type="checkbox" checked={repo.browserTesting} onChange={(e) => patch({ browserTesting: e.target.checked })} /> 🌐 Browser testing (Playwright MCP)
+          <input type="checkbox" checked={repo.browserTesting} onChange={(e) => patch({ browserTesting: e.target.checked })} /> 🌐 {t("project.browserTesting")}
         </label>
         <span className="spacer" />
         <button
@@ -152,12 +154,12 @@ function FloorRow({ repo, all }: { repo: RepoView; all: RepoView[] }) {
             }).then((ok) => ok && attempt(() => api.disconnectRepo(repo.id)));
           }}
         >
-          Disconnect
+          {t("project.disconnect")}
         </button>
       </div>
       {others.length > 0 && (
         <div className="row wrap links">
-          <span className="muted small">🔗 Agents here may read:</span>
+          <span className="muted small">🔗 {t("project.readAccess")}</span>
           {others.map((o) => (
             <label key={o.id} className="toggle small">
               <input
@@ -172,7 +174,7 @@ function FloorRow({ repo, all }: { repo: RepoView; all: RepoView[] }) {
       )}
       <details className="small preview-details">
         <summary>
-          🖥️ App preview · <PreviewPill status={repo.preview.status} />
+          🖥️ {t("project.preview")} · <PreviewPill status={repo.preview.status} />
           {repo.previewConfig.command ? (
             <>
               {' '}
@@ -184,7 +186,7 @@ function FloorRow({ repo, all }: { repo: RepoView; all: RepoView[] }) {
         </summary>
         <PreviewSettings repo={repo} />
         <button className="btn btn-small" onClick={() => openOverlay({ kind: 'app', repoId: repo.id })}>
-          Open the app viewer
+          {t("project.viewer")}
         </button>
       </details>
     </div>
@@ -192,20 +194,21 @@ function FloorRow({ repo, all }: { repo: RepoView; all: RepoView[] }) {
 }
 
 function FloorsTab() {
+  const t = useT();
   const repos = useStore((s) => s.repos);
   const officeUpdate = useStore((s) => s.officeUpdate);
   return (
     <div className="tab-grid">
       <div>
         {officeUpdate && <OfficeRow update={officeUpdate} />}
-        <h3 className="section">🏢 Floors</h3>
-        {repos.length === 0 && <p className="muted">No floors yet. Add a project →</p>}
+        <h3 className="section">🏢 {t("project.floors")}</h3>
+        {repos.length === 0 && <p className="muted">{t("project.noFloors")}</p>}
         {[...repos].sort((a, b) => a.floor - b.floor).map((r) => (
           <FloorRow key={r.id} repo={r} all={repos} />
         ))}
       </div>
       <div className="card">
-        <h3>➕ Add a project</h3>
+        <h3>➕ {t("project.addProject")}</h3>
         <ProjectPicker />
       </div>
     </div>
@@ -215,6 +218,7 @@ function FloorsTab() {
 // ---------- CEO ----------
 
 function FloorBrief({ repo }: { repo: RepoView }) {
+  const t = useT();
   const [mission, setMission] = useState(repo.mission);
   useEffect(() => setMission(repo.mission), [repo.mission]);
   return (
@@ -223,29 +227,29 @@ function FloorBrief({ repo }: { repo: RepoView }) {
         <span className="floor-badge">{repo.floor}</span>
         <div className="grow">
           <b>{repo.fullName}</b>
-          <div className="muted small">{repo.summary ? `🧠 ${repo.summary}` : 'The CEO has not studied this floor yet.'}</div>
+          <div className="muted small">{repo.summary ? `🧠 ${repo.summary}` : t("project.notStudied")}</div>
         </div>
         <button className="btn btn-small btn-ghost" onClick={() => void attempt(() => api.onboardFloor(repo.id))} title="Study the repo again and rethink the plan and the team's size">
-          Re-study
+          {t("project.restudy")}
         </button>
       </div>
-      <textarea value={mission} onChange={(e) => setMission(e.target.value)} rows={2} placeholder="Brief: what should this floor build next? The CEO turns it into issues and a team size." />
+      <textarea value={mission} onChange={(e) => setMission(e.target.value)} rows={2} placeholder={t("project.missionPlaceholder")} />
       <div className="row">
         <button className="btn btn-small" disabled={mission === repo.mission} onClick={() => void attempt(() => api.updateRepo(repo.id, { mission }))}>
-          Save brief
+          {t("project.saveBrief")}
         </button>
         <span className="spacer" />
         <button className="btn btn-small btn-good" disabled={!mission.trim()} onClick={() => void attempt(() => api.planFloor(repo.id, mission))}>
-          🧠 Ask the CEO to plan it
+          🧠 {t("project.plan")}
         </button>
       </div>
       <details className="small">
-        <summary>QA brief{repo.qaBrief ? '' : ' (none yet)'}</summary>
+        <summary>{t("project.qaBrief")}{repo.qaBrief ? "" : t("project.noneYet")}</summary>
         <textarea
           key={repo.qaBrief}
           rows={4}
           defaultValue={repo.qaBrief}
-          placeholder="What every QA pass must check on this project."
+          placeholder={t("project.qaPlaceholder")}
           onBlur={(e) => e.target.value !== repo.qaBrief && void attempt(() => api.updateRepo(repo.id, { qaBrief: e.target.value }))}
         />
       </details>
@@ -254,6 +258,7 @@ function FloorBrief({ repo }: { repo: RepoView }) {
 }
 
 function CeoTab() {
+  const t = useT();
   const ceo = useStore((s) => s.agents[CEO_ID]);
   const log = useStore((s) => s.logs[CEO_ID]) ?? [];
   const info = useStore((s) => s.ceo);
@@ -266,7 +271,7 @@ function CeoTab() {
     const el = scroller.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [log.length]);
-  if (!ceo) return <p className="muted">The corner office is empty.</p>;
+  if (!ceo) return <p className="muted">{t("ceo.empty")}</p>;
   const working = ceo.status === 'working';
   const pending = pendingRequests(requests);
   const send = (t: string) => {
@@ -291,23 +296,23 @@ function CeoTab() {
             <EffortSelect agent={ceo} style={{ width: 'auto' }} />
           </div>
           <div className="small">
-            <b>Now:</b> {working ? info.job?.label : 'free'}
+            <b>{t("ceo.now")}</b> {working ? info.job?.label : t("ceo.free")}
             {info.queue.length > 0 && (
               <>
                 {' '}
-                · <b>Up next:</b> {info.queue.map((j) => j.label).join(' → ')}
+                · <b>{t("ceo.next")}</b> {info.queue.map((j) => j.label).join(' → ')}
               </>
             )}
           </div>
           <div className="muted small">
-            {info.nextReviewAt ? `Next company review around ${new Date(info.nextReviewAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} (skipped if nothing changed).` : 'Periodic reviews are off (Settings).'}
+            {info.nextReviewAt ? t("ceo.nextReview").replace("{time}", new Date(info.nextReviewAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })) : t("ceo.reviewsOff")}
           </div>
           <PromptPreview agent={ceo} />
           {ceo.terminal ? (
             <LiveTerminal agentId={ceo.id} className="ceo-term" />
           ) : (
             <div className="term ceo-term" ref={scroller}>
-              {log.length === 0 && <div className="term-line term-system">(nothing yet)</div>}
+              {log.length === 0 && <div className="term-line term-system">{t("ceo.nothing")}</div>}
               {log.map((l) => (
                 <div key={l.id} className={`term-line term-${l.kind}`}>
                   {l.text || ' '}
@@ -322,43 +327,43 @@ function CeoTab() {
               send(text);
             }}
           >
-            <input value={text} onChange={(e) => setText(e.target.value)} placeholder={`Message ${ceo.name} (or press P anywhere for your phone)…`} />
+            <input value={text} onChange={(e) => setText(e.target.value)} placeholder={t("ceo.message").replace("{name}", ceo.name)} />
             <MicButton kind="console" value={text} onChange={setText} onSend={send} />
             <button className="btn" disabled={!text.trim()}>
-              Send
+              {t("ceo.send")}
             </button>
           </form>
           <div className="row">
             {working && (
               <button className="btn btn-small btn-bad" onClick={() => void attempt(() => api.stop(ceo.id))}>
-                ■ Stop
+                {t("ceo.stop")}
               </button>
             )}
             <button className="btn btn-small" disabled={repos.length === 0} onClick={() => void attempt(() => api.ceoReview())}>
-              🔎 Review the company now
+              {t("ceo.review")}
             </button>
             <button className="btn btn-small" onClick={() => openOverlay({ kind: 'phone', tab: 'chat' })}>
-              📱 Open the phone
+              {t("ceo.phone")}
             </button>
           </div>
         </div>
       </div>
       <div>
-        <h3 className="section">📄 Team changes {pending.length > 0 && <span className="badge">{pending.length}</span>}</h3>
-        {pending.length === 0 && <p className="muted small">None waiting. The CEO grows or shrinks a floor's team when its work calls for it (Settings → Team changes from the CEO).</p>}
+        <h3 className="section">📄 {t("ceo.team")} {pending.length > 0 && <span className="badge">{pending.length}</span>}</h3>
+        {pending.length === 0 && <p className="muted small">{t("ceo.noRequests")}</p>}
         {pending.map((r) => (
           <Resume key={r.id} req={r} />
         ))}
         {decided.length > 0 && (
           <details className="small" style={{ marginBottom: 12 }}>
-            <summary>Recent decisions</summary>
+            <summary>{t("ceo.decisions")}</summary>
             {decided.map((r) => (
               <Resume key={r.id} req={r} />
             ))}
           </details>
         )}
-        <h3 className="section">🗺️ Project briefs</h3>
-        {repos.length === 0 && <p className="muted small">Connect a repo first.</p>}
+        <h3 className="section">🗺️ {t("ceo.projects")}</h3>
+        {repos.length === 0 && <p className="muted small">{t("ceo.connect")}</p>}
         {[...repos].sort((a, b) => a.floor - b.floor).map((r) => (
           <FloorBrief key={r.id} repo={r} />
         ))}
@@ -380,6 +385,7 @@ const NO_SETUP: NewAgent = { name: '', cli: '', model: '', effort: '' };
 
 /** A floor's "+ Agent": an optional name and their coding agent, model and effort ('' = the office's defaults). */
 function AddAgent({ repo, size }: { repo: RepoView; size: number }) {
+  const t = useT();
   const settings = useStore((s) => s.settings);
   const clis = useStore((s) => s.clis);
   const [draft, setDraft] = useState<NewAgent>(NO_SETUP);
@@ -397,30 +403,30 @@ function AddAgent({ repo, size }: { repo: RepoView; size: number }) {
   };
   return (
     <div className="row wrap">
-      <input value={draft.name} onChange={(e) => edit({ name: e.target.value })} placeholder="Name (optional)" maxLength={24} aria-label={`New agent's name on floor ${repo.floor}`} style={{ maxWidth: 150 }} />
+      <input value={draft.name} onChange={(e) => edit({ name: e.target.value })} placeholder={t("team.nameOptional")} maxLength={24} aria-label={`${t("team.newName")} ${repo.floor}`} style={{ maxWidth: 150 }} />
       {terminal && (
-        <select value={draft.cli} onChange={(e) => edit({ cli: e.target.value as AgentCli | '' })} aria-label="New agent's coding agent" style={{ width: 'auto' }}>
-          <option value="">{cliName(clis, settings.defaultCli)} (default)</option>
+        <select value={draft.cli} onChange={(e) => edit({ cli: e.target.value as AgentCli | '' })} aria-label={t("team.newCli")} style={{ width: 'auto' }}>
+          <option value="">{cliName(clis, settings.defaultCli)} ({t("team.default")})</option>
           <CliOptions clis={clis} />
         </select>
       )}
-      <input value={draft.model} onChange={(e) => edit({ model: e.target.value })} list={`new-agent-models-${repo.floor}`} placeholder="default model" aria-label="New agent's model" style={{ maxWidth: 150 }} />
+      <input value={draft.model} onChange={(e) => edit({ model: e.target.value })} list={`new-agent-models-${repo.floor}`} placeholder={t("team.defaultModel")} aria-label={t("team.newModel")} style={{ maxWidth: 150 }} />
       <datalist id={`new-agent-models-${repo.floor}`}>
         {modelSuggestions(cli).map((m) => (
           <option key={m} value={m} />
         ))}
       </datalist>
-      <select value={draft.effort} onChange={(e) => edit({ effort: e.target.value as EffortLevel | '' })} aria-label="New agent's effort" style={{ width: 'auto' }}>
-        <option value="">default effort ({settings.defaultEffort})</option>
+      <select value={draft.effort} onChange={(e) => edit({ effort: e.target.value as EffortLevel | '' })} aria-label={t("team.newEffort")} style={{ width: 'auto' }}>
+        <option value="">{t("team.defaultEffort")} ({settings.defaultEffort})</option>
         {EFFORTS.map((x) => (
           <option key={x} value={x}>
             {x}
           </option>
         ))}
       </select>
-      <span title={full ? `Floor ${repo.floor} has its most agents (${settings.maxAgents}): change it in Settings → Most agents per floor` : undefined}>
+      <span title={full ? t("team.floorFull").replace("{floor}", String(repo.floor)).replace("{max}", String(settings.maxAgents)) : undefined}>
         <button className="btn btn-small btn-good" disabled={busy || full} onClick={add}>
-          + Agent
+          {t("team.add")}
         </button>
       </span>
     </div>
@@ -428,13 +434,14 @@ function AddAgent({ repo, size }: { repo: RepoView; size: number }) {
 }
 
 function TeamTab() {
+  const t = useT();
   const repos = useStore((s) => s.repos);
   const agents = useStore((s) => s.agents);
   const settings = useStore((s) => s.settings);
   const openOverlay = useStore((s) => s.openOverlay);
   const terminal = settings.runtime === 'terminal';
   const [openLook, setOpenLook] = useState<string | null>(null);
-  if (repos.length === 0) return <p className="muted">Connect a repo first; agents need a floor to sit on.</p>;
+  if (repos.length === 0) return <p className="muted">{t("team.noRepo")}</p>;
   return (
     <div>
       <TeamStats />
@@ -446,11 +453,11 @@ function TeamTab() {
               <span className="floor-badge">{repo.floor}</span>
               <b className="grow">{repo.fullName}</b>
               <span className="muted small">
-                {team.length} of {settings.maxAgents} agents
+                {t("team.agentCount").replace("{count}", String(team.length)).replace("{max}", String(settings.maxAgents))}
               </span>
             </div>
             <AddAgent repo={repo} size={team.length} />
-            {team.length === 0 && <div className="muted small">No one works here yet.</div>}
+            {team.length === 0 && <div className="muted small">{t("team.empty")}</div>}
             <table className="team">
               <tbody>
                 {team.map((a) => (
@@ -463,14 +470,14 @@ function TeamTab() {
                       <NameInput agent={a} />
                     </td>
                     <td>
-                      <button className="btn btn-small btn-ghost" aria-expanded={openLook === a.id} title={`${a.name}'s look`} onClick={() => setOpenLook(openLook === a.id ? null : a.id)}>
+                      <button className="btn btn-small btn-ghost" aria-expanded={openLook === a.id} title={t("team.appearance").replace("{name}", a.name)} onClick={() => setOpenLook(openLook === a.id ? null : a.id)}>
                         🎨
                       </button>
                     </td>
                     <td>
                       <StatusPill status={a.status} />
                     </td>
-                    <td className="small">{a.status === 'idle' ? <span className="muted">—</span> : a.task === 'qa' ? `testing PR #${a.prNumber}` : a.task === 'fix' ? `fixing PR #${a.prNumber}` : `#${a.issueNumber ?? ''} ${a.issueTitle ?? ''}`.slice(0, 40)}</td>
+                    <td className="small">{a.status === 'idle' ? <span className="muted">—</span> : a.task === 'qa' ? t("team.testing").replace("{number}", String(a.prNumber)) : a.task === 'fix' ? t("team.fixing").replace("{number}", String(a.prNumber)) : `#${a.issueNumber ?? ''} ${a.issueTitle ?? ''}`.slice(0, 40)}</td>
                     {terminal && (
                       <td>
                         <CliSelect agent={a} style={{ width: 112 }} />
@@ -484,17 +491,17 @@ function TeamTab() {
                     </td>
                     <td className="nowrap">
                       <button className="btn btn-small" onClick={() => openOverlay({ kind: 'terminal', agentId: a.id })}>
-                        Terminal
+                        {t("team.terminal")}
                       </button>{' '}
                       <button
                         className="btn btn-small btn-ghost"
                         onClick={() =>
-                          void confirmDialog({ tone: 'danger', icon: '👋', title: `Let ${a.name} go?`, body: 'Their worktree is removed. Branches they pushed stay on GitHub.', confirm: `Let ${a.name} go` }).then(
+                          void confirmDialog({ tone: 'danger', icon: '👋', title: t("team.letGoTitle").replace("{name}", a.name), body: t("team.letGoBody"), confirm: t("team.letGoConfirm").replace("{name}", a.name) }).then(
                             (ok) => ok && attempt(() => api.fireAgent(a.id)),
                           )
                         }
                       >
-                        Let go
+                        {t("team.letGo")}
                       </button>
                     </td>
                   </tr>
@@ -503,7 +510,7 @@ function TeamTab() {
                       <td />
                       <td colSpan={terminal ? 8 : 7}>
                         <label className="row small">
-                          <span>Drawn as</span>
+                          <span>{t("team.drawnAs")}</span>
                           <LookSelect agent={a} />
                         </label>
                         <LookEditor agent={a} />
@@ -524,29 +531,30 @@ function TeamTab() {
 // ---------- issues ----------
 
 function IssuesTab({ initialRepo }: { initialRepo?: string }) {
+  const t = useT();
   const repos = useStore((s) => s.repos);
   const allAgents = useStore((s) => s.agents);
   const [repoId, setRepoId] = useState(initialRepo ?? repos[0]?.id ?? '');
   const repo = repos.find((r) => r.id === repoId);
   const agents = useMemo(() => agentsOnRepo(allAgents, repoId), [allAgents, repoId]);
-  if (repos.length === 0) return <p className="muted">Connect a repo first.</p>;
+  if (repos.length === 0) return <p className="muted">{t("issues.connect")}</p>;
   return (
     <div className="tab-grid">
       <div className="card">
-        <h3>📝 File a new issue</h3>
-        <select value={repoId} onChange={(e) => setRepoId(e.target.value)} aria-label="Floor">
+        <h3>📝 {t("issues.newIssue")}</h3>
+        <select value={repoId} onChange={(e) => setRepoId(e.target.value)} aria-label={t("issues.floor")}>
           {repos.map((r) => (
             <option key={r.id} value={r.id}>
-              Floor {r.floor} · {r.fullName}
+              {t("issues.floor")} {r.floor} · {r.fullName}
             </option>
           ))}
         </select>
         {repo && <IssueForm key={repo.id} repoId={repo.id} agents={agents} />}
       </div>
       <div className="card">
-        <h3>Open issues on {repo?.fullName}</h3>
+        <h3>{t("issues.openIssues").replace("{repo}", repo?.fullName ?? "")}</h3>
         <div className="repo-list tall">
-          {repo?.issues.length === 0 && <div className="muted small">None. Nice.</div>}
+          {repo?.issues.length === 0 && <div className="muted small">{t("issues.none")}</div>}
           {repo?.issues.map((i) => {
             const holder = agents.find((a) => a.role !== 'ceo' && a.task !== 'qa' && a.issueNumber === i.number && a.status !== 'idle');
             return (
@@ -565,8 +573,8 @@ function IssuesTab({ initialRepo }: { initialRepo?: string }) {
                       {holder.name}
                     </span>
                   ) : (
-                    <select value="" onChange={(e) => e.target.value && void attempt(() => api.assign(e.target.value, i.number))} aria-label={`Assign issue #${i.number}`}>
-                      <option value="">Assign…</option>
+                    <select value="" onChange={(e) => e.target.value && void attempt(() => api.assign(e.target.value, i.number))} aria-label={t("issues.assignLabel").replace("{number}", String(i.number))}>
+                      <option value="">{t("issues.assign")}</option>
                       {agents
                         .filter((a) => a.role !== 'ceo' && a.status !== 'working' && a.status !== 'preparing')
                         .map((a) => (
@@ -578,17 +586,21 @@ function IssuesTab({ initialRepo }: { initialRepo?: string }) {
                   )}
                   <button
                     className="btn btn-small btn-ghost"
-                    title="Close it on GitHub as not planned"
+                    title={t("issues.closeTip")}
                     onClick={() =>
                       void confirmDialog({
                         tone: 'danger',
-                        title: `Close #${i.number}?`,
-                        body: `“${i.title}” will be closed on GitHub as not planned${holder ? `, and ${holder.name} stops working on it` : ''}.`,
-                        confirm: 'Close issue',
+                        title: t("issues.closeTitle").replace("{number}", String(i.number)),
+                        body: t("issues.closeBody")
+                          .replace("{title}", i.title)
+                          .replace("{suffix}", holder
+                            ? t("issues.stopSuffix").replace("{name}", holder.name)
+                            : ""),
+                        confirm: t("issues.closeIssue"),
                       }).then((ok) => ok && attempt(() => api.closeIssue(repo.id, i.number)))
                     }
                   >
-                    Close
+                    {t("issues.close")}
                   </button>
                 </span>
               </div>
@@ -628,7 +640,7 @@ function SettingsTab() {
           </label>
         )}
         <label className="field">
-          <span>{t('settings.defaultModel')}{terminal ? ` for ${cliName(clis, settings.defaultCli)}` : ''}</span>
+          <span>{t('settings.defaultModel')}{terminal ? `${t('settings.modelFor')}${cliName(clis, settings.defaultCli)}` : ''}</span>
           <input
             key={`${settings.defaultCli}:${settings.defaultModel}`}
             list={defaultCli === 'claude' ? 'models-s' : undefined}
@@ -654,16 +666,15 @@ function SettingsTab() {
         </label>
         <p className="muted small">
           {terminal
-            ? 'Each agent can use their own coding agent, model and effort (Team tab); the CEO always runs Claude Code. Claude Code reports every step; Codex and OpenCode are experimental: the office sees their task rather than each step.'
-            : 'The Agent SDK runs Claude Code. Each agent can use their own model and effort (Team tab).'}
+            ? t('settings.terminalInfo')
+            : t('settings.sdkInfo')}
         </p>
         <label className="field">
           <span>{t('settings.sessionLimit')}</span>
           <input type="number" min={0} placeholder={t('settings.noLimit')} defaultValue={settings.sessionLimit || ''} onBlur={(e) => set({ sessionLimit: Number(e.target.value) || 0 })} />
         </label>
         <p className="muted small">
-          Leave empty so every agent with work runs at once. Agents on the same coding agent share its subscription's usage limits, and each one is its own process on this PC, so set a limit if
-          you hit either.
+          {t('settings.sessionInfo')}
         </p>
         <label className="field">
           <span>{t('settings.pacingSessions')}</span>
@@ -676,7 +687,7 @@ function SettingsTab() {
             onBlur={(e) => Number(e.target.value) !== settings.pacingSessions && set({ pacingSessions: Number(e.target.value) || 3 })}
           />
         </label>
-        <p className="muted small">When Claude warns that usage is getting high, new issues only start while fewer sessions than this are running. QA, fixes and the CEO carry on.</p>
+        <p className="muted small">{t('settings.pacingInfo')}</p>
         <label className="field">
           <span>{t('settings.maxAgents')}</span>
           <input
@@ -691,7 +702,7 @@ function SettingsTab() {
             }}
           />
         </label>
-        <p className="muted small">At most {FLOOR_SEATS}, one per desk. Adding agents past it is refused, by hand or by the CEO.</p>
+        <p className="muted small">{t('settings.floorInfo').replace('{FLOOR_SEATS}', String(FLOOR_SEATS))}</p>
         <h3>🧠 {t('settings.ceo')}</h3>
         <div role="radiogroup" aria-label={t('settings.teamChanges')}>
           <div className="small">
@@ -700,14 +711,13 @@ function SettingsTab() {
           <label className="toggle block">
             <input type="radio" name="scaling" checked={settings.scaling === 'approve'} onChange={() => set({ scaling: 'approve' })} />
             <span>
-              <b>{t('settings.approve')}</b> (recommended): new agents wait in the lobby, where you can change their coding agent, model and effort before hiring them,
-              and a let-go waits as an envelope on their desk.
+              <b>{t('settings.approve')}</b>{t('settings.approveInfo')}
             </span>
           </label>
           <label className="toggle block">
             <input type="radio" name="scaling" checked={settings.scaling === 'auto'} onChange={() => set({ scaling: 'auto' })} />
             <span>
-              <b>{t('settings.automatic')}</b>, up to the most agents per floor. Idle agents leave first; busy ones finish their task.
+              <b>{t('settings.automatic')}</b>{t('settings.autoInfo')}
             </span>
           </label>
         </div>
@@ -715,25 +725,24 @@ function SettingsTab() {
           <span>{t('settings.ceoReview')}</span>
           <input type="number" min={0} max={1440} defaultValue={settings.ceoHeartbeatMin} onBlur={(e) => set({ ceoHeartbeatMin: Number(e.target.value) })} />
         </label>
-        <p className="muted small">A review checks team sizes, stuck PRs and floor profiles, and is skipped when nothing changed since the last one. It never files issues: new work only comes from you. The CEO's own model and effort are on the CEO tab.</p>
+        <p className="muted small">{t('settings.reviewInfo')}</p>
       </div>
       <div className="card">
         <h3>⌨️ {t('settings.runtime')}</h3>
         <label className="toggle block">
           <input type="radio" checked={settings.runtime === 'terminal'} onChange={() => set({ runtime: 'terminal' })} />
           <span>
-            <b>{t('settings.terminals')}</b> (recommended): every agent is its actual coding agent running in its own terminal. Open a desk to watch it live or type into it.
+            <b>{t('settings.terminals')}</b> {t('settings.terminalModeInfo')}
           </span>
         </label>
         <label className="toggle block">
           <input type="radio" checked={settings.runtime === 'sdk'} onChange={() => set({ runtime: 'sdk' })} />
           <span>
-            <b>{t('settings.sdk')}</b>: Claude Code through the Claude Agent SDK, shown as a log of its steps. Claude Code only.
+            <b>{t('settings.sdk')}</b>{t('settings.sdkModeInfo')}
           </span>
         </label>
         <p className="muted small">
-          Agents work like your own coding agents in a terminal, with your skills, MCP servers and settings, and don't stop to ask. The office's workflow (branches, pull requests, QA reporting
-          back) is in their instructions.
+          {t('settings.runtimeInfo')}
         </p>
         <h3>🏢 {t('settings.company')}</h3>
         <label className="field">
@@ -763,7 +772,7 @@ function SettingsTab() {
             onBlur={(e) => e.target.value !== '' && Number(e.target.value) !== settings.trimIdleDesksMin && set({ trimIdleDesksMin: Number(e.target.value) })}
           />
         </label>
-        <p className="muted small">A desk left idle this long loses its node_modules and build output to save disk space. Its next task installs them again.</p>
+        <p className="muted small">{t('settings.idleInfo')}</p>
         <div className="row">
           <button className="btn btn-small" onClick={() => set({ tutorialStep: 0 })}>
             🧭 {t('settings.tour')}
