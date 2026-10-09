@@ -4,6 +4,7 @@ import { connect } from './net';
 import { registerServiceWorker } from './pwa';
 import { useStore } from './store';
 import './ui/a11y';
+import './i18n';
 import './styles.css';
 
 connect();

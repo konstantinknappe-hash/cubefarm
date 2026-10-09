@@ -46,7 +46,7 @@ export const test = base.extend<{ page: Page }>({
  * load is still fetching, which the fixture counts as failed requests).
  */
 export async function enterOffice(page: Page, { loaded = false } = {}) {
-  if (!loaded) await page.goto('/');
+  if (!loaded) await page.goto('/?lang=en');
   const enter = page.getByRole('button', { name: 'Enter the office' });
   const skipSetup = page.getByRole('button', { name: /skip setup/i });
   await expect(enter.or(skipSetup)).toBeVisible();

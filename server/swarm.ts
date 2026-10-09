@@ -1,3 +1,4 @@
+import { createI18n, isLanguage } from '../shared/i18n/index.ts';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import crypto from 'node:crypto';
@@ -453,6 +454,7 @@ export { HttpError };
 export class Swarm {
   private state: Persisted = {
     settings: {
+      language: 'de',
       sessionLimit: 0,
       defaultModel: DEFAULT_MODEL,
       defaultEffort: 'medium',
@@ -669,6 +671,7 @@ export class Swarm {
         pong: loaded.pong && typeof loaded.pong === 'object' ? loaded.pong : {},
       };
       for (const m of this.state.messages) this.messageSeq = Math.max(this.messageSeq, m.id + 1);
+      if (!isLanguage(this.state.settings.language)) this.state.settings.language = 'de';
       if (!EFFORTS.includes(this.state.settings.defaultEffort)) this.state.settings.defaultEffort = 'medium';
       if (this.state.settings.runtime !== 'sdk') this.state.settings.runtime = 'terminal';
       if (!isCli(this.state.settings.defaultCli)) this.state.settings.defaultCli = 'claude';
@@ -3180,6 +3183,8 @@ export class Swarm {
 
   updateSettings(patch: Partial<SwarmSettings>) {
     const s = this.state.settings;
+    if ('language' in patch && !isLanguage(patch.language)) throw new HttpError(400, createI18n(s.language).t('core.settings.invalidLanguage'));
+    if (patch.language !== undefined) s.language = patch.language;
     if (patch.sessionLimit !== undefined) s.sessionLimit = Math.max(0, Math.round(Number(patch.sessionLimit)) || 0);
     // The default model belongs to the default coding agent: a new agent starts on its own default.
     if (isCli(patch.defaultCli) && patch.defaultCli !== s.defaultCli) {

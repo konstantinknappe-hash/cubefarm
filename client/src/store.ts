@@ -206,6 +206,7 @@ export const useStore = create<State>((set, get) => ({
   machinesRoot: '',
   // Until the server's snapshot arrives; setupDone stays true so the wizard doesn't flash while loading.
   settings: {
+    language: 'de',
     sessionLimit: 0,
     defaultModel: 'claude-opus-5-5',
     defaultEffort: 'medium',
