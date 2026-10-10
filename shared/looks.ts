@@ -5,7 +5,7 @@
 export const HAIR_STYLES = ['crop', 'long', 'ponytail', 'bun', 'quiff', 'afro', 'sidePart', 'buzz', 'bald', 'curls', 'bob', 'mohawk', 'locs'] as const;
 export const FACIAL_HAIR = ['none', 'stubble', 'beard', 'moustache'] as const;
 export const GLASSES = ['none', 'round', 'square'] as const;
-export const HEADWEAR = ['none', 'beanie', 'cap'] as const;
+export const HEADWEAR = ['none', 'beanie', 'cap', 'propeller'] as const;
 export const OUTFITS = ['tee', 'hoodie', 'stripe', 'sweater', 'cardigan', 'turtleneck'] as const;
 export const BUILDS = ['slim', 'average', 'broad'] as const;
 

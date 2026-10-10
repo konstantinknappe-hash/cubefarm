@@ -224,6 +224,8 @@ function headphoneGeometry() {
 function headwearGeometry(kind: Headwear): THREE.BufferGeometry | null {
   switch (kind) {
     case 'none':
+    case 'propeller':
+      // the propeller cap is several colours and a spinning part: PARTS.propellerCap, drawn by Figure.tsx
       return null;
     case 'beanie': {
       // dome + turned-up cuff + pom-pom, tipped back a little
@@ -247,6 +249,19 @@ function headwearGeometry(kind: Headwear): THREE.BufferGeometry | null {
       );
     }
   }
+}
+
+/** Cap-space (Figure.tsx tips it onto the head): four coloured quarters of a dome, the stem and the two blades. */
+export const PROPELLER_TOP = 0.276;
+function propellerCapGeometry() {
+  const r = 0.224;
+  const t = 1.35;
+  return {
+    quarters: [0, 1, 2, 3].map((i) => new THREE.SphereGeometry(r, 8, 12, (i * Math.PI) / 2, Math.PI / 2, 0, t)),
+    stem: merge(xf(new THREE.CylinderGeometry(0.012, 0.016, 0.05, 8), { at: [0, r + 0.022, 0] }), xf(sphere(0.022, 10, 8), { at: [0, PROPELLER_TOP, 0] })),
+    // centred on the hub, so turning their group spins them in place
+    blades: merge(...[-1, 1].map((s) => xf(box(0.12, 0.008, 0.042), { at: [s * 0.075, 0, 0], rot: [s * 0.35, 0, 0] }))),
+  };
 }
 
 /** Torso-space extras for the outfits (the plain tee needs nothing but the collar). */
@@ -521,5 +536,6 @@ export const PARTS = {
   glasses: build(GLASSES, (k) => glassesGeometry(k)),
   headphones: headphoneGeometry(),
   headwear: build(HEADWEAR, headwearGeometry),
+  propellerCap: propellerCapGeometry(),
   outfit: build(OUTFITS, outfitGeometry),
 };

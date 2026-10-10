@@ -2,7 +2,7 @@ import { Fragment, useEffect, useId, useMemo, useState, type CSSProperties } fro
 import { api } from '../api';
 import { isBusy, useStore, type Agent } from '../store';
 import type { AgentCli, AgentPromptView, CliView, EffortLevel } from '../../../shared/types';
-import { ACCENT_COLORS, BUILDS, FACIAL_HAIR, GLASSES, HAIR_COLORS, HAIR_STYLES, HEADWEAR, OUTFITS, SKIN_TONES, type AgentStyle, type HairStyle, type Outfit } from '../../../shared/looks';
+import { ACCENT_COLORS, BUILDS, FACIAL_HAIR, GLASSES, HAIR_COLORS, HAIR_STYLES, HEADWEAR, OUTFITS, SKIN_TONES, type AgentStyle, type HairStyle, type Headwear, type Outfit } from '../../../shared/looks';
 import { CLAUDE_MODELS, effectiveModel, effortsFor, fitEffort } from '../../../shared/models';
 import { EffortOptions, ModelNotice, ModelOptions, useModelProblem, useModels } from './ModelPicker';
 import { TALL_HAIR, appearanceFor, randomStyle } from '../world/appearance';
@@ -202,6 +202,9 @@ export function LookEditor({ agent }: { agent: Agent }) {
     tee: t('agent.outfit.tee'), hoodie: t('agent.outfit.hoodie'), stripe: t('agent.outfit.stripe'),
     sweater: t('agent.outfit.sweater'), cardigan: t('agent.outfit.cardigan'), turtleneck: t('agent.outfit.turtleneck'),
   };
+  const headwearLabel: Record<Headwear, string> = {
+    none: t('agent.headwear.none'), beanie: t('agent.headwear.beanie'), cap: t('agent.headwear.cap'), propeller: t('agent.headwear.propeller'),
+  };
   const look = useMemo(() => appearanceFor(agent), [agent]);
   const pick = (patch: AgentStyle) => void save(agent.id, { style: { ...agent.style, ...patch } });
   const tall = TALL_HAIR.includes(look.hair);
@@ -218,6 +221,7 @@ export function LookEditor({ agent }: { agent: Agent }) {
             label={t('agent.headwear')}
             value={look.headwear}
             options={HEADWEAR}
+            labels={headwearLabel}
             disabled={tall}
             title={tall ? t('agent.hatFit').replace('{hair}', hairLabel[look.hair].toLowerCase()) : undefined}
             onPick={(headwear) => pick({ headwear })}
