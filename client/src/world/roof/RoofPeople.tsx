@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
+import { t } from '../../i18n';
 import { useStore, type Agent } from '../../store';
 import { ding } from '../../ui/sfx';
 import { smooth, type Gesture } from '../body';
@@ -117,7 +118,7 @@ export function RoofPeople() {
   useRoofOp('visit', (arg) => {
     const [id, secs] = arg.split(':');
     const ok = comeUp(useStore.getState().agents[id], secs ? Number(secs) : undefined);
-    if (!ok) useStore.getState().pushToast('info', '🛗 No room on the roof for them just now (or they are busy)');
+    if (!ok) useStore.getState().pushToast('info', t('world.roof.noRoom'));
   });
   useRoofReport('visitors', () =>
     [...walkers.values()].map((w) => ({ id: w.id, name: useStore.getState().agents[w.id]?.name ?? w.id, kind: w.kind, chair: w.chair, stage: w.stage, seated: bodyState(w.id)?.stage === 'seated' })),

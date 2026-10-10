@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { t as tr } from '../../i18n';
 import { GameCanvas, GameHeader, PadButton, arrowOf, isStartKey, useGameKeys, useOnAway, type Arrow } from './kit';
 import { FLOOR, INK, MUTED, burst, card, drawParticles, eyes, messageCard, popText, shade, text, toonBlock, type Particle } from './paint';
 import { randomSeed } from './rng';
@@ -25,7 +26,7 @@ type Status = 'ready' | 'playing' | 'paused' | 'over';
 let saved: SnakeState | null = null;
 export const snakeInProgress = () => saved !== null;
 
-const ENDS: Record<SnakeEnd, string> = { wall: 'Unplugged!', self: 'Tangled up!', desk: 'Desk crash!', won: 'Office wired! 🎉' };
+const ENDS: Record<SnakeEnd, string> = { wall: 'ui.snake.wall', self: 'ui.snake.self', desk: 'ui.snake.desk', won: 'ui.snake.won' };
 const ANGLE: Record<Arrow, number> = { right: 0, down: Math.PI / 2, left: Math.PI, up: -Math.PI / 2 };
 const LOOK: Record<Arrow, [number, number]> = { right: [1, 0], down: [0, 1], left: [-1, 0], up: [0, -1] };
 
@@ -152,7 +153,7 @@ export function Snake({ onBack }: { onBack: () => void }) {
     card(ctx, GX, 4, 96, 26, '#ffffff', 9);
     text(ctx, `🐛 ${g.eaten} eaten`, GX + 48, 17, 12, INK, 700);
     card(ctx, W / 2 - 50, 4, 100, 26, '#ffffff', 9);
-    text(ctx, `SCORE ${g.score}`, W / 2, 17, 12, INK, 700);
+    text(ctx, `${tr('ui.games.scoreCaps')} ${g.score}`, W / 2, 17, 12, INK, 700);
     card(ctx, W - GX - 96, 4, 96, 26, '#ffffff', 9);
     const best = Math.max(s.best, g.score);
     text(ctx, `BEST ${best}`, W - GX - 48, 17, 12, g.score > s.best ? '#e05a2b' : MUTED, 700);
@@ -191,9 +192,9 @@ export function Snake({ onBack }: { onBack: () => void }) {
 
     drawParticles(ctx, s.particles, dt);
 
-    if (s.status === 'ready') messageCard(ctx, W, H, 'Cable Snake', ['Eat bugs 🐛, sip coffee ☕', 'Dodge desks, walls & yourself', 'Arrows, swipe or tap to start'], SNAKE_COLOR);
-    else if (s.status === 'paused') messageCard(ctx, W, H, 'Coffee break ☕', [`Score ${g.score}`, 'Space or tap to resume'], SNAKE_COLOR);
-    else if (s.status === 'over') messageCard(ctx, W, H, ENDS[g.over ?? 'self'], [`Score ${g.score} · ${g.body.length} long`, s.newBest ? '🏆 New best!' : `Best ${s.best}`, 'Space or tap to play again'], g.over === 'won' ? '#8fd14f' : '#f25f5c');
+    if (s.status === 'ready') messageCard(ctx, W, H, tr('ui.games.snake'), [tr('ui.snake.intro1'), tr('ui.snake.intro2'), tr('ui.snake.intro3')], SNAKE_COLOR);
+    else if (s.status === 'paused') messageCard(ctx, W, H, tr('ui.games.coffeeBreak'), [tr('ui.games.score', { n: g.score }), tr('ui.games.tapResume')], SNAKE_COLOR);
+    else if (s.status === 'over') messageCard(ctx, W, H, tr(ENDS[g.over ?? 'self']), [tr('ui.snake.scoreLong', { n: g.score, len: g.body.length }), s.newBest ? tr('ui.games.newBest') : tr('ui.games.best', { n: s.best }), tr('ui.games.tapAgain')], g.over === 'won' ? '#8fd14f' : '#f25f5c');
   };
 
   const pad = (d: Arrow, glyph: string, label: string) => (
@@ -203,23 +204,23 @@ export function Snake({ onBack }: { onBack: () => void }) {
   );
   return (
     <div className="game">
-      <GameHeader title="Cable Snake" color={SNAKE_COLOR} onBack={onBack}>
-        <button type="button" className="game-mini" tabIndex={-1} onPointerDown={(e) => e.preventDefault()} onClick={() => (status === 'playing' ? pause() : start())} title={status === 'playing' ? 'Pause (Space)' : 'Play (Space)'}>
+      <GameHeader title={tr('ui.games.snake')} color={SNAKE_COLOR} onBack={onBack}>
+        <button type="button" className="game-mini" tabIndex={-1} onPointerDown={(e) => e.preventDefault()} onClick={() => (status === 'playing' ? pause() : start())} title={status === 'playing' ? tr('ui.games.pauseKey', { key: 'Space' }) : tr('ui.games.playKey', { key: 'Space' })}>
           {status === 'playing' ? '⏸' : '▶'}
         </button>
       </GameHeader>
-      <GameCanvas width={W} height={H} frame={frame} label="Cable Snake board" onPointer={onPointer} />
+      <GameCanvas width={W} height={H} frame={frame} label={tr('ui.games.board', { game: tr('ui.games.snake') })} onPointer={onPointer} />
       <div className="game-dpad">
-        {pad('up', '▲', 'Up')}
-        {pad('left', '◀', 'Left')}
-        {pad('right', '▶', 'Right')}
-        {pad('down', '▼', 'Down')}
+        {pad('up', '▲', tr('ui.snake.up'))}
+        {pad('left', '◀', tr('ui.snake.left'))}
+        {pad('right', '▶', tr('ui.snake.right'))}
+        {pad('down', '▼', tr('ui.snake.down'))}
       </div>
       <div className="game-keys">
         <kbd>←</kbd>
         <kbd>↑</kbd>
         <kbd>→</kbd>
-        <kbd>↓</kbd> or <kbd>WASD</kbd> steer · swipe on the board · <kbd>Space</kbd> pause
+        <kbd>↓</kbd> {tr('ui.snake.or')} <kbd>WASD</kbd> {tr('ui.snake.steer')} · {tr('ui.snake.swipe')} · <kbd>Space</kbd> {tr('ui.games.kPause')}
       </div>
     </div>
   );

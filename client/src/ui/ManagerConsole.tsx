@@ -1,4 +1,4 @@
-import { useT } from '../i18n';
+import { formatTime, t as tr, useT } from '../i18n';
 import { LanguageSettings } from '../i18n/LanguageSettings';
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { TeamStats } from './CareerCard';
@@ -36,7 +36,7 @@ async function attempt<T>(fn: () => Promise<T>): Promise<T | undefined> {
 
 // ---------- floors ----------
 
-const NO_LAUNCHER = 'Start the office with npm run dev or npm start so it can install updates and restart itself.';
+const noLauncher = () => tr('ui.console.noLauncher');
 
 /** The office itself: the commit it runs and its own update. Hidden on servers that can't update themselves. */
 function OfficeRow({ update }: { update: OfficeUpdateView }) {
@@ -51,7 +51,7 @@ function OfficeRow({ update }: { update: OfficeUpdateView }) {
   const deadline = drainDeadline(update);
   const pending = update.state !== 'none';
   const tone = update.state === 'failed' ? 'office-state-bad' : update.state === 'none' ? 'office-state-ok' : 'office-state-busy';
-  const tip = (enabled: boolean, text: string) => (update.launcher ? (enabled ? text : undefined) : NO_LAUNCHER);
+  const tip = (enabled: boolean, text: string) => (update.launcher ? (enabled ? text : undefined) : noLauncher());
   return (
     <div className="card office-card">
       <div className="row wrap">
@@ -65,16 +65,16 @@ function OfficeRow({ update }: { update: OfficeUpdateView }) {
           </div>
         </div>
         {pending && (
-          <div className="office-actions" title={update.launcher ? undefined : NO_LAUNCHER}>
+          <div className="office-actions" title={update.launcher ? undefined : noLauncher()}>
             <button
               className="btn btn-small btn-good"
               disabled={busy || !canUpdateNow(update)}
-              title={tip(canUpdateNow(update), 'Start nothing new, let running sessions finish, then update and restart the office')}
+              title={tip(canUpdateNow(update), t('ui.console.updateNowTip'))}
               onClick={() => act('now')}
             >
               {t("project.updateNow")}
             </button>
-            <button className="btn btn-small btn-ghost" disabled={busy || !canPostpone(update)} title={tip(canPostpone(update), 'Keep working; ask again in 2 hours or when a newer commit lands')} onClick={() => act('later')}>
+            <button className="btn btn-small btn-ghost" disabled={busy || !canPostpone(update)} title={tip(canPostpone(update), t('ui.console.laterTip'))} onClick={() => act('later')}>
               {t("project.later")}
             </button>
           </div>
@@ -82,11 +82,11 @@ function OfficeRow({ update }: { update: OfficeUpdateView }) {
       </div>
       {update.detail && update.state !== 'failed' && <div className="muted small">{update.detail}</div>}
       {deadline && update.running > 0 && (
-        <div className="muted small">Sessions still running at {new Date(deadline).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} are stopped, and their work goes back to the queue.</div>
+        <div className="muted small">{t('ui.console.deadline', { time: formatTime(deadline) })}</div>
       )}
-      {!update.launcher && pending && <div className="muted small">{NO_LAUNCHER}</div>}
+      {!update.launcher && pending && <div className="muted small">{noLauncher()}</div>}
       {typeof autoUpdate === 'boolean' && (
-        <label className="toggle" title="When an update is ready, start nothing new, let running sessions finish, then update and restart the office">
+        <label className="toggle" title={t('ui.console.autoUpdateTip')}>
           <input type="checkbox" checked={autoUpdate} onChange={(e) => void attempt(() => api.updateSettings({ autoUpdate: e.target.checked }))} /> {t("project.autoUpdate")}
         </label>
       )}
@@ -114,20 +114,20 @@ function FloorRow({ repo, all }: { repo: RepoView; all: RepoView[] }) {
           </a>
           {repo.summary && <div className="small">🧠 {repo.summary}</div>}
           <div className="muted small">
-            {team.length} agents · {repo.issues.length} open issues · {repo.pulls.filter((p) => p.state === 'OPEN').length} open PRs · default branch <code>{repo.defaultBranch}</code>
-            {repo.cloneStatus !== 'ready' && ` · checkout: ${repo.cloneStatus}`}
+            {t('ui.console.repoLine', { agents: team.length, issues: repo.issues.length, prs: repo.pulls.filter((p) => p.state === 'OPEN').length })} <code>{repo.defaultBranch}</code>
+            {repo.cloneStatus !== 'ready' && ` · ${t('ui.console.checkout', { status: repo.cloneStatus })}`}
           </div>
-          <div className="muted small" title={repo.localPath ? 'Your own project folder' : 'A clone the office manages'}>
+          <div className="muted small" title={repo.localPath ? t('ui.console.ownFolder') : t('ui.console.managedClone')}>
             📁 <code>{repo.checkoutPath}</code>
-            {officeFolder ? " · the office's own folder, updated from the Office row" : repo.folderSync && <span title={repo.folderSync}> · {repo.folderSync}</span>}{' '}
-            <button className="btn btn-small btn-ghost" title="Fast-forward it to GitHub's default branch, when that's safe" onClick={() => void attempt(() => api.syncFolder(repo.id))}>
+            {officeFolder ? t('ui.console.officeFolder') : repo.folderSync && <span title={repo.folderSync}> · {repo.folderSync}</span>}{' '}
+            <button className="btn btn-small btn-ghost" title={t('ui.console.syncTip')} onClick={() => void attempt(() => api.syncFolder(repo.id))}>
               ⟳ {t("project.syncNow")}
             </button>
           </div>
-          {repo.cloneError && <div className="term-error small">clone failed: {repo.cloneError}</div>}
-          {repo.syncError && <div className="term-error small">sync failed: {repo.syncError}</div>}
+          {repo.cloneError && <div className="term-error small">{t('ui.console.cloneFailed', { error: repo.cloneError })}</div>}
+          {repo.syncError && <div className="term-error small">{t('ui.console.syncFailed', { error: repo.syncError })}</div>}
         </div>
-        <input type="color" value={repo.color} onChange={(e) => patch({ color: e.target.value })} title={t("project.floorColor")} aria-label={`Floor ${repo.floor} colour`} />
+        <input type="color" value={repo.color} onChange={(e) => patch({ color: e.target.value })} title={t("project.floorColor")} aria-label={t('ui.console.colourAria', { n: repo.floor })} />
         <button className="btn btn-small" onClick={() => goToFloor(repo.floor)}>
           {t("project.visit")}
         </button>
@@ -136,7 +136,7 @@ function FloorRow({ repo, all }: { repo: RepoView; all: RepoView[] }) {
         <label className="toggle">
           <input type="checkbox" checked={repo.autoAssign} onChange={(e) => patch({ autoAssign: e.target.checked })} /> ⚡ {t("project.autoAssign")}
         </label>
-        <label className="toggle" title="Merge a PR as soon as QA has signed off on its latest commit and GitHub's checks are green">
+        <label className="toggle" title={t('ui.console.autoMergeTip')}>
           <input type="checkbox" checked={repo.autoMerge} onChange={(e) => patch({ autoMerge: e.target.checked })} /> 🔀 {t("project.autoMerge")}
         </label>
         <label className="toggle">
@@ -148,9 +148,9 @@ function FloorRow({ repo, all }: { repo: RepoView; all: RepoView[] }) {
           onClick={() => {
             void confirmDialog({
               tone: 'danger',
-              title: `Disconnect ${repo.fullName}?`,
-              body: `Everyone on this floor is let go. Nothing is deleted on GitHub, and ${repo.localPath ? 'your folder stays exactly as it is' : 'the local clone stays on disk'}.`,
-              confirm: 'Disconnect',
+              title: t('ui.console.disconnectTitle', { name: repo.fullName }),
+              body: repo.localPath ? t('ui.console.disconnectBodyLocal') : t('ui.console.disconnectBodyClone'),
+              confirm: t('ui.console.disconnect'),
             }).then((ok) => ok && attempt(() => api.disconnectRepo(repo.id)));
           }}
         >
@@ -181,7 +181,7 @@ function FloorRow({ repo, all }: { repo: RepoView; all: RepoView[] }) {
               <code>{repo.previewConfig.command}</code>
             </>
           ) : (
-            ' auto-detected command'
+            t('ui.console.autoDetected')
           )}
         </summary>
         <PreviewSettings repo={repo} />
@@ -229,7 +229,7 @@ function FloorBrief({ repo }: { repo: RepoView }) {
           <b>{repo.fullName}</b>
           <div className="muted small">{repo.summary ? `🧠 ${repo.summary}` : t("project.notStudied")}</div>
         </div>
-        <button className="btn btn-small btn-ghost" onClick={() => void attempt(() => api.onboardFloor(repo.id))} title="Study the repo again and rethink the plan and the team's size">
+        <button className="btn btn-small btn-ghost" onClick={() => void attempt(() => api.onboardFloor(repo.id))} title={t('ui.console.restudyTip')}>
           {t("project.restudy")}
         </button>
       </div>
@@ -305,7 +305,7 @@ function CeoTab() {
             )}
           </div>
           <div className="muted small">
-            {info.nextReviewAt ? t("ceo.nextReview").replace("{time}", new Date(info.nextReviewAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })) : t("ceo.reviewsOff")}
+            {info.nextReviewAt ? t("ceo.nextReview").replace("{time}", formatTime(info.nextReviewAt)) : t("ceo.reviewsOff")}
           </div>
           <PromptPreview agent={ceo} />
           {ceo.terminal ? (
@@ -805,22 +805,23 @@ function SettingsTab() {
 
 /** card: open Mission control at this card (an alarm's id, or 'usage'). */
 export function ManagerConsole({ initialTab, initialRepo, card }: { initialTab?: ManagerTab; initialRepo?: string; card?: string }) {
+  const t = useT();
   const [tab, setTab] = useState<ManagerTab>(initialTab ?? 'floors');
   const pending = useStore((s) => pendingRequests(s.requests).length);
   const alarms = useStore((s) => s.ops.alarms.length + s.doctor.length);
   const tabs: [ManagerTab, string][] = [
-    ['floors', '🏢 Floors & repos'],
-    ['ops', `🛰️ Mission control${alarms ? ` (${alarms})` : ''}`],
+    ['floors', t('ui.console.tabFloors')],
+    ['ops', `${t('ui.console.tabOps')}${alarms ? ` (${alarms})` : ''}`],
     ['ceo', `🧠 CEO${pending ? ` (${pending})` : ''}`],
-    ['team', '👩‍💻 Team'],
-    ['issues', '📝 Issues'],
-    ['settings', '⚙️ Settings'],
-    ['timelapse', '📼 Time-lapse'],
-    ['access', '♿ Accessibility'],
+    ['team', t('ui.console.tabTeam')],
+    ['issues', t('ui.console.tabIssues')],
+    ['settings', t('ui.console.tabSettings')],
+    ['timelapse', t('ui.console.tabTimelapse')],
+    ['access', t('ui.console.tabAccess')],
   ];
   return (
-    <Panel wide title="🧑‍💼 Manager's console">
-      <div className="tabs" role="tablist" aria-label="Console">
+    <Panel wide title={t('ui.console.title')}>
+      <div className="tabs" role="tablist" aria-label={t('ui.console.aria')}>
         {tabs.map(([k, label]) => (
           <button key={k} role="tab" aria-selected={tab === k} className={`tab ${tab === k ? 'tab-on' : ''}`} onClick={() => setTab(k)}>
             {label}

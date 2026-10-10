@@ -4,7 +4,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { api } from '../api';
 import { useStore } from '../store';
-import { SAMPLE_LINE } from '../../../shared/speech';
 import { cacheLabel, clampKeepDays, KEEP_DAYS_MAX, KEEP_DAYS_MIN } from '../../../shared/voiceClips';
 import { CEO_ID, type ListenProvider, type ListenSettings, type VoiceOption, type VoiceProvider, type VoiceSettings as Voice } from '../../../shared/types';
 import { confirmDialog } from './Confirm';
@@ -293,7 +292,7 @@ function SavedClips({ voice, save }: { voice: Voice; save: Save }) {
       <div className="row wrap">
         <span className="grow small">
           💾 {cacheLabel(cache.clips, cache.bytes)}
-          <span className="muted"> · the newest 20 CEO messages always keep theirs, so ▶ on the phone replays them for free</span>
+          <span className="muted"> · {t('ui.voice.keepNewest')}</span>
         </span>
         <button className="btn btn-small btn-ghost" disabled={busy || cache.clips === 0} onClick={() => void clear()}>
           {t('voice.clearClips')}
@@ -324,7 +323,7 @@ export function VoiceSettings() {
     hintMuted();
     setPlaying('test');
     try {
-      const ok = eleven ? await playClip(await api.voiceSample(voice.voiceId)) : await speakLine(SAMPLE_LINE, voice.voiceName);
+      const ok = eleven ? await playClip(await api.voiceSample(voice.voiceId)) : await speakLine(t('ui.voice.sample'), voice.voiceName);
       if (!ok) useStore.getState().pushToast('error', eleven ? t('voice.cantPlayTest') : t('voice.browserCantTest'));
     } catch {
       // api already toasted the error

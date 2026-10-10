@@ -155,7 +155,7 @@ export function TimeLapseTab() {
         </p>
         <p className="muted small">{t('timelapse.journalNote')}</p>
         {demo && (
-          <button className="btn btn-small" disabled={making} onClick={sample} title="Writes a made-up working day on these floors as yesterday's journal">
+          <button className="btn btn-small" disabled={making} onClick={sample} title={t('ui.timelapse.sampleTip')}>
             🧪 {making ? t('timelapse.making') : t('timelapse.sample')}
           </button>
         )}

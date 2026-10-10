@@ -163,7 +163,7 @@ export function Tutorial() {
   const setupDone = useStore((s) => s.settings.setupDone);
   const started = useStore((s) => s.started);
   const company = useStore((s) => s.settings.companyName);
-  const ceo = useStore((s) => s.agents[CEO_ID]?.name ?? 'the CEO');
+  const ceo = useStore((s) => s.agents[CEO_ID]?.name ?? t('ui.tutorial.theCeo'));
   const repo = useStore((s) => s.repos[0]?.fullName.split('/')[1] ?? null);
   const [cheer, setCheer] = useState(false);
   const moving = useRef(false);

@@ -6,6 +6,7 @@ import { useStore } from '../store';
 import { reportTicker } from './activityProbe';
 import { SANS } from './draw';
 import { BOARD, WALL_H } from './layout';
+import { t } from '../i18n';
 import { Box } from './Toon';
 
 // The floor's activity ticker: a thin LED strip hung from the ceiling across the top of the whiteboard, scrolling what
@@ -21,7 +22,7 @@ const SPEED = 0.42; // metres a second
 const SHOWN = 8; // the newest lines on the tape
 const SEP = '   ◆   ';
 const TONE: Record<TickerItem['tone'], string> = { good: '#7dffa0', bad: '#ff7a68', info: '#ffc75f' };
-const QUIET = 'floor news scrolls here ◆ PRs, QA, CI and merges';
+const QUIET = () => t('world.ticker.quiet');
 
 /** Paints the lines (oldest first) onto a tape at least as long as the strip; returns its canvas. */
 function paintTape(lines: Pick<TickerItem, 'text' | 'tone'>[]) {
@@ -29,7 +30,7 @@ function paintTape(lines: Pick<TickerItem, 'text' | 'tone'>[]) {
   let ctx = canvas.getContext('2d')!;
   const font = `600 ${Math.round(PX * 0.62)}px ${SANS}`;
   ctx.font = font;
-  const shown = lines.length ? lines : [{ text: QUIET, tone: 'info' as const }];
+  const shown = lines.length ? lines : [{ text: QUIET(), tone: 'info' as const }];
   const sep = ctx.measureText(SEP).width;
   let parts = shown.map((l) => ({ ...l, w: ctx.measureText(l.text).width }));
   while (parts.length > 1 && parts.reduce((s, p) => s + p.w + sep, 0) > MAX_PX) parts = parts.slice(1);

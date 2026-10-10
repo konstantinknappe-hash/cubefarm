@@ -80,8 +80,8 @@ export function CardView({ repoId, cardKey, number, pr }: { repoId: string; card
       <div className="cardview-tags">
         <span className="pill">{COLUMN[col]}</span>
         {card.note && <span className={`pill ${card.tone ? `cardview-${card.tone}` : ''}`}>{card.note}</span>}
-        {waits.length > 0 && <span className="pill cardview-warn">⏳ waits for #{waits.join(', #')}</span>}
-        {waiters.length > 0 && <span className="pill">🔗 #{waiters.join(', #')} wait{waiters.length === 1 ? 's' : ''} for this</span>}
+        {waits.length > 0 && <span className="pill cardview-warn">{t('ui.cardview.waitsFor', { list: waits.join(', #') })}</span>}
+        {waiters.length > 0 && <span className="pill">{t('ui.cardview.waiters', { count: waiters.length, list: waiters.join(', #') })}</span>}
         {issue?.labels.map((l) => (
           <span key={l} className="pill cardview-label">
             {l}

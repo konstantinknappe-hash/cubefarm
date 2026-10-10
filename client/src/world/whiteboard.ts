@@ -2,7 +2,8 @@
 // board, what a carried sticky does where you put it, and the "Depends on" strings pinned between stickies.
 // boardHands.ts runs it; KanbanBoard.tsx and drawKanban (draw.ts) draw it.
 
-import { blockers, waitsMessage } from '../../../shared/issues';
+import { t } from '../../../shared/i18n';
+import { blockers } from '../../../shared/issues';
 import type { IssueInfo, PullInfo } from '../../../shared/types';
 import type { Agent, Focus, KanbanCard, KanbanColumns } from '../store';
 import { kanbanCapacity, kanbanNoteRect, KANBAN_KEYS } from './draw';
@@ -80,26 +81,26 @@ const busy = (a: Pick<Agent, 'status'>) => a.status === 'preparing' || a.status 
 
 /** What a busy agent is on, for the warning: "testing PR #7", "fixing PR #7" or "working on #12". */
 function doing(a: Pick<Agent, 'task' | 'issueNumber' | 'prNumber'>) {
-  if (a.task === 'qa' && a.prNumber != null) return `testing PR #${a.prNumber}`;
-  if (a.task === 'fix' && a.prNumber != null) return `fixing PR #${a.prNumber}`;
-  return a.issueNumber != null ? `working on #${a.issueNumber}` : 'busy';
+  if (a.task === 'qa' && a.prNumber != null) return t('world.term.testing', { n: a.prNumber });
+  if (a.task === 'fix' && a.prNumber != null) return t('world.term.fixing', { n: a.prNumber });
+  return a.issueNumber != null ? t('world.drop.workingOn', { n: a.issueNumber }) : t('world.ops.busy');
 }
 
 export function dropTarget(s: Carried, focus: Pick<Focus, 'action'> | null, agents: readonly Agent[], issues: readonly Pick<IssueInfo, 'number' | 'body'>[]): Drop {
   const a = focus?.action;
   const what = cardLabel(s);
   if (!a) return { kind: 'none' };
-  if (a.kind === 'kanban' || a.kind === 'card') return { kind: 'back', label: `Put ${what} back` };
-  if (a.kind === 'hire') return { kind: 'refuse', label: 'Nobody sits at this desk yet' };
+  if (a.kind === 'kanban' || a.kind === 'card') return { kind: 'back', label: t('world.drop.back', { what }) };
+  if (a.kind === 'hire') return { kind: 'refuse', label: t('world.drop.nobody') };
   if (a.kind !== 'terminal') return { kind: 'none' };
   const who = agents.find((x) => x.id === a.agentId);
   if (!who || who.role === 'ceo') return { kind: 'none' };
-  const already = busy(who) ? `${who.name} is already ${doing(who)}` : null;
-  if (s.pr) return { kind: 'qa', agentId: who.id, label: already ? `⚠️ ${already}` : `Give ${what} to ${who.name} to test`, warn: already };
+  const already = busy(who) ? t('world.drop.already', { name: who.name, doing: doing(who) }) : null;
+  if (s.pr) return { kind: 'qa', agentId: who.id, label: already ? `⚠️ ${already}` : t('world.drop.giveTest', { what, name: who.name }), warn: already };
   const issue = issues.find((i) => i.number === s.number);
   const waits = issue ? blockers(issue.body, new Set(issues.map((i) => i.number))) : [];
-  const warn = already ?? (waits.length ? waitsMessage(s.number, waits) : null);
-  return { kind: 'assign', agentId: who.id, label: warn ? `⚠️ ${warn}` : `Give #${s.number} to ${who.name}`, warn };
+  const warn = already ?? (waits.length ? t('world.drop.waits', { issue: s.number, list: waits.map((n) => `#${n}`).join(', '), count: waits.length }) : null);
+  return { kind: 'assign', agentId: who.id, label: warn ? `⚠️ ${warn}` : t('world.drop.give', { n: s.number, name: who.name }), warn };
 }
 
 // ---------- dependency strings ----------

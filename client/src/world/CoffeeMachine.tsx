@@ -10,6 +10,7 @@ import { useInteractable } from './interact';
 import { glow, toon } from './materials';
 import { MUG_SIZE, MugLook, Steam, mugColor } from './toys/mugLook';
 import { MUG, stowMug } from './toys/mugs';
+import { t } from '../i18n';
 import { Box, Cyl } from './Toon';
 
 // The kitchenette's coffee machine: put a mug under the spout, press the button, and it grinds, hisses and pours
@@ -86,7 +87,7 @@ export function coffeeAction(op: CoffeeOp) {
     if (r.result === 'busy') return; // already brewing: the button does nothing
     if (r.result !== 'started') {
       sounds.nope();
-      s.pushToast('info', r.result === 'noMug' ? '☕ Put a mug under the machine first' : '☕ Your coffee is ready: take the mug');
+      s.pushToast('info', r.result === 'noMug' ? t('world.coffee.noMug') : t('world.coffee.ready'));
       return;
     }
     set(r.state);
@@ -227,13 +228,13 @@ export function CoffeeMachine({ position }: { position: [number, number, number]
   const mugIn = view.kind !== 'empty';
   const tray = useInteractable<THREE.Group>(
     mugIn
-      ? { id: 'coffee:slot', label: view.kind === 'ready' ? 'Take coffee' : 'Take mug', action: { kind: 'coffee', op: 'take' } }
+      ? { id: 'coffee:slot', label: view.kind === 'ready' ? t('world.coffee.take') : t('world.coffee.takeMug'), action: { kind: 'coffee', op: 'take' } }
       : heldSips !== null && canPlace(view, heldSips)
-        ? { id: 'coffee:slot', label: 'Put mug under the machine', action: { kind: 'coffee', op: 'place' } }
+        ? { id: 'coffee:slot', label: t('world.coffee.place'), action: { kind: 'coffee', op: 'place' } }
         : null,
     2.8,
   );
-  const button = useInteractable<THREE.Group>({ id: 'coffee:button', label: 'Brew coffee', action: { kind: 'coffee', op: 'brew' } }, 2.8);
+  const button = useInteractable<THREE.Group>({ id: 'coffee:button', label: t('world.coffee.brew'), action: { kind: 'coffee', op: 'brew' } }, 2.8);
 
   useFrame(() => {
     const g = root.current;

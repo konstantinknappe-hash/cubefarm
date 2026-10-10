@@ -7,6 +7,7 @@ import { tone } from '../../ui/sfx';
 import { SANS, roundRect } from '../draw';
 import { useCanvasTexture } from '../interact';
 import { activePings, ping, presenceVersion, subscribePresence, type Ping } from './presenceState';
+import { t } from '../../i18n';
 import { pingNoun } from './presenceMath';
 
 // Pings: "look here". Middle-click (or the ping key, X) drops a short-lived marker where you aim, on a spot or a
@@ -76,7 +77,7 @@ export function Pings() {
 
 function drawLabel(ctx: CanvasRenderingContext2D, w: number, h: number, p: Ping) {
   ctx.clearRect(0, 0, w, h);
-  const text = p.label ? `look here: ${p.label}` : 'look here';
+  const text = p.label ? t('world.ping.lookAt', { what: p.label }) : t('world.ping.look');
   ctx.font = `700 34px ${SANS}`;
   const nameW = Math.min(w - 40, ctx.measureText(p.name).width + 40);
   ctx.font = `600 38px ${SANS}`;

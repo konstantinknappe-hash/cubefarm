@@ -450,30 +450,95 @@ function Help({ tab: initial }: { tab?: HelpTab }) {
           )}
           <SoundControls />
           <h3><TranslatedLabel id="chatter" /></h3>
+          {t('help.locale') === 'de' ? (
+            <>
           <p>
+            Das Team redet bei der Arbeit: Sprechblasen zu dem, was wirklich los ist (ein PR wartet auf die QA, jemand wird zum Testen gebeten,
+            Tests werden grün, ein Merge-Konflikt, ein Merge und ein „Gut gemacht!“ aus dem Team, Kaffee am Wasserspender), in einer niedlichen
+            Plapperstimme, die bei jedem Besuch gleich klingt; die des CEO ist tiefer und gewichtiger. Höchstens drei sprechen gleichzeitig, die
+            Nächsten haben Vorrang. „Leise“ meldet nur Neuigkeiten, „Lebhaft“ plaudert auch über die aktuelle Arbeit. Ziele auf jemanden ohne
+            Aufgabe und drücke <Key action="interact" />, um Hallo zu sagen (ziele auf den Schreibtisch, um ihn zu öffnen). Der Regler
+            „Geplauder“ oben bestimmt, wie laut geplappert wird.
+          </p>
+            </>
+          ) : (
+            <>
+<p>
             The team talks as they work: speech bubbles about what's really going on (a PR up for QA, a teammate asked to test it, tests going green, a merge conflict, a merge and a teammate's "Nice
             one!", coffee at the cooler) in a cute babble voice of their own, the same on every visit; the CEO's is lower and grander. At most three speak at once and the nearest win. Quiet says the news;
             lively also chats about what they're doing. Aim at someone with nothing to do and press <Key action="interact" /> to say hi (aim at their desk to open it). The Chatter slider above sets how loud
             they babble.
           </p>
+            </>
+          )}
           <ChatterSettings />
           <h3><TranslatedLabel id="outside" /></h3>
-          <p>The sky outside the windows has its own day: a whole one every 30 minutes, the time on your own clock, or always a sunny afternoon.</p>
+          {t('help.locale') === 'de' ? (
+            <>
+          <p>Der Himmel vor den Fenstern hat seinen eigenen Tag: ein ganzer alle 30 Minuten, die Zeit deiner eigenen Uhr oder immer ein sonniger Nachmittag.</p>
+          <p>
+            Es gibt auch Wetter: Regen, der an den Scheiben herunterläuft, Pfützen auf den Balkonen, Gewitter, Nebel und Schnee. In der
+            Managerkonsole wählst du unter <b>Einstellungen → Wetter</b> einen ruhigen eigenen Wetterzyklus (meist schön), dein echtes Wetter vor
+            Ort oder gar keins. Und ab und zu passiert draußen etwas, vom Flugzeug oder Luftschiff mit den Büro-News bis zum Feuerwerk in der
+            Nacht, einem UFO oder ganz selten einem freundlichen Kaiju; freie Teammitglieder laufen dann zum Zuschauen an die Fenster.
+            <b> Einstellungen → Weltereignisse</b> bestimmt, wie oft, oder hält es ruhig.
+          </p>
+            </>
+          ) : (
+            <>
+<p>The sky outside the windows has its own day: a whole one every 30 minutes, the time on your own clock, or always a sunny afternoon.</p>
           <p>
             It has weather too: rain running down the glass and puddles on the balconies, thunderstorms, fog and snow. In the manager's console, <b>Settings → Weather</b> picks a calm cycle of its own (mostly fair), your
             real local weather or none. And now and then something happens outside, from a plane or a blimp with the office's news to fireworks at night, a UFO or, very rarely, a friendly kaiju; idle teammates run to the
             windows to watch. <b>Settings → World events</b> sets how often, or keeps it calm.
           </p>
+            </>
+          )}
           <DaySettings />
           <h3><TranslatedLabel id="graphics" /></h3>
+          {t('help.locale') === 'de' ? (
+            <>
           <p>
+            <b>Niedrig</b> ist der schlichte Comic-Look und schont deinen Laptop am meisten. <b>Mittel</b> ergänzt Leuchten: Bildschirme, Lampen,
+            die Jukebox und nach Einbruch der Dunkelheit die Fenster der Stadt und den Mond; nachts beleuchten die Monitore Schreibtische und
+            Gesichter. <b>Hoch</b> ergänzt weiche Schatten, wo Dinge den Boden berühren, und Farben, die der Tageszeit folgen. <b>Auto</b> startet
+            auf Hoch und schaltet herunter, wenn die Bilder ruckeln, und wieder hoch, sobald Luft ist. Wird in diesem Browser gespeichert.
+          </p>
+            </>
+          ) : (
+            <>
+<p>
             <b>Low</b> is the plain cartoon look and the lightest on your laptop. <b>Medium</b> adds glow: screens, lamps, the jukebox and, after dark, the city's windows and the moon, and the monitors light up desks
             and faces at night. <b>High</b> adds soft shadows where things meet the floor and colour that follows the time of day. <b>Auto</b> starts on High and steps down when frames get slow, then back up once
             there's room. Saved in this browser.
           </p>
+            </>
+          )}
           <GraphicsSettings />
           <h3><TranslatedLabel id="building" /></h3>
+          {t('help.locale') === 'de' ? (
+            <>
           <p>
+            Das Erdgeschoss ist die Lobby: Dein Büro ist der Glasraum hinten links, das Eckbüro des CEO liegt hinten rechts, und neue Agenten,
+            die der CEO möchte, warten auf den Stühlen an der Glastür. Geh zu einem hin und drücke <Key action="interact" />, um ihn
+            kennenzulernen: warum der CEO ihn möchte, dazu Programmieragent, Modell und Denkaufwand, die du vor der Einstellung ändern kannst.
+            Stellst du ihn ein, gibt er dir die Hand und fährt mit dem Aufzug zu seiner Etage für eine Begrüßungsrunde; lehnst du ab, geht er
+            durch die Tür. Wünscht sich der CEO ein kleineres Team, liegt ein Umschlag auf dem Schreibtisch der Person, die gehen soll. Jedes
+            verbundene GitHub-Repo bekommt eine eigene Etage. Zum Wechseln gehst du in den Aufzug in der Mitte der Südwand und drückst
+            <Key action="interact" /> an seinem Panel. In der Lobby funktioniert auch das Verzeichnis daneben.
+          </p>
+          <p>
+            Der oberste Halt des Aufzugs ist die Dachterrasse (<kbd>R</kbd> am Panel). Entspann dich im Liegestuhl (<Key action="interact" />;
+            laufen oder <Key action="interact" /> zum Aufstehen), grill eine Wurst (<Key action="interact" /> legt eine auf und wendet sie,
+            <Key action="interact" /> nimmt sie, sobald sie fertig ist, dann isst <Key action="interact" /> sie Bissen für Bissen) oder schau durch
+            das Teleskop (<Key action="interact" />; die Maus zielt, das Mausrad zoomt): tagsüber auf die Plakate auf den Dächern, nachts auf den
+            Mond und die Sternbilder. In der Dämmerung gehen die Lichterketten an. Freie Teammitglieder machen dort ab und zu Pause, und der CEO
+            telefoniert oben.
+          </p>
+            </>
+          ) : (
+            <>
+<p>
             The ground floor is the lobby: your office is the glass room at the back left, the CEO's corner office is at the back right, and new agents the CEO wants wait on the chairs by the glass door. Walk up
             to one and press <Key action="interact" /> to meet them: why the CEO wants them, and their coding agent, model and effort, which you can change before you hire them. Hire them and they shake your hand
             and take the elevator up to their floor for a welcome tour; decline and they leave by the door. When the CEO wants a smaller team, an envelope waits on the desk of whoever it picked to leave. Every
@@ -484,55 +549,183 @@ function Help({ tab: initial }: { tab?: HelpTab }) {
             <Key action="interact" /> again takes it once it's done, then <Key action="interact" /> eats it a bite at a time), or look through the telescope (<Key action="interact" />; the mouse aims and the wheel zooms): the billboards on the rooftops by day, the moon and the
             constellations at night. The string lights come on at dusk. Idle teammates go up for a break now and then, and the CEO takes calls up there.
           </p>
+            </>
+          )}
           <h3><TranslatedLabel id="mission" /></h3>
+          {t('help.locale') === 'de' ? (
+            <>
           <p>
+            Die geschwungene Bildschirmwand hinter dem Empfang zeigt das ganze Unternehmen auf einen Blick: die Pipeline (Issues bereit, in Arbeit,
+            in QA, in Korrektur, bereit zum Mergen, brauchen dich), Merges heute und in den letzten 24 Stunden, Durchlaufzeit, QA-Wartezeit und CI,
+            wer beschäftigt ist, und eine Schätzung der heutigen Kosten. Das Teamschild jeder Etage hat eine kurze Zeile mit ihren eigenen Zahlen.
+            Der mittlere untere Bildschirm ist Claudes Nutzungsanzeige: Während das Büro nach einer Nutzungswarnung gedrosselt arbeitet, drücke
+            <Key action="interact" /> darauf, um wieder mit voller Geschwindigkeit zu arbeiten (wenn du aufgestockt hast oder deine Nutzung
+            zurückgesetzt wurde). Braucht dich ein PR oder hängt jemand seit 10 Minuten an einem Fehler, dreht sich das Warnlicht oben (und das am
+            Schild der Etage) mit einem sanften Signal: Drücke <Key action="interact" /> darauf, um die Konsole bei dieser Karte zu öffnen. Die
+            Managerkonsole zeigt all das ebenfalls unter Missionskontrolle.
+          </p>
+            </>
+          ) : (
+            <>
+<p>
             The curved bank of screens behind reception shows the whole company at a glance: the pipeline (issues ready, being built, in QA, being fixed, ready to merge, needing you), merges today and over the
             last 24 hours, lead time, QA wait and CI, who's busy, and an estimate of today's cost. Each floor's team sign has a short line of its own numbers. The bottom middle screen is Claude's usage meter: while
             the office paces itself after a usage warning, press <Key action="interact" /> on it to resume full speed (if you've topped up or your usage was reset). When a PR needs you, or someone has been stuck on
             an error for 10 minutes, the beacon on top spins (and the one on that floor's sign) with a calm chime: press <Key action="interact" /> on it to open the console at that card. The manager's console has it
             all too, under Mission control.
           </p>
+            </>
+          )}
           <h3>{t('help.timelapse')}</h3>
+          {t('help.locale') === 'de' ? (
+            <>
           <p>
+            Den Tag verpasst? Managerkonsole → 📼 Zeitraffer (oder der Bildschirm beim Basketballkorb der Lobby) spielt ihn hier im Büro mit bis
+            zu 600-facher Geschwindigkeit ab, oder nur, was passiert ist, während du weg warst. Merges schlagen auch dann den Gong. Während der
+            Wiedergabe gibt <kbd>Esc</kbd> die Maus frei, und ein weiteres <kbd>Esc</kbd> führt zurück ins Live-Büro.
+          </p>
+            </>
+          ) : (
+            <>
+<p>
             Missed the day? The manager's console → 📼 Time-lapse (or the screen by the lobby's hoop) replays it right here in the office at up to 600× speed, or just what happened while you were away. Merges still
             bang the gong. While it plays, <kbd>Esc</kbd> frees the mouse and <kbd>Esc</kbd> again goes back to the live office.
           </p>
+            </>
+          )}
           <h3><TranslatedLabel id="phone" /></h3>
+          {t('help.locale') === 'de' ? (
+            <>
           <p>
+            Drücke überall <Key action="phone" />, um dein Telefon herauszuholen. Schreib dem CEO, genehmige oder lehne Teamänderungen ab, sieh
+            alle Projekte auf einen Blick, oder spiel Cubetris, Kabelschlange oder kümmere dich um dein Schreibtisch-Haustier, während das Team
+            arbeitet. Das rote Abzeichen zählt Entscheidungen und Nachrichten, die auf dich warten. Im Chat und im Terminal eines Agenten sendet
+            <kbd>Enter</kbd>, und <kbd>Shift</kbd>+<kbd>Enter</kbd> beginnt eine neue Zeile. Um zu sprechen statt zu tippen, halte das 🎙️ neben
+            „Senden“ oder halte <Key action="talk" /> im Nachrichtenfeld und sprich: Deine Worte füllen das Feld, damit du sie vor dem Senden
+            bearbeiten kannst (ein kurzes Tippen auf 🎙️ hört zu, bis du aufhörst zu sprechen, und <kbd>Esc</kbd> beendet das Zuhören). Mit 🎧
+            Freisprechen hört das Telefon nach der gesprochenen Antwort des CEO ein paar Sekunden zu und sendet, was du sagst. Unter
+            Einstellungen → Stimme wählst du die Spracherkennung des Browsers oder ElevenLabs.
+          </p>
+            </>
+          ) : (
+            <>
+<p>
             Press <Key action="phone" /> anywhere to pull out your phone. Text the CEO, approve or decline their team changes, see every project at a glance, or play Cubetris, Cable Snake or look after your
             Desk Pet while the team works. The red badge counts decisions and messages waiting for you. In the chat, and in an agent's terminal, <kbd>Enter</kbd> sends and <kbd>Shift</kbd>+<kbd>Enter</kbd> starts a
             new line. To talk instead of type, hold the 🎙️ next to Send, or hold <Key action="talk" /> in the message box, and speak: your words fill the box to edit before you send (a tap of the 🎙️ listens until you
             stop talking, and <kbd>Esc</kbd> stops listening). With 🎧 Hands-free on, the phone listens for a few seconds after the CEO's spoken reply and sends what you say. Settings → Voice picks the browser's
             speech recognition or ElevenLabs.
           </p>
+            </>
+          )}
           <h3><TranslatedLabel id="photoClips" /></h3>
+          {t('help.locale') === 'de' ? (
+            <>
           <p>
+            Drücke <Key action="photo" /> (oder 📷 oben rechts), um das Büro einzufrieren und eine eigene Kamera zu fliegen: Klicke in die Ansicht
+            zum Steuern, <MoveKeys /> zum Fliegen, <kbd>Space</kbd> und <kbd>C</kbd> für hoch und runter, <Key action="rotateLeft" /> und
+            <Key action="rotateRight" /> zum Neigen und das Mausrad zum Zoomen. Wähle einen Filter, füge Tiefenschärfe, das Logo, Etage und Datum
+            hinzu oder schiebe die Sonne in die goldene Stunde; dann speichert <kbd>Enter</kbd> ein PNG (bis zu 4× deine Bildschirmgröße) und
+            kopiert es. <kbd>V</kbd> nimmt einen Clip mit dem Ton des Büros auf, auf Wunsch mit langsamer Kreisfahrt um den Gong, das Whiteboard
+            oder eine Person. Hebe das Einfrieren auf (<kbd>F</kbd>), um das Büro live zu filmen. Die Arbeit läuft weiter, während du fotografierst,
+            und <Key action="photo" /> bringt dich genau dorthin zurück, wo du warst. Fotos und Clips bleiben in der Galerie dieses Tabs und landen
+            in deinen Downloads, nie im Internet.
+          </p>
+            </>
+          ) : (
+            <>
+<p>
             Press <Key action="photo" /> (or 📷 at the top right) to freeze the office and fly a camera of your own: click the view to steer, <MoveKeys /> to fly, <kbd>Space</kbd> and <kbd>C</kbd> up and down,{' '}
             <Key action="rotateLeft" /> and <Key action="rotateRight" /> to roll and the wheel to zoom. Pick a filter, add depth of field, the logo, the floor and date, or move the sun to golden hour, then{' '}
             <kbd>Enter</kbd> saves a PNG (up to 4× your screen) and copies it. <kbd>V</kbd> records a clip with the office's sound, optionally slowly circling the gong, the whiteboard or someone. Unfreeze (
             <kbd>F</kbd>) to film the office live. The work carries on while you shoot, and <Key action="photo" /> puts you back exactly where you were. Shots and clips are kept in this tab's gallery and saved to your
             downloads, never uploaded.
           </p>
+            </>
+          )}
           <ReplaySetting />
           <h3>{t('help.workers')}</h3>
+          {t('help.locale') === 'de' ? (
+            <>
           <p>
+            Die Liste oben rechts zeigt alle, die gerade arbeiten (auf dieser Etage oder, aus der Lobby, auf allen Etagen), mit ihrem neuesten
+            Gedanken, ihrer neuesten Antwort oder ihrem neuesten Werkzeugaufruf. Klicke jemanden an, um den Bildschirm zu sehen.
+            <Key action="workers" /> blendet die Liste ein oder aus.
+          </p>
+            </>
+          ) : (
+            <>
+<p>
             The list at the top right shows everyone who is working right now (on this floor, or on every floor from the lobby) with their latest thought, reply or tool call. Click someone to watch their screen.{' '}
             <Key action="workers" /> shows or hides it.
           </p>
+            </>
+          )}
           <h3><TranslatedLabel id="visitors" /></h3>
+          {t('help.locale') === 'de' ? (
+            <>
           <p>
+            Alle anderen, die das Büro geöffnet haben (ein weiterer Tab, eine Kollegin, dein Handy), laufen als Besucher mit Schlüsselband,
+            Namensschild und einem sanften Leuchten in ihrer Farbe herum und sehen dich genauso. Halte <Key action="emote" /> für das Emote-Rad:
+            zeige auf Winken, Daumen hoch, Klatschen, Zeigen oder Lachen und lass los (kurzes Tippen winkt, <kbd>1</kbd>–<kbd>5</kbd> wählen
+            direkt). Ein Mittelklick oder <Key action="ping" /> zu Fuß setzt einen Ping dorthin, wohin du zielst, sichtbar für alle auf der Etage.
+            Die Besucher stehen oben in der Liste der Arbeitenden: <b>Folgen</b> verfolgt jemanden mit der Kamera, auch im Aufzug. Dein Name, deine
+            Farbe und <b>Für andere sichtbar</b> stehen in der Managerkonsole unter Einstellungen → Profil; bevor du das Büro betrittst, wird nichts
+            über dich geteilt.
+          </p>
+            </>
+          ) : (
+            <>
+<p>
             Everyone else with the office open (another tab, a colleague, your phone) walks about in it as a visitor with a lanyard, a name tag and a soft glow in their colour, and sees you the same way. Hold{' '}
             <Key action="emote" /> for the emote wheel: point at wave, thumbs up, clap, point or laugh and let go (a quick tap waves, <kbd>1</kbd>–<kbd>5</kbd> pick straight away). Middle-click, or{' '}
             <Key action="ping" /> on foot, drops a ping where you aim for everyone on the floor to see. The visitors are at the top of the who's-working list: <b>Follow</b> trails one with the camera, by
             elevator too. Your name and colour, and <b>Appear to others</b>, are in the manager's console under Settings → Profile; nothing about you is shared before you enter the office.
           </p>
+            </>
+          )}
           <h3><TranslatedLabel id="ceo" /></h3>
+          {t('help.locale') === 'de' ? (
+            <>
           <p>
+            Der CEO untersucht jede neue Etage, schreibt ihr QA-Briefing, macht aus deinen Projektbeschreibungen Issues und legt die Teamgröße
+            jeder Etage anhand ihrer Arbeit fest. Neue Agenten und Entlassungen warten auf deine Zustimmung, außer du lässt Teamänderungen sofort
+            übernehmen (Managerkonsole, Einstellungen), und keine Etage wächst über ihre maximale Agentenzahl hinaus.
+          </p>
+            </>
+          ) : (
+            <>
+<p>
             The CEO studies every new floor, writes its QA brief, turns your project briefs into issues and sets each floor's team size from its work. New agents and let-gos wait for your approval unless you
             set team changes to apply straight away (manager's console, Settings), and no floor grows past its most agents per floor.
           </p>
+            </>
+          )}
           <h3><TranslatedLabel id="team" /></h3>
+          {t('help.locale') === 'de' ? (
+            <>
           <p>
+            Jeder Agent ist ein echter Programmieragent in seinem eigenen Terminal und arbeitet in seinem eigenen Git-Worktree. Alle sind dieselbe
+            Art Arbeitskraft: Jeder freie Agent nimmt, was als Nächstes auf dem Board steht – ein Issue zum Umsetzen, einen Pull Request zum Testen
+            oder einen zum Korrigieren. Stell dich hinter jemanden, um auf den Laptop zu schauen, oder drücke <Key action="interact" /> (oder
+            klicke) auf einen Schreibtisch, um das Terminal zu öffnen: live zusehen, hineintippen, Anweisungen schicken, anhalten oder ein Issue
+            bzw. einen PR zum Testen übergeben. Ziele auf einen freien Schreibtisch und drücke <Key action="interact" />, um einen Agenten
+            hinzuzufügen, oder klicke darauf und bestätige.
+          </p>
+          <p>
+            Jeder Pull Request wird vor dem Mergen getestet, in einer frischen Sitzung und, wenn möglich, von einem anderen Agenten als dem Autor:
+            Er führt die Tests aus, klickt sich in einem echten Browser durch die Änderung und postet einen Bericht mit Screenshots im PR. Schlägt
+            er fehl, korrigiert ihn der Autor (oder ein freier Agent), und er wird erneut getestet.
+          </p>
+          <p>
+            <b>⚙️ Einstellungen</b> oben in ihrer Ansicht ändert Name, Aussehen, Programmieragent, Modell und Denkaufwand. Änderungen gelten ab der
+            nächsten Aufgabe, nichts wird unterbrochen. Öffne dort <b>Was sie bekommen</b>, um zu lesen, was das Büro jedem Agenten für
+            jede Art von Aufgabe mitgibt. Modell, Denkaufwand und Prompt des CEO findest du im CEO-Tab der Konsole.
+          </p>
+            </>
+          ) : (
+            <>
+<p>
             Each agent is a real coding agent running in its own terminal, working in its own git worktree. They're all the same kind of worker: any free agent takes whatever is next on the board, an issue to
             build, a pull request to test or one to fix. Walk up behind them to read their laptop, or press <Key action="interact" /> (or click) on a desk to open their terminal: watch it live, type into it, send
             them instructions, stop them or hand them an issue or a PR to test. Aim at an empty desk and press <Key action="interact" /> to add an agent, or click it and confirm.
@@ -545,8 +738,29 @@ function Help({ tab: initial }: { tab?: HelpTab }) {
             <b>⚙️ Setup</b>, at the top of their panel, changes their name, look, coding agent, model and effort. Changes apply from their next task, so nothing is interrupted. Open <b>What they're told</b> there
             to read what the office tells every agent on each kind of task. The CEO's model, effort and prompt are in the console's CEO tab.
           </p>
+            </>
+          )}
           <h3><TranslatedLabel id="rewards" /></h3>
+          {t('help.locale') === 'de' ? (
+            <>
           <p>
+            Jeder gemergte PR bringt seiner Etage Münzen (🪙 oben rechts): 10 pro Merge, 5 extra, wenn die QA im ersten Anlauf bestanden wurde,
+            5, wenn die Checks im ersten Anlauf grün waren, und 10 für den dritten Merge einer Etage innerhalb einer Stunde. Münzen kosten nur
+            im Katalog etwas. Gib sie am Katalog-Kiosk in der Lobby aus; was du kaufst, wartet in der 📦 Dekokiste der Etage beim Aufzug. Nimm
+            etwas heraus, geh zu einem leuchtenden Platz und drücke <Key action="interact" />: Es rastet ein. <Key action="interact" /> auf einer
+            platzierten Deko hebt sie zum Verschieben auf, und die Kiste räumt Dinge weg. Der Spielautomat spielt die Spiele deines Telefons.
+            Erfolge füllen das Trophäenregal in der Lobby: <Key action="interact" /> auf einer Trophäe sagt, wofür und wann es sie gab.
+          </p>
+          <p>
+            Schreibtische erzählen die Geschichte ihrer Besitzer: eine Plakette am Monitor für jeden gemergten PR, ein goldener Stern für zehn
+            QA-Erfolge im ersten Anlauf, und eine Pflanze, ein Foto und ein Schreibtischspielzeug, die mit der Zeit im Team dazukommen. Schau kurz
+            auf einen Schreibtisch, um seine Karrierekarte zu sehen (oder öffne <b>🏅 Karriere</b> in der Ansicht); der Team-Tab der Konsole
+            vergleicht alle.
+          </p>
+            </>
+          ) : (
+            <>
+<p>
             Every merged PR earns its floor coins (🪙 at the top right): 10 a merge, 5 more when QA passed it first time, 5 when its checks were green first time, and 10 for the third merge on a floor within an hour.
             Nothing ever costs coins but the catalogue. Spend them at the catalogue kiosk in the lobby; what you buy waits in the floor's 📦 decor box by its elevator. Take something out, walk to a glowing spot and
             press <Key action="interact" />: it snaps in. <Key action="interact" /> on a placed decoration picks it up to move it, and the box puts things away. The arcade cabinet plays your phone's games.
@@ -556,8 +770,35 @@ function Help({ tab: initial }: { tab?: HelpTab }) {
             Desks tell their owner's story: a plaque on the monitor for every merged PR, a gold star for ten first-time QA passes, and a plant, a photo and a desk toy that arrive with time on the team.
             Look at a desk for a moment to see its career card (or open <b>🏅 Career</b> in their panel); the console's Team tab compares everyone.
           </p>
+            </>
+          )}
           <h3><TranslatedLabel id="whiteboard" /></h3>
+          {t('help.locale') === 'de' ? (
+            <>
           <p>
+            <b>Backlog</b>: offene Issues, die noch niemand übernommen hat. <b>In Arbeit</b>: Agenten setzen Issues um. <b>In QA</b>: wird
+            getestet oder korrigiert. <b>Bereit zum Mergen</b>: QA bestanden, wartet auf dich. Drücke <Key action="interact" /> oder klicke auf
+            das Board, um zuzuweisen, zur QA zu schicken, zu mergen und neue Issues anzulegen. Wird ein PR gemergt, regnet Konfetti über dem
+            Schreibtisch des Agenten, der ihn geschrieben hat.
+          </p>
+          <p>
+            Ziele auf einen Haftzettel, und er hebt sich vom Board: <Key action="interact" /> (oder ein Klick) liest ihn aus der Nähe.
+            <Key action="drop" /> oder ein gehaltener Klick löst einen Backlog-Zettel ab: Trag ihn zum Schreibtisch eines freien Agenten und
+            drücke <Key action="interact" />, dann beginnt er mit diesem Issue (der Zettel landet an seinem Monitor). Ein PR, der auf die QA
+            wartet, lässt sich genauso zu einem freien Agenten tragen, der ihn dann testet. Überall sonst legt <Key action="drop" /> ihn zurück.
+            Rote Fäden verbinden ein Issue mit dem, von dem es abhängt, bis dieses geschlossen ist, und die Ecke des Boards zählt die heutigen
+            Merges, die Zeit vom Issue bis zum Merge, die QA-Warteschlange und alles, was dich braucht.
+          </p>
+          <p>
+            Der große Bildschirm links vom Whiteboard zeigt die App der Etage, sobald ihre Vorschau läuft: Drücke <Key action="interact" /> oder
+            klicke darauf, um die App zu öffnen. Bei offenen PRs hat die untere Leiste für jeden einen Kanal: Ziele auf einen und drücke
+            <Key action="interact" />, um diesen PR neben der Haupt-App laufen zu lassen (höchstens zwei PR-Vorschauen gleichzeitig). Im App-Fenster
+            stellt <b>Mit main vergleichen</b> beide nebeneinander, und Checks und QA-Bericht des PRs stehen daneben.
+          </p>
+            </>
+          ) : (
+            <>
+<p>
             <b>Backlog</b>: open issues nobody has picked up. <b>In progress</b>: agents building issues. <b>In QA</b>: being tested or fixed. <b>Ready to merge</b>: QA passed, waiting for you. Press{' '}
             <Key action="interact" /> or click the board to assign, send to QA, merge and file new issues. When a PR merges, confetti bursts over the desk of the agent who wrote it.
           </p>
@@ -573,6 +814,8 @@ function Help({ tab: initial }: { tab?: HelpTab }) {
             has a channel for each: aim at one and press <Key action="interact" /> to run that PR beside the main app (at most two PR previews run at once). In the viewer, <b>Compare with main</b> puts
             them side by side, and the PR's checks and QA report sit beside it.
           </p>
+            </>
+          )}
           <HelpAccess />
         </div>
       )}
@@ -586,11 +829,24 @@ function HelpAccess() {
   return (
     <>
       <h3><TranslatedLabel id="accessibility" /></h3>
+      {t('help.locale') === 'de' ? (
+            <>
       <p>
+        Untertitel für die Stimme des CEO und wichtige Geräusche, farbenblindfreundliche Statusfarben mit Formen, Bewegungskomfort (Sichtfeld,
+        kein Kopfwippen, reduzierte Bewegung, ein Mittelpunkt), eine größere Oberfläche, eine legasthenikerfreundliche Schrift und hoher Kontrast
+        findest du im Tab „Barrierefreiheit“ der Konsole. Alles funktioniert mit der Tastatur: <Key action="phone" /> öffnet dein Telefon,
+        dessen Tab „Unternehmen“ jedes Fenster öffnet, und die Listenansicht zeigt eine Etage ohne 3D.
+      </p>
+            </>
+          ) : (
+            <>
+<p>
         Captions for the CEO's voice and important sounds, colour-blind-safe status colours with shapes, motion comfort (field of view, no head bob, reduced motion, a centre dot), a bigger UI, a dyslexia-friendly font
         and high contrast are all in the console's Accessibility tab. Everything works from the keyboard: <Key action="phone" /> opens your phone, whose Company tab opens every panel, and the list view shows a floor without the 3D.
       </p>
-      <div className="row wrap">
+            </>
+          )}
+          <div className="row wrap">
         <button className="btn btn-small" onClick={() => openOverlay({ kind: 'manager', tab: 'access' })}>
           {t('help.access.btn')}
         </button>

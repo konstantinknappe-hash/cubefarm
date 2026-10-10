@@ -1,3 +1,4 @@
+import { t } from '../../i18n';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { CuboidCollider, CylinderCollider, RigidBody, useBeforePhysicsStep, type CollisionEnterPayload, type RapierRigidBody } from '@react-three/rapier';
@@ -22,7 +23,8 @@ const INK = '#1f1d2b';
 const UP = new THREE.Vector3(0, 1, 0);
 const LIGHT = { clean: new THREE.Color('#4cc9f0'), home: new THREE.Color('#ffd166'), charge: new THREE.Color('#ff9f1c'), full: new THREE.Color('#06d6a0'), off: new THREE.Color('#3a3f4b') };
 
-const hintFor = (b: Brain) => `Roomba · ${roombaStatus(b)} (battery ${Math.round(b.battery * 100)}%)`;
+const STATUS_KEY: Record<string, string> = { charging: 'world.roomba.charging', docked: 'world.roomba.docked', 'heading home': 'world.roomba.home', cleaning: 'world.roomba.cleaning' };
+const hintFor = (b: Brain) => t('world.roomba.hint', { status: t(STATUS_KEY[roombaStatus(b)] ?? roombaStatus(b)), pct: Math.round(b.battery * 100) });
 
 /** What you aim at: an invisible puck a bit bigger than the roomba, so it's easy to hit. */
 function Hint({ brain }: { brain: Brain }) {

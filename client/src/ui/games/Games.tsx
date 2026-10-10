@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import './games.css';
+import { formatNumber, t } from '../../i18n';
 import { useGameKeys } from './kit';
 import { INK, eyes, toonBlock } from './paint';
 import { STAGES, advance, mood, stage } from './pet';
@@ -103,8 +104,7 @@ function Launcher({ onGame }: { onGame: (g: GameId) => void }) {
     if (view) drawPetFigure(ctx, { size: 38, color: view.color, mood: mood(view), stage: stage(view.xp), blink: false });
     else drawDeliveryBox(ctx, 0.6);
   };
-  const best = (g: 'tetris' | 'snake') => (bestScore(g) ? `Best ${bestScore(g).toLocaleString()}` : 'No best score yet');
-  const moodText: Record<string, string> = { asleep: 'is napping', happy: 'is thrilled', content: 'is doing fine', hungry: 'is hungry', bored: 'is bored', tired: 'is sleepy', grumpy: 'is grumpy, needs you' };
+  const best = (g: 'tetris' | 'snake') => (bestScore(g) ? t('ui.games.best', { n: formatNumber(bestScore(g)) }) : t('ui.games.noBest'));
 
   useGameKeys((e) => {
     const n = ['Digit1', 'Digit2', 'Digit3'].indexOf(e.code);
@@ -115,20 +115,20 @@ function Launcher({ onGame }: { onGame: (g: GameId) => void }) {
 
   return (
     <div className="phone-scroll games-list">
-      <h3 className="phone-h">🎮 Games</h3>
-      <p className="muted small games-blurb">Something to do while the team works. They pause when you put the phone away.</p>
-      <Card icon={drawTetrisThumb} name="Cubetris" what="Falling blocks (a Tetris clone)" status={tetrisInProgress() ? '⏸ Game paused, tap to resume' : best('tetris')} color={TETRIS_COLOR} onOpen={() => onGame('tetris')} />
-      <Card icon={drawSnakeThumb} name="Cable Snake" what="Eat the bugs (a Snake clone)" status={snakeInProgress() ? '⏸ Game paused, tap to resume' : best('snake')} color={SNAKE_COLOR} onOpen={() => onGame('snake')} />
+      <h3 className="phone-h">{t('ui.games.title')}</h3>
+      <p className="muted small games-blurb">{t('ui.games.blurb')}</p>
+      <Card icon={drawTetrisThumb} name={t('ui.games.tetris')} what={t('ui.games.tetrisWhat')} status={tetrisInProgress() ? t('ui.games.paused') : best('tetris')} color={TETRIS_COLOR} onOpen={() => onGame('tetris')} />
+      <Card icon={drawSnakeThumb} name={t('ui.games.snake')} what={t('ui.games.snakeWhat')} status={snakeInProgress() ? t('ui.games.paused') : best('snake')} color={SNAKE_COLOR} onOpen={() => onGame('snake')} />
       <Card
         icon={petIcon}
-        name="Desk Pet"
-        what="Your office pet (a Tamagotchi clone)"
-        status={view ? `${view.name} the ${STAGES[stage(view.xp)].title.toLowerCase()} ${moodText[mood(view)]}` : '📦 A delivery is waiting for you'}
+        name={t('ui.games.pet')}
+        what={t('ui.games.petWhat')}
+        status={view ? t(`ui.games.mood.${mood(view)}`, { name: view.name, title: STAGES[stage(view.xp)].title }) : t('ui.games.delivery')}
         color={PET_COLOR}
         onOpen={() => onGame('pet')}
       />
       <p className="muted small games-blurb">
-        <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> open a game · <kbd>Backspace</kbd> comes back here
+        <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> {t('ui.games.keysOpen')} · <kbd>Backspace</kbd> {t('ui.games.keysBack')}
       </p>
     </div>
   );

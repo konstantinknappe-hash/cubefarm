@@ -2,6 +2,7 @@
 // in the 3D world, so pocket mode can open panels without loading it. A panel is a modal dialog for the keyboard and
 // screen readers (dialogFocus.ts): focus moves in, stays in, and goes back when it closes.
 import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { t } from '../i18n';
 import { useStore } from '../store';
 import { useDialogFocus } from './dialogFocus';
 
@@ -55,7 +56,7 @@ export function Panel({
           <h2 className="panel-title" id={titleId}>
             {title}
           </h2>
-          <button className="panel-x" onClick={() => (onClose ? onClose() : closeOverlay())} aria-label="Close">
+          <button className="panel-x" onClick={() => (onClose ? onClose() : closeOverlay())} aria-label={t('ui.close')}>
             ✕
           </button>
         </div>

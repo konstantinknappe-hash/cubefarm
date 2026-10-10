@@ -6,6 +6,7 @@ import { CEO_ID } from '../../../../shared/types';
 import { SANS, roundRect } from '../draw';
 import { useCanvasTexture } from '../interact';
 import { CEO_DESK, deskPosition } from '../layout';
+import { t } from '../../i18n';
 import { CHIP_COLORS, chipFor, type ChipKind } from './overviewInfo';
 import { pickables } from './picking';
 
@@ -15,13 +16,13 @@ import { pickables } from './picking';
 const CHIP = { w: 320, h: 72, px: 28, y: 2.45 };
 /** The chips' scale for the current lens and view size, so a new chip starts the right size. */
 const scale = { x: 0.1, y: 0.025 };
-const LABEL: Record<ChipKind, string> = { working: 'working', testing: 'testing', fixing: 'fixing', error: 'needs help', idle: 'idle' };
+const LABEL: Record<ChipKind, string> = { working: 'world.chip.working', testing: 'world.chip.testing', fixing: 'world.chip.fixing', error: 'world.chip.needsHelp', idle: 'world.chip.idle' };
 
 function drawChip(ctx: CanvasRenderingContext2D, name: string, kind: ChipKind) {
   const { w, h } = CHIP;
   ctx.clearRect(0, 0, w, h);
   ctx.font = `700 30px ${SANS}`;
-  const label = LABEL[kind];
+  const label = t(LABEL[kind]);
   let text = name;
   const room = w - 70 - ctx.measureText(` · ${label}`).width;
   while (text.length > 2 && ctx.measureText(text).width > room) text = `${text.slice(0, -2)}…`;
@@ -62,7 +63,7 @@ const Chip = memo(function Chip({ agent }: { agent: Agent }) {
   useEffect(() => {
     const s = ref.current;
     if (!s) return;
-    s.userData.pick = { kind: 'agent', agentId: agent.id, label: `Open ${agent.name}'s panel` };
+    s.userData.pick = { kind: 'agent', agentId: agent.id, label: t('world.chip.open', { name: agent.name }) };
     pickables.add(s);
     return () => void pickables.delete(s);
   }, [agent.id, agent.name]);

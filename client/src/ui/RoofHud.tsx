@@ -2,6 +2,7 @@ import { useRoof } from '../world/roof/roofState';
 import { nightFactor } from '../world/sky/time';
 import { useDayTime } from '../world/sky/useDayTime';
 import { Key, MoveKeys } from './Key';
+import { t as tr } from '../i18n';
 
 /** Up on the roof: the telescope's round eyepiece and what you can do there, or how to get up from a deck chair. */
 export function RoofHud() {
@@ -19,7 +20,7 @@ export function RoofHud() {
           <div className="roof-scope-reticle" />
         </div>
         <div className="hud-hint roof-scope-hint">
-          🔭 {zoom}× · {night ? 'the moon and the constellations' : 'read the billboards on the rooftops'} · <kbd>Scroll</kbd> zoom · <Key action="interact" /> / <MoveKeys joined /> step back
+          🔭 {zoom}× · {night ? tr('ui.roof.night') : tr('ui.roof.day')} · <kbd>{tr('ui.roof.scroll')}</kbd> {tr('ui.roof.zoom')} · <Key action="interact" /> / <MoveKeys joined /> {tr('ui.roof.stepBack')}
         </div>
       </>
     );
@@ -27,7 +28,7 @@ export function RoofHud() {
   if (sitting !== null) {
     return (
       <div className="hud-hint">
-        🪑 Sitting back · <Key action="interact" /> / <MoveKeys joined /> get up
+        🪑 {tr('ui.roof.sitting')} · <Key action="interact" /> / <MoveKeys joined /> {tr('ui.roof.getUp')}
       </div>
     );
   }

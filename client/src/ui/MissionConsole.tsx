@@ -61,7 +61,7 @@ function UsageCard({ hot }: { hot: boolean }) {
     <div id="ops-card-usage" className={`card usage-card usage-${m.tone} ${hot ? 'ops-card-hot' : ''}`}>
       <div className="row wrap">
         <b>{t('ops.usage')}</b>
-        <span className={`pill usage-pill-${m.tone}`}>{m.state}</span>
+        <span className={`pill usage-pill-${m.tone}`}>{t(`ui.ops.state.${m.state.toLowerCase()}`)}</span>
         <span className="spacer" />
         <button
           className="btn btn-small btn-good"

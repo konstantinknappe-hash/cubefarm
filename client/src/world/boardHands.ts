@@ -5,6 +5,7 @@
 
 import * as THREE from 'three';
 import { api } from '../api';
+import { t } from '../../../shared/i18n';
 import { useStore, type Agent, type Focus, type KanbanColumns } from '../store';
 import type { IssueInfo, PullInfo } from '../../../shared/types';
 import { statsChips, type BoardStats } from './boardStats';
@@ -63,7 +64,7 @@ export function makeBoardHands(repoId: string, ctrl: StickyCtrl): BoardHands {
       const id = `card:${spot.card.key}${peel ? ':peel' : ''}`;
       let f = cache.get(id);
       if (!f) {
-        f = { id, label: `Read ${cardLabel(spot.card)}`, action: { kind: 'card', repoId, key: spot.card.key, number: spot.card.number, pr: !!spot.card.prNumber, peel } };
+        f = { id, label: t('world.board.read', { what: cardLabel(spot.card) }), action: { kind: 'card', repoId, key: spot.card.key, number: spot.card.number, pr: !!spot.card.prNumber, peel } };
         cache.set(id, f);
       }
       return f;
@@ -102,7 +103,7 @@ export function peelAimed(focus: Focus | null): boolean {
   if (a?.kind !== 'card' || !board || a.repoId !== board.repoId || s.held) return false;
   const at = findCard(board.cols, a.key);
   if (!at || !canPeel(at.col, at.card)) {
-    s.pushToast('info', '📌 Only Backlog issues, and PRs waiting to go to QA, come off the board');
+    s.pushToast('info', t('world.board.onlyBacklog'));
     return true;
   }
   if (!peelForPlayer(board.ctrl, at)) return true;
@@ -202,7 +203,7 @@ export function placeSticky(focus: Focus | null, anywhere: boolean): boolean {
       .sendToQa(b.repoId, n, drop.agentId)
       .then(() => {
         rec.result = 'ok';
-        s.pushToast('success', `📌 ${agent?.name ?? 'They'} will test PR #${n}`);
+        s.pushToast('success', t('world.board.willTest', { name: agent?.name ?? t('world.board.they'), n }));
       })
       .catch((err: Error) => Object.assign(rec, { result: 'refused', error: err.message }))
       .finally(() => returnMine(b.ctrl)); // it waits on the board for them to come and take it
@@ -217,7 +218,7 @@ export function placeSticky(focus: Focus | null, anywhere: boolean): boolean {
       rec.result = 'ok';
       if (agent) giveMine(b.ctrl, agent);
       else returnMine(b.ctrl);
-      s.pushToast('success', `📌 ${agent?.name ?? 'They'} started #${n}`);
+      s.pushToast('success', t('world.board.started', { name: agent?.name ?? t('world.board.they'), n }));
     })
     .catch((err: Error) => {
       Object.assign(rec, { result: 'refused', error: err.message });

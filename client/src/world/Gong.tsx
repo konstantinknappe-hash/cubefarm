@@ -10,6 +10,7 @@ import { useInteractable } from './interact';
 import { GONG } from './layout';
 import { toon } from './materials';
 import { Ball, Box, Cyl } from './Toon';
+import { t } from '../i18n';
 import { onPoke } from './toys/poke';
 
 // The merge gong on every office floor: a big bronze disc hanging in a wooden frame, with a padded mallet on a hook.
@@ -92,7 +93,7 @@ function Disc() {
 }
 
 export function Gong({ repoId }: { repoId: string }) {
-  const ref = useInteractable<THREE.Group>({ id: 'gong', label: 'Bang the gong', action: { kind: 'poke', toyId: 'gong' } }, 3.4);
+  const ref = useInteractable<THREE.Group>({ id: 'gong', label: t('world.gong.bang'), action: { kind: 'poke', toyId: 'gong' } }, 3.4);
   const mallet = useRef<THREE.Group>(null);
   useEffect(() => {
     setGongHere(repoId);

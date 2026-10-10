@@ -2,6 +2,7 @@ import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { CuboidCollider, RigidBody, useBeforePhysicsStep, useRapier, type CollisionEnterPayload, type RapierCollider, type RapierRigidBody } from '@react-three/rapier';
 import * as THREE from 'three';
+import { t } from '../../i18n';
 import { repoOnFloor, useStore } from '../../store';
 import { ding } from '../../ui/sfx';
 import type { BodyState } from '../body';
@@ -263,7 +264,7 @@ function DogLook({ brain, gait, carrying }: { brain: Brain; gait: { phase: numbe
 /** What you aim at to pet it: an invisible box a bit bigger than the dog. */
 function Hint({ brain }: { brain: Brain }) {
   const name = useStore((s) => s.settings.dogName);
-  const label = () => `Pet ${name?.trim() || dogName()} · ${dogStatus(brain)}`;
+  const label = () => t('world.dog.pet', { name: name?.trim() || dogName(), status: dogStatus(brain) });
   const [text, setText] = useState(label);
   const ref = useInteractable<THREE.Mesh>({ id: 'toy:dog', label: text, action: { kind: 'poke', toyId: 'dog' } }, 3);
   useFrame(() => {

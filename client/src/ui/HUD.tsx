@@ -180,7 +180,7 @@ export function HUD() {
       </div>
 
       <div className="hud-status">
-        {demo && <span className="pill pill-demo">DEMO</span>}
+        {demo && <span className="pill pill-demo">{t('ui.demoShort')}</span>}
         <span className={`pill ${replaying ? 'pill-replay' : connected ? 'pill-ok' : restarting ? 'pill-demo' : 'pill-bad'}`}>{replaying ? t("hud.replay") : connected ? t("hud.live") : restarting ? t("hud.restarting") : t("hud.reconnecting")}</span>
         <span className="pill">
           ⚙️ {settings.sessionLimit ? `${running}/${settings.sessionLimit}` : running} {t("hud.sessions")}

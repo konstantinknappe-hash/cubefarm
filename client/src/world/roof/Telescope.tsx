@@ -12,7 +12,8 @@ import { nightFactor } from '../sky/time';
 import { dayTime } from '../sky/useDayTime';
 import { useRoofOp, useRoofReport } from './roofOps';
 import { useRoof, ZOOM } from './roofState';
-import { aimAt, moonDirection, skyFigures, skyTurn, starAt, starAxis, STARS } from './stargazing';
+import { aimAt, moonDirection, NAMES, skyFigures, skyTurn, starAt, starAxis, STARS } from './stargazing';
+import { t } from '../../i18n';
 
 // The telescope in the north-east corner. E looks through it (perch.ts): the view narrows 4-8× (the mouse wheel), a
 // round eyepiece frames it (ui/RoofHud.tsx) and the mouse aims it, finer the more it magnifies. By day the city's
@@ -196,7 +197,7 @@ function TelescopeSky({ visible }: { visible: RefObject<boolean> }) {
       ),
     );
     const labels = figures.map((f) => {
-      const tex = labelTexture(f.name);
+      const tex = labelTexture(t(`world.stars.${NAMES.indexOf(f.name)}`));
       // in the middle of the figure
       const at = new THREE.Vector3(...f.centre).multiplyScalar(SKY_R);
       return { name: f.name, at, tex, mat: farMaterial(tex, '#ffffff', 0.9) };
@@ -285,7 +286,7 @@ export function Telescope() {
   const tube = useRef<THREE.Group>(null);
   const aim = useMemo(() => ({ ...START }), []);
   const looking = useRef(false);
-  const ref = useInteractable<THREE.Group>({ id: 'telescope', label: 'Look through the telescope', action: { kind: 'roof', op: 'telescope' } }, 3);
+  const ref = useInteractable<THREE.Group>({ id: 'telescope', label: t('world.telescope.look'), action: { kind: 'roof', op: 'telescope' } }, 3);
 
   const look = () => {
     if (looking.current) return;

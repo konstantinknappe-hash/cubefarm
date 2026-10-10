@@ -2,6 +2,8 @@
 // around them: which actions a key triggers, labels for <kbd>, conflicts, rebinding and reading saved controls back.
 // Keys are KeyboardEvent.code values, so a binding is a physical key whatever the keyboard layout.
 
+import { t } from '../../../shared/i18n';
+
 export type ActionId =
   | 'forward'
   | 'back'
@@ -43,31 +45,39 @@ export interface ActionDef {
   keys: readonly string[];
 }
 
-export const ACTIONS: readonly ActionDef[] = [
-  { id: 'forward', label: 'Walk forward', group: 'Moving', scope: 'move', keys: ['KeyW', 'ArrowUp'] },
-  { id: 'back', label: 'Walk back', group: 'Moving', scope: 'move', keys: ['KeyS', 'ArrowDown'] },
-  { id: 'left', label: 'Step left', group: 'Moving', scope: 'move', keys: ['KeyA', 'ArrowLeft'] },
-  { id: 'right', label: 'Step right', group: 'Moving', scope: 'move', keys: ['KeyD', 'ArrowRight'] },
-  { id: 'run', label: 'Run (hold)', group: 'Moving', scope: 'move', keys: ['ShiftLeft', 'ShiftRight'] },
-  { id: 'interact', label: 'Use, pick up, sip', group: 'Hands', scope: 'walk', keys: ['KeyE'] },
-  { id: 'throw', label: 'Throw or fire (hold to charge)', group: 'Hands', scope: 'walk', keys: ['KeyF'] },
-  { id: 'drop', label: 'Drop', group: 'Hands', scope: 'walk', keys: ['KeyG'] },
-  { id: 'reload', label: 'Reload a blaster', group: 'Hands', scope: 'walk', keys: ['KeyR'] },
-  { id: 'volumeDown', label: 'Jukebox softer', group: 'Hands', scope: 'walk', keys: ['Minus', 'NumpadSubtract'] },
-  { id: 'volumeUp', label: 'Jukebox louder', group: 'Hands', scope: 'walk', keys: ['Equal', 'NumpadAdd'] },
-  { id: 'phone', label: 'Phone', group: 'Office', scope: 'global', keys: ['KeyP'] },
-  { id: 'help', label: 'Help', group: 'Office', scope: 'global', keys: ['KeyH'] },
-  { id: 'mute', label: 'Mute', group: 'Office', scope: 'global', keys: ['KeyM'] },
-  { id: 'workers', label: "Who's working list", group: 'Office', scope: 'global', keys: ['KeyL'] },
-  { id: 'overview', label: 'Overview (twice: the building)', group: 'Overview', scope: 'global', keys: ['Tab'] },
-  { id: 'rotateLeft', label: 'Turn the overview left', group: 'Overview', scope: 'overview', keys: ['KeyQ'] },
-  { id: 'rotateRight', label: 'Turn the overview right', group: 'Overview', scope: 'overview', keys: ['KeyE'] },
-  { id: 'talk', label: 'Hold to talk (in a message box)', group: 'Office', scope: 'panel', keys: ['KeyV'] },
-  { id: 'emote', label: 'Emote wheel (hold, point, let go)', group: 'Office', scope: 'walk', keys: ['KeyT'] },
-  { id: 'ping', label: 'Ping where you aim (or middle-click)', group: 'Office', scope: 'walk', keys: ['KeyX'] },
-  { id: 'photo', label: 'Photo mode', group: 'Office', scope: 'global', keys: ['KeyK'] },
-  { id: 'saveReplay', label: 'Save the last 15 s (instant replay)', group: 'Office', scope: 'global', keys: ['KeyI'] },
+const RAW: readonly Omit<ActionDef, 'label'>[] = [
+  { id: 'forward', group: 'Moving', scope: 'move', keys: ['KeyW', 'ArrowUp'] },
+  { id: 'back', group: 'Moving', scope: 'move', keys: ['KeyS', 'ArrowDown'] },
+  { id: 'left', group: 'Moving', scope: 'move', keys: ['KeyA', 'ArrowLeft'] },
+  { id: 'right', group: 'Moving', scope: 'move', keys: ['KeyD', 'ArrowRight'] },
+  { id: 'run', group: 'Moving', scope: 'move', keys: ['ShiftLeft', 'ShiftRight'] },
+  { id: 'interact', group: 'Hands', scope: 'walk', keys: ['KeyE'] },
+  { id: 'throw', group: 'Hands', scope: 'walk', keys: ['KeyF'] },
+  { id: 'drop', group: 'Hands', scope: 'walk', keys: ['KeyG'] },
+  { id: 'reload', group: 'Hands', scope: 'walk', keys: ['KeyR'] },
+  { id: 'volumeDown', group: 'Hands', scope: 'walk', keys: ['Minus', 'NumpadSubtract'] },
+  { id: 'volumeUp', group: 'Hands', scope: 'walk', keys: ['Equal', 'NumpadAdd'] },
+  { id: 'phone', group: 'Office', scope: 'global', keys: ['KeyP'] },
+  { id: 'help', group: 'Office', scope: 'global', keys: ['KeyH'] },
+  { id: 'mute', group: 'Office', scope: 'global', keys: ['KeyM'] },
+  { id: 'workers', group: 'Office', scope: 'global', keys: ['KeyL'] },
+  { id: 'overview', group: 'Overview', scope: 'global', keys: ['Tab'] },
+  { id: 'rotateLeft', group: 'Overview', scope: 'overview', keys: ['KeyQ'] },
+  { id: 'rotateRight', group: 'Overview', scope: 'overview', keys: ['KeyE'] },
+  { id: 'talk', group: 'Office', scope: 'panel', keys: ['KeyV'] },
+  { id: 'emote', group: 'Office', scope: 'walk', keys: ['KeyT'] },
+  { id: 'ping', group: 'Office', scope: 'walk', keys: ['KeyX'] },
+  { id: 'photo', group: 'Office', scope: 'global', keys: ['KeyK'] },
+  { id: 'saveReplay', group: 'Office', scope: 'global', keys: ['KeyI'] },
 ];
+
+/** Every action, its label in the office's language. */
+export const ACTIONS: readonly ActionDef[] = RAW.map((a) => ({
+  ...a,
+  get label() {
+    return t(`ui.action.${a.id}`);
+  },
+}));
 
 export const ACTION_IDS = ACTIONS.map((a) => a.id);
 const BY_ID = new Map(ACTIONS.map((a) => [a.id, a]));

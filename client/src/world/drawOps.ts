@@ -1,3 +1,4 @@
+import { t as tr } from '../../../shared/i18n';
 import { fmtDuration, fmtPct, fmtUsd } from '../ops';
 import { roundRect, SANS } from './draw';
 
@@ -84,23 +85,23 @@ export interface PipelineCounts {
   triage: number;
 }
 
-const STAGES: [keyof PipelineCounts, string][] = [
-  ['ready', 'Ready'],
-  ['building', 'Building'],
-  ['inQa', 'In QA'],
-  ['fixing', 'Fixing'],
-  ['toMerge', 'To merge'],
-  ['needsYou', 'Needs you'],
+const STAGES: [keyof PipelineCounts, () => string][] = [
+  ['ready', () => tr('world.ops.ready')],
+  ['building', () => tr('world.ops.building')],
+  ['inQa', () => tr('world.ops.inQa')],
+  ['fixing', () => tr('world.ops.fixing')],
+  ['toMerge', () => tr('world.ops.toMerge')],
+  ['needsYou', () => tr('world.ops.needsYou')],
 ];
 const MAX_ROWS = 6;
 
 /** Ready → building → in QA → fixing → to merge → needs you, per floor and in total. */
 export function drawPipeline(ctx: CanvasRenderingContext2D, w: number, h: number, d: { floors: (FloorTag & PipelineCounts)[]; total: PipelineCounts }) {
-  frame(ctx, w, h, 'PIPELINE', 'issues and pull requests, now');
+  frame(ctx, w, h, tr('world.ops.pipeline'), tr('world.ops.pipelineSub'));
   const nameW = 270;
   const colW = (w - 64 - nameW) / STAGES.length;
   const colX = (i: number) => 32 + nameW + colW * i + colW / 2;
-  STAGES.forEach(([, label], i) => text(ctx, label, colX(i), 118, 24, C.dim, 'center', 600, colW - 6));
+  STAGES.forEach(([, label], i) => text(ctx, label(), colX(i), 118, 24, C.dim, 'center', 600, colW - 6));
   const rows = d.floors.slice(0, MAX_ROWS);
   const top = 148;
   const rowH = Math.min(100, (h - top - 30) / (rows.length + 1));
@@ -122,19 +123,19 @@ export function drawPipeline(ctx: CanvasRenderingContext2D, w: number, h: number
   ctx.fillStyle = C.line;
   ctx.fillRect(32, y - rowH / 2, w - 64, 2);
   const more = d.floors.length - rows.length;
-  text(ctx, more > 0 ? `All (+${more} more)` : 'All floors', 32, y, Math.min(36, rowH * 0.42), C.title, 'left', 700, nameW - 10);
+  text(ctx, more > 0 ? tr('world.ops.allMore', { more }) : tr('world.ops.allFloors'), 32, y, Math.min(36, rowH * 0.42), C.title, 'left', 700, nameW - 10);
   STAGES.forEach(([key], i) => cell(d.total[key], key, i, y, true));
-  if (d.total.triage) text(ctx, `🧭 ${d.total.triage} with the CEO`, colX(STAGES.length - 1), Math.min(h - 18, y + rowH * 0.62), 20, C.warn, 'center', 600, colW + 30);
+  if (d.total.triage) text(ctx, tr('world.ops.triage', { n: d.total.triage }), colX(STAGES.length - 1), Math.min(h - 18, y + rowH * 0.62), 20, C.warn, 'center', 600, colW + 30);
 }
 
 // ---------- throughput ----------
 
 /** Merged today and in the last hour, the last 24 hours as bars, and each floor's count today. */
 export function drawThroughput(ctx: CanvasRenderingContext2D, w: number, h: number, d: { today: number; hour: number; spark: number[]; floors: (FloorTag & { today: number })[] }) {
-  frame(ctx, w, h, 'THROUGHPUT', 'pull requests merged');
+  frame(ctx, w, h, tr('world.ops.throughput'), tr('world.ops.throughputSub'));
   text(ctx, String(d.today), 150, 225, 160, C.good, 'center');
-  text(ctx, 'today', 150, 325, 36, C.dim, 'center', 600);
-  text(ctx, `${d.hour} in the last hour`, 150, 380, 28, d.hour ? C.text : C.dim, 'center', 600, 260);
+  text(ctx, tr('world.ops.today'), 150, 325, 36, C.dim, 'center', 600);
+  text(ctx, tr('world.ops.lastHour', { n: d.hour }), 150, 380, 28, d.hour ? C.text : C.dim, 'center', 600, 260);
 
   const x0 = 310;
   const x1 = w - 36;
@@ -151,9 +152,9 @@ export function drawThroughput(ctx: CanvasRenderingContext2D, w: number, h: numb
   });
   ctx.fillStyle = C.line;
   ctx.fillRect(x0, yBase + 4, x1 - x0, 2);
-  text(ctx, '24 h ago', x0, yBase + 30, 22, C.dim, 'left', 500);
-  text(ctx, `busiest hour: ${peak}`, (x0 + x1) / 2, yBase + 30, 22, C.dim, 'center', 500);
-  text(ctx, 'now', x1, yBase + 30, 22, C.dim, 'right', 500);
+  text(ctx, tr('world.ops.dayAgo'), x0, yBase + 30, 22, C.dim, 'left', 500);
+  text(ctx, tr('world.ops.busiest', { n: peak }), (x0 + x1) / 2, yBase + 30, 22, C.dim, 'center', 500);
+  text(ctx, tr('world.ops.now'), x1, yBase + 30, 22, C.dim, 'right', 500);
 
   // each floor's merges today
   const shown = d.floors.slice(0, 4);
@@ -163,8 +164,8 @@ export function drawThroughput(ctx: CanvasRenderingContext2D, w: number, h: numb
     floorLabel(ctx, f, x, 500, 26, each - 90);
     text(ctx, String(f.today), x + each - 16, 500, 40, f.today ? C.text : C.dim, 'right');
   });
-  if (!shown.length) text(ctx, 'No floors yet', w / 2, 500, 30, C.dim, 'center', 600);
-  text(ctx, 'merged today, by floor', w / 2, 560, 22, C.dim, 'center', 500);
+  if (!shown.length) text(ctx, tr('world.ops.noFloors'), w / 2, 500, 30, C.dim, 'center', 600);
+  text(ctx, tr('world.ops.byFloor'), w / 2, 560, 22, C.dim, 'center', 500);
 }
 
 // ---------- flow and CI ----------
@@ -182,13 +183,13 @@ const passTone = (x: number | null) => (x === null ? C.dim : x >= 0.9 ? C.good :
 
 /** Lead time and QA wait (last 24 hours), and GitHub's checks (7 days), in four tiles; one line per floor below. */
 export function drawFlow(ctx: CanvasRenderingContext2D, w: number, h: number, d: { total: FlowNumbers; floors: (FloorTag & FlowNumbers)[] }) {
-  frame(ctx, w, h, 'FLOW & CI', 'medians · last 24 h · checks 7 days');
+  frame(ctx, w, h, tr('world.ops.flow'), tr('world.ops.flowSub'));
   const t = d.total;
   const tiles: [string, string, string, string][] = [
-    ['LEAD TIME', fmtDuration(t.leadMs), 'issue → merge', t.leadMs === null ? C.dim : C.text],
-    ['QA WAIT', fmtDuration(t.qaWaitMs), `QA passes ${fmtPct(t.qaPass)} (7 d)`, t.qaWaitMs === null ? C.dim : C.text],
-    ['CI PASS RATE', fmtPct(t.ciPass), `${t.ciRuns} run${t.ciRuns === 1 ? '' : 's'}`, passTone(t.ciPass)],
-    ['CI DURATION', fmtDuration(t.ciMs), 'first check to last', t.ciMs === null ? C.dim : C.text],
+    [tr('world.ops.lead'), fmtDuration(t.leadMs), tr('world.ops.leadSub'), t.leadMs === null ? C.dim : C.text],
+    [tr('world.ops.qaWait'), fmtDuration(t.qaWaitMs), tr('world.ops.qaWaitSub', { pct: fmtPct(t.qaPass) }), t.qaWaitMs === null ? C.dim : C.text],
+    [tr('world.ops.ciRate'), fmtPct(t.ciPass), tr('world.ops.ciRuns', { count: t.ciRuns }), passTone(t.ciPass)],
+    [tr('world.ops.ciDuration'), fmtDuration(t.ciMs), tr('world.ops.ciDurationSub'), t.ciMs === null ? C.dim : C.text],
   ];
   const tw = (w - 64 - 20) / 2;
   const th = 160;
@@ -205,9 +206,9 @@ export function drawFlow(ctx: CanvasRenderingContext2D, w: number, h: number, d:
   d.floors.slice(0, 2).forEach((f, i) => {
     const y = 470 + i * 52;
     floorLabel(ctx, f, 32, y, 26, 330);
-    text(ctx, `lead ${fmtDuration(f.leadMs)} · QA wait ${fmtDuration(f.qaWaitMs)} · CI ${fmtPct(f.ciPass)}${f.ciRuns ? ` · ${fmtDuration(f.ciMs)}` : ''}`, w - 32, y, 26, C.text, 'right', 600, w - 400);
+    text(ctx, `${tr('world.ops.floorFlow', { lead: fmtDuration(f.leadMs), wait: fmtDuration(f.qaWaitMs), ci: fmtPct(f.ciPass) })}${f.ciRuns ? ` · ${fmtDuration(f.ciMs)}` : ''}`, w - 32, y, 26, C.text, 'right', 600, w - 400);
   });
-  if (d.floors.length > 2) text(ctx, `+${d.floors.length - 2} more floors in the manager's console`, w / 2, 576, 20, C.dim, 'center', 500);
+  if (d.floors.length > 2) text(ctx, tr('world.ops.moreFloors', { n: d.floors.length - 2 }), w / 2, 576, 20, C.dim, 'center', 500);
 }
 
 // ---------- the team ----------
@@ -221,7 +222,7 @@ export interface TeamCounts {
 /** Busy, idle and in error, per floor, as stacked bars. */
 export function drawTeam(ctx: CanvasRenderingContext2D, w: number, h: number, d: { floors: (FloorTag & TeamCounts)[]; total: TeamCounts }) {
   const t = d.total;
-  frame(ctx, w, h, 'TEAM', `${t.busy} busy · ${t.idle} idle · ${t.errors} in error`);
+  frame(ctx, w, h, tr('world.ops.team'), tr('world.ops.teamSub', { busy: t.busy, idle: t.idle, errors: t.errors }));
   const rows = d.floors.slice(0, MAX_ROWS);
   const top = 108;
   const legend = 40;
@@ -248,12 +249,12 @@ export function drawTeam(ctx: CanvasRenderingContext2D, w: number, h: number, d:
     }
     text(ctx, `${f.busy}/${f.busy + f.idle + f.errors}`, w - 32, y, Math.round(rowH * 0.42), f.errors ? C.bad : C.text, 'right');
   });
-  if (!rows.length) text(ctx, 'No floors yet', w / 2, h / 2, 34, C.dim, 'center', 600);
+  if (!rows.length) text(ctx, tr('world.ops.noFloors'), w / 2, h / 2, 34, C.dim, 'center', 600);
   const ly = h - 28;
   [
-    ['busy', C.good],
-    ['idle', C.idle],
-    ['in error', C.bad],
+    [tr('world.ops.busy'), C.good],
+    [tr('world.ops.idle'), C.idle],
+    [tr('world.ops.inError'), C.bad],
   ].forEach(([label, color], i) => {
     const x = 32 + i * 170;
     roundRect(ctx, x, ly - 11, 22, 22, 6);
@@ -279,9 +280,9 @@ const STATE_ICON: Record<string, string> = { Normal: '✓', Pacing: '🐢', Paus
 
 /** The usage meter: normal, pacing or paused, the last warning's limit and fill, and when it resets. */
 export function drawUsage(ctx: CanvasRenderingContext2D, w: number, h: number, d: UsageScreen) {
-  frame(ctx, w, h, 'CLAUDE USAGE', d.tone === 'good' ? 'full speed' : 'new work held back');
+  frame(ctx, w, h, tr('world.ops.usage'), d.tone === 'good' ? tr('world.ops.fullSpeed') : tr('world.ops.heldBack'));
   const color = TONE[d.tone];
-  text(ctx, `${STATE_ICON[d.state] ?? ''} ${d.state}`, w / 2, 160, 92, color, 'center');
+  text(ctx, `${STATE_ICON[d.state] ?? ''} ${tr(`ui.ops.state.${d.state.toLowerCase()}`)}`, w / 2, 160, 92, color, 'center');
   const gx = 60;
   const gw = w - 120;
   roundRect(ctx, gx, 236, gw, 42, 21);
@@ -293,7 +294,7 @@ export function drawUsage(ctx: CanvasRenderingContext2D, w: number, h: number, d
     ctx.fill();
   }
   text(ctx, d.limit, w / 2, 320, 34, C.text, 'center', 600, w - 80);
-  text(ctx, d.resets ? `resets ${d.resets}` : 'nothing to reset', w / 2, 368, 30, C.dim, 'center', 600);
+  text(ctx, d.resets ? tr('world.ops.resets', { at: d.resets }) : tr('world.ops.nothingToReset'), w / 2, 368, 30, C.dim, 'center', 600);
   roundRect(ctx, 60, 404, w - 120, 64, 32);
   ctx.fillStyle = d.tone === 'warn' ? 'rgba(255, 209, 102, 0.16)' : 'rgba(143, 211, 255, 0.08)';
   ctx.fill();
@@ -304,9 +305,9 @@ export function drawUsage(ctx: CanvasRenderingContext2D, w: number, h: number, d
 
 /** Today's cost per floor and the CEO's, from finished sessions' reported cost: an estimate. */
 export function drawCost(ctx: CanvasRenderingContext2D, w: number, h: number, d: { floors: (FloorTag & { usd: number })[]; ceo: number; total: number }) {
-  frame(ctx, w, h, 'COST TODAY', 'estimate · finished sessions');
+  frame(ctx, w, h, tr('world.ops.cost'), tr('world.ops.costSub'));
   text(ctx, `~${fmtUsd(d.total)}`, w - 40, 150, 84, C.warn, 'right');
-  text(ctx, 'all floors and the CEO', w - 40, 210, 24, C.dim, 'right', 500);
+  text(ctx, tr('world.ops.costAll'), w - 40, 210, 24, C.dim, 'right', 500);
   const rows: (FloorTag & { usd: number })[] = [...d.floors.slice(0, 4), { floor: 0, name: 'CEO', color: C.ceo, usd: d.ceo }];
   const max = Math.max(0.01, ...rows.map((r) => r.usd));
   const top = 250;
@@ -331,8 +332,8 @@ export function drawStrip(ctx: CanvasRenderingContext2D, w: number, h: number, d
   ctx.fillStyle = d.alarms.length ? '#3a0d18' : '#0b1024';
   ctx.fillRect(0, 0, w, h);
   ctx.textBaseline = 'middle';
-  text(ctx, '🛰️ MISSION CONTROL', 40, h / 2 + 4, h * 0.46, C.title);
+  text(ctx, tr('world.ops.mission'), 40, h / 2 + 4, h * 0.46, C.title);
   const n = d.alarms.length;
-  if (!n) text(ctx, '✓ All clear', w - 40, h / 2 + 4, h * 0.42, C.good, 'right');
-  else text(ctx, `🚨 ${n > 1 ? `${n} need you · ` : ''}${d.alarms[0]}`, w - 40, h / 2 + 4, h * 0.36, '#ffd6dc', 'right', 700, w * 0.6);
+  if (!n) text(ctx, tr('world.ops.allClear'), w - 40, h / 2 + 4, h * 0.42, C.good, 'right');
+  else text(ctx, `🚨 ${n > 1 ? tr('world.ops.needYou', { n }) : ''}${d.alarms[0]}`, w - 40, h / 2 + 4, h * 0.36, '#ffd6dc', 'right', 700, w * 0.6);
 }

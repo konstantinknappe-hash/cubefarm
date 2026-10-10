@@ -2,6 +2,8 @@
 // down in real time, even while the office is closed. It never dies: at worst it gets grumpy until you look after
 // it again. Pure functions of (state, now); petStore.ts keeps it in the browser and Pet.tsx draws it.
 
+import { t } from '../../../../shared/i18n';
+
 export interface PetState {
   v: 1;
   name: string;
@@ -37,12 +39,12 @@ export const RATES = {
 export const NAMES = ['Cubey', 'Pixel', 'Widget', 'Sprocket', 'Nugget', 'Mochi', 'Byte', 'Tofu'];
 export const COLORS = ['#ff8a5b', '#4fb3e8', '#8fd14f', '#c77dff', '#ffc93c', '#ff6fb5', '#2ec4b6'];
 /** Job titles by care points: it grows (and dresses) up as you look after it. */
-export const STAGES = [
-  { xp: 0, title: 'Intern' },
-  { xp: 12, title: 'Junior' },
-  { xp: 40, title: 'Senior' },
-  { xp: 90, title: 'Tech Lead' },
-];
+export const STAGES = [0, 12, 40, 90].map((xp, i) => ({
+  xp,
+  get title() {
+    return t(`ui.pet.stage${i}`);
+  },
+}));
 
 const clamp = (v: number) => Math.max(0, Math.min(100, v));
 
@@ -68,7 +70,7 @@ export function hatch(now: number, r0: number, r1: number): PetState {
     xp: 0,
     coffeeAt: 0,
     pettedAt: 0,
-    say: { text: `Hi! I'm ${name}, your new desk pet. Keep me fed, busy and rested!`, at: now },
+    say: { text: t('ui.pet.hello', { name }), at: now },
   };
 }
 
@@ -105,17 +107,10 @@ export function mood(p: PetState): Mood {
 }
 
 /** What it says about itself when it has nothing new to say. */
-export const MOOD_LINES: Record<Mood, string> = {
-  asleep: 'Zzz… 💤',
-  happy: 'Best. Job. Ever. ✨',
-  content: 'Just vibing at my desk.',
-  hungry: "I'm hungry… got a donut? 🍩",
-  bored: "I'm bored. Play with me? 🎾",
-  tired: 'So… sleepy… 🥱',
-  grumpy: 'Hmph. Nobody looks after me. 😤',
-};
+export const moodLine = (m: Mood) => t(`ui.pet.mood.${m}`);
 
-const pick = (lines: string[], now: number) => lines[Math.floor(now / 1000) % lines.length];
+/** One of a few lines, by key: `ui.pet.<key>0`, `1`, `2`. */
+const pick = (key: string, now: number) => t(`ui.pet.${key}${Math.floor(now / 1000) % 3}`);
 
 /** Looks after the pet: brings it up to now, applies the action and notes what it says (and any promotion). */
 export function act(before: PetState, action: PetAction, now: number): PetState {
@@ -123,7 +118,7 @@ export function act(before: PetState, action: PetAction, now: number): PetState 
   const next = apply(p, action, now);
   if (next === p) return p;
   const promoted = stage(next.xp) > stage(p.xp);
-  return promoted ? { ...next, fun: clamp(next.fun + 10), say: { text: `Promoted to ${STAGES[stage(next.xp)].title}! 🎉`, at: now } } : next;
+  return promoted ? { ...next, fun: clamp(next.fun + 10), say: { text: t('ui.pet.promoted', { title: STAGES[stage(next.xp)].title }), at: now } } : next;
 }
 
 function apply(p: PetState, action: PetAction, now: number): PetState {
@@ -137,24 +132,24 @@ function apply(p: PetState, action: PetAction, now: number): PetState {
     say: say(text),
   });
   if (action === 'nap') {
-    if (p.asleep) return p.energy < 40 ? { ...change({ fun: -4 }, 'Five more minutes… 😒'), asleep: false } : { ...change({}, 'Good morning! ☀️'), asleep: false };
-    if (p.energy >= 90) return change({}, "I'm not sleepy!");
-    return { ...change({ xp: p.energy < 50 ? 1 : 0 }, 'Nap time… 💤'), asleep: true };
+    if (p.asleep) return p.energy < 40 ? { ...change({ fun: -4 }, t('ui.pet.fiveMore')), asleep: false } : { ...change({}, t('ui.pet.morning')), asleep: false };
+    if (p.energy >= 90) return change({}, t('ui.pet.notSleepy'));
+    return { ...change({ xp: p.energy < 50 ? 1 : 0 }, t('ui.pet.napTime')), asleep: true };
   }
-  if (p.asleep) return action === 'pet' ? p : change({}, 'Zzz… (shh, still asleep) 💤');
+  if (p.asleep) return action === 'pet' ? p : change({}, t('ui.pet.stillAsleep'));
   switch (action) {
     case 'snack':
-      if (p.food >= 90) return change({ fun: -2 }, "I'm stuffed! No more donuts.");
-      return change({ food: 30, fun: 3, xp: 1 }, pick(['Nom nom nom! 🍩', 'Sprinkles! My favourite.', 'Donut-driven development!'], now));
+      if (p.food >= 90) return change({ fun: -2 }, t('ui.pet.stuffed'));
+      return change({ food: 30, fun: 3, xp: 1 }, pick('snack', now));
     case 'coffee':
-      if (now - p.coffeeAt < 10 * 60_000) return change({ energy: 5, fun: -6 }, 'Too… much… coffee! 😵‍💫');
-      return { ...change({ energy: 25, food: 3, xp: 1 }, pick(['☕ Ready to ship!', 'Caffeine: loaded.', 'Brb, refactoring everything.'], now)), coffeeAt: now };
+      if (now - p.coffeeAt < 10 * 60_000) return change({ energy: 5, fun: -6 }, t('ui.pet.tooMuchCoffee'));
+      return { ...change({ energy: 25, food: 3, xp: 1 }, pick('coffee', now)), coffeeAt: now };
     case 'play':
-      if (p.energy < 15) return change({}, 'Too tired to play… 🥱');
-      return change({ fun: 25, energy: -10, food: -6, xp: 1 }, pick(['Wheee! 🎾', 'Again! Again!', 'Best. Break. Ever.'], now));
+      if (p.energy < 15) return change({}, t('ui.pet.tooTired'));
+      return change({ fun: 25, energy: -10, food: -6, xp: 1 }, pick('play', now));
     case 'pet':
       if (now - p.pettedAt < 3000) return p;
-      return { ...change({ fun: 3 }, pick(['Hehe ❤️', '*happy wiggle*', "You're the best manager!"], now)), pettedAt: now };
+      return { ...change({ fun: 3 }, pick('pet', now)), pettedAt: now };
   }
   return p;
 }

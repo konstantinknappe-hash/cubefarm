@@ -1,5 +1,6 @@
 // Pocket mode's reading of the office state: each floor's pipeline, what the manager can do with an agent (the same
 // as in their terminal panel), and what's waiting on the manager. Pure, so it's tested without a browser.
+import { t } from '../../../shared/i18n';
 import type { HireRequestView, QaView, RepoView } from '../../../shared/types';
 import { needsManager } from '../qaCard';
 import type { Agent, KanbanColumns } from '../store';
@@ -55,11 +56,11 @@ export function assignChoices(cols: KanbanColumns | null): AssignChoice[] {
 
 /** One short line on what they're doing. */
 export function doing(a: Pick<Agent, 'status' | 'task' | 'issueNumber' | 'issueTitle' | 'prNumber'>): string {
-  if (a.status === 'idle') return 'Free';
-  if (a.task === 'qa') return `Testing PR #${a.prNumber ?? '?'}${a.issueTitle ? `: ${a.issueTitle}` : ''}`;
-  if (a.task === 'fix') return `Fixing PR #${a.prNumber ?? '?'}${a.issueTitle ? `: ${a.issueTitle}` : ''}`;
+  if (a.status === 'idle') return t('ui.pocket.free');
+  if (a.task === 'qa') return `${t('ui.doing.testingPr', { n: a.prNumber ?? '?' })}${a.issueTitle ? `: ${a.issueTitle}` : ''}`;
+  if (a.task === 'fix') return `${t('ui.doing.fixingPr', { n: a.prNumber ?? '?' })}${a.issueTitle ? `: ${a.issueTitle}` : ''}`;
   if (a.issueNumber != null) return `#${a.issueNumber}${a.issueTitle ? ` ${a.issueTitle}` : ''}`;
-  return a.status === 'done' ? 'Finished' : '';
+  return a.status === 'done' ? t('ui.status.done') : '';
 }
 
 export interface Waiting {

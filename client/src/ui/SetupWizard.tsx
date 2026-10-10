@@ -13,7 +13,7 @@ import { useT } from '../i18n';
 const COMPANIES = ['Pixel & Pine', 'Byte Bakery', 'Night Owl Software', 'Tiny Rocket Co.', 'Moonbeam Works', 'Happy Path Inc.', 'Merge Conflict Ltd.', 'Quokka Labs', 'Blue Kettle Studio', 'Paper Plane Software'];
 const CEO_NAMES = ['Morgan', 'Avery', 'Jordan', 'Riley', 'Quinn', 'Harper', 'Rowan', 'Sasha', 'Casey', 'Jamie', 'Alex', 'Robin'];
 const TIES = ['#e63946', '#3a86ff', '#06d6a0', '#ffbe0b', '#9b5de5', '#fb5607'];
-const STEPS = ['Welcome', 'You', 'Your CEO', 'First project', 'Ready'];
+const STEPS = ['ui.wizard.welcome', 'ui.wizard.you', 'ui.wizard.ceo', 'ui.wizard.project', 'ui.wizard.ready'];
 
 const pickOther = <T,>(list: T[], current: T) => {
   const rest = list.filter((x) => x !== current);
@@ -93,7 +93,7 @@ export function SetupWizard() {
       <div className="start-card wizard">
         <div className="wizard-steps">
           {STEPS.map((s, i) => (
-            <span key={s} className={`wizard-dot ${i === step ? 'wizard-dot-on' : i < step ? 'wizard-dot-done' : ''}`} title={s} />
+            <span key={s} className={`wizard-dot ${i === step ? 'wizard-dot-on' : i < step ? 'wizard-dot-done' : ''}`} title={t(s)} />
           ))}
         </div>
 
@@ -115,7 +115,7 @@ export function SetupWizard() {
               <button className="linkish" onClick={finish} disabled={busy}>
                 {t('wizard.step0.skip')}
               </button>
-              {demo && <span className="pill pill-demo">DEMO MODE</span>}
+              {demo && <span className="pill pill-demo">{t('ui.demo')}</span>}
             </div>
           </>
         )}

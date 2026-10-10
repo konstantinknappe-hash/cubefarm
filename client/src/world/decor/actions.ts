@@ -1,6 +1,7 @@
 // What E does with decorations (#210) and trophies: put a held decoration in a slot, pick a placed one up, the
 // floor's decor box, the arcade cabinet and a trophy's story. Also the little sounds they make, and the report of
 // every coffee the player finishes (the coffee addict trophy).
+import { formatDate, getLanguage, t } from '../../../../shared/i18n';
 import { achievementDef, catalogueItem, type DecorItem } from '../../../../shared/progress';
 import { api } from '../../api';
 import { repoOnFloor, useStore, type Focus } from '../../store';
@@ -9,7 +10,15 @@ import { placement } from './decor';
 
 type DecorationAction = Extract<Focus['action'], { kind: 'decoration' } | { kind: 'trophy' }>;
 
-export const decorName = (item: DecorItem) => catalogueItem(item)?.name ?? item;
+/** "poster-ship" → "posterShip", for a translation key. */
+const camel = (id: string) => id.replace(/-(\w)/g, (_, c: string) => c.toUpperCase());
+
+export const decorName = (item: DecorItem) => (catalogueItem(item) ? t(`world.decor.${camel(item)}.name`) : item);
+/** The decoration's name inside a sentence: lower case in English, a noun keeps its capital in German. */
+export const decorInSentence = (item: DecorItem) => (getLanguage() === 'en' ? decorName(item).toLowerCase() : decorName(item));
+export const decorBlurb = (item: DecorItem) => (catalogueItem(item) ? t(`world.decor.${camel(item)}.blurb`) : '');
+export const achievementName = (id: string) => (achievementDef(id) ? t(`world.trophy.${camel(id)}.name`) : id);
+export const achievementBlurb = (id: string) => (achievementDef(id) ? t(`world.trophy.${camel(id)}.blurb`) : '');
 
 // ---------- sounds ----------
 
@@ -105,8 +114,8 @@ export function showTrophy(id: string) {
   const def = achievementDef(id);
   const got = s.progress.achievements.find((a) => a.id === id);
   if (!def || !got) return;
-  const when = new Date(got.at).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-  s.pushToast('success', `${def.icon} ${def.name}: ${def.blurb}. Won ${when}${got.detail ? ` · ${got.detail}` : ''}`);
+  const when = formatDate(got.at, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  s.pushToast('success', t('world.trophy.toast', { icon: def.icon, name: achievementName(id), blurb: achievementBlurb(id), when }) + (got.detail ? ` · ${got.detail}` : ''));
 }
 
 // ---------- coffees ----------

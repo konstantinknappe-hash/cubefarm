@@ -1,6 +1,7 @@
 // The floor as a list (FloorList.tsx), for anyone who can't use the 3D view: one row per person with their status in
 // words and its shape, the coding agent they run, and what they're doing. Pure, so the wording is tested.
 
+import { t } from '../../../shared/i18n';
 import type { AgentCli, AgentStatus, CliView, SwarmSettings } from '../../../shared/types';
 import type { Agent } from '../store';
 import { KIND_ICON, STATUS_KIND, type StatusKind } from './statusLook';
@@ -17,12 +18,12 @@ export interface FloorRow {
 }
 
 const STATUS_WORDS: Record<AgentStatus, string> = {
-  idle: 'Idle',
-  preparing: 'Setting up',
-  working: 'Working',
-  done: 'Finished',
-  error: 'Needs help',
-  stopped: 'Stopped',
+  idle: 'ui.status.idle',
+  preparing: 'ui.status.preparing',
+  working: 'ui.status.working',
+  done: 'ui.status.done',
+  error: 'ui.status.error',
+  stopped: 'ui.status.stopped',
 };
 
 /** The coding agents' names until the office has listed them (CliView.label). */
@@ -43,12 +44,12 @@ export function agentLabel(a: Pick<Agent, 'cli' | 'role'>, settings: Runtime, cl
 
 /** What someone is on, in words. */
 export function doingText(a: Pick<Agent, 'role' | 'status' | 'task' | 'issueNumber' | 'issueTitle' | 'prNumber'>): string {
-  if (a.role === 'ceo') return a.status === 'working' ? (a.issueTitle ?? 'Working') : 'Free for a chat';
-  if (a.status === 'idle') return 'Nothing assigned';
-  if (a.task === 'qa') return a.prNumber ? `Testing PR #${a.prNumber}${a.issueTitle ? `: ${a.issueTitle}` : ''}` : 'Testing';
-  if (a.task === 'fix' && a.prNumber) return `Fixing PR #${a.prNumber}${a.issueTitle ? `: ${a.issueTitle}` : ''}`;
-  if (a.issueNumber) return `Issue #${a.issueNumber}${a.issueTitle ? `: ${a.issueTitle}` : ''}`;
-  return a.issueTitle ?? 'Working';
+  if (a.role === 'ceo') return a.status === 'working' ? (a.issueTitle ?? t('ui.status.working')) : t('ui.doing.free');
+  if (a.status === 'idle') return t('ui.doing.nothing');
+  if (a.task === 'qa') return a.prNumber ? `${t('ui.doing.testingPr', { n: a.prNumber })}${a.issueTitle ? `: ${a.issueTitle}` : ''}` : t('ui.doing.testing');
+  if (a.task === 'fix' && a.prNumber) return `${t('ui.doing.fixingPr', { n: a.prNumber })}${a.issueTitle ? `: ${a.issueTitle}` : ''}`;
+  if (a.issueNumber) return `${t('ui.doing.issue', { n: a.issueNumber })}${a.issueTitle ? `: ${a.issueTitle}` : ''}`;
+  return a.issueTitle ?? t('ui.status.working');
 }
 
 /** One row per person, in the order given (agentsOnRepo: by desk). */
@@ -59,7 +60,7 @@ export function floorRows(agents: Agent[], settings: Runtime, clis: CliView[]): 
       id: a.id,
       name: a.name,
       agent: agentLabel(a, settings, clis),
-      status: STATUS_WORDS[a.status],
+      status: t(STATUS_WORDS[a.status]),
       kind,
       icon: KIND_ICON[kind],
       doing: doingText(a),

@@ -86,9 +86,9 @@ export function AccessibilitySettings({ pocket = false }: { pocket?: boolean }) 
         <Slider k="captionSize" label={t('access.captionSize')} unit="%" />
         <Slider k="captionBg" label={t('access.captionBg')} unit="%" />
         <div className="captions captions-preview" aria-hidden style={{ ['--caption-scale' as string]: prefs.captionSize / 100, ['--caption-bg' as string]: prefs.captionBg / 100 }}>
-          <div className="caption">[gong] ↗</div>
+          <div className="caption">{t('ui.cap.gong')} ↗</div>
           <div className="caption caption-speech">
-            <b>CEO:</b> PR number 12 is ready to merge.
+            <b>CEO:</b> {t('ui.access.sample')}
           </div>
         </div>
       </section>
@@ -122,7 +122,7 @@ export function AccessibilitySettings({ pocket = false }: { pocket?: boolean }) 
             {(Object.keys(motionLabels) as ReduceMotion[]).map((m) => (
               <label key={m} className="toggle block">
                 <input type="radio" name={`${name}-motion`} checked={prefs.reduceMotion === m} onChange={() => set({ reduceMotion: m })} /> {motionLabels[m]}
-                {m === 'system' && <span className="muted small">({t('help.locale') === 'de' ? 'dein System' : 'your system'} {t(systemReduced ? 'access.motion.systemOn' : 'access.motion.systemOff')})</span>}
+                {m === 'system' && <span className="muted small">({t('ui.access.yourSystem')} {t(systemReduced ? 'access.motion.systemOn' : 'access.motion.systemOff')})</span>}
               </label>
             ))}
             <p className="muted small">

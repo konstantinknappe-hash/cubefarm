@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import * as THREE from 'three';
+import { t } from '../i18n';
 import { floorPrCounts, pendingRequests, useStore } from '../store';
 import { useKeyName } from '../ui/controls';
 import { CEO_ID } from '../../../shared/types';
@@ -60,7 +61,7 @@ function useOfficeStats() {
 function ManagerComputer() {
   const use = useKeyName('interact');
   const stats = useOfficeStats();
-  const ref = useInteractable<THREE.Group>({ id: 'manager-console', label: "Open the manager's console", action: { kind: 'manager' } }, 3.2);
+  const ref = useInteractable<THREE.Group>({ id: 'manager-console', label: t('world.lobby.openConsole'), action: { kind: 'manager' } }, 3.2);
   const tex = useCanvasTexture(
     1024,
     640,
@@ -73,14 +74,14 @@ function ManagerComputer() {
       ctx.fillStyle = '#ffd6a5';
       ctx.font = `700 54px ${SANS}`;
       ctx.textBaseline = 'middle';
-      ctx.fillText('✻ Manager Console', 50, 70);
+      ctx.fillText(t('world.lobby.consoleTitle'), 50, 70);
       const rows: [string, string][] = [
-        ['Floors (repos)', `${stats.repos}`],
-        ['Agents on staff', `${stats.agents}`],
-        ['Sessions running', stats.max ? `${stats.working} / ${stats.max}` : `${stats.working}`],
-        ['Open issues', `${stats.issues}`],
-        ['PRs in QA / ready to merge', `${stats.inQa} / ${stats.readyToMerge}`],
-        ['👥 Team changes waiting', `${stats.pending}`],
+        [t('world.lobby.floors'), `${stats.repos}`],
+        [t('world.lobby.agents'), `${stats.agents}`],
+        [t('world.lobby.sessions'), stats.max ? `${stats.working} / ${stats.max}` : `${stats.working}`],
+        [t('world.lobby.issues'), `${stats.issues}`],
+        [t('world.lobby.prs'), `${stats.inQa} / ${stats.readyToMerge}`],
+        [t('world.lobby.changes'), `${stats.pending}`],
       ];
       rows.forEach(([k, v], i) => {
         const y = 150 + i * 68;
@@ -98,7 +99,7 @@ function ManagerComputer() {
       });
       ctx.fillStyle = '#7CFFB2';
       ctx.font = `600 32px ${SANS}`;
-      ctx.fillText(`Press ${use} or click to manage floors, team & issues`, 50, 592);
+      ctx.fillText(t('world.lobby.consoleHint', { key: use }), 50, 592);
     },
     [stats.repos, stats.agents, stats.working, stats.max, stats.issues, stats.inQa, stats.readyToMerge, stats.pending, use],
   );
@@ -132,7 +133,7 @@ function ManagerComputer() {
 
 function Directory() {
   const stats = useOfficeStats();
-  const ref = useInteractable<THREE.Group>({ id: 'directory', label: 'Floor directory — take the elevator', action: { kind: 'elevator' } }, 4);
+  const ref = useInteractable<THREE.Group>({ id: 'directory', label: t('world.lobby.directoryLabel'), action: { kind: 'elevator' } }, 4);
   const tex = useCanvasTexture(
     768,
     560,
@@ -143,7 +144,7 @@ function Directory() {
       ctx.fillStyle = '#ffd6a5';
       ctx.font = `700 46px ${SANS}`;
       ctx.textBaseline = 'middle';
-      ctx.fillText('Directory', 36, 52);
+      ctx.fillText(t('world.lobby.directory'), 36, 52);
       const floors = [...stats.floors].sort((a, b) => b.floor - a.floor).slice(0, 7);
       floors.forEach((f, i) => {
         const y = 118 + i * 58;
@@ -162,7 +163,7 @@ function Directory() {
         ctx.fillStyle = '#a9adc6';
         ctx.font = `500 24px ${SANS}`;
         ctx.textAlign = 'right';
-        ctx.fillText(`${f.working}/${f.team} busy · ${f.prs} PR`, 740, y);
+        ctx.fillText(t('world.lobby.floorRow', { working: f.working, team: f.team, prs: f.prs }), 740, y);
         ctx.textAlign = 'left';
       });
       const gy = 118 + floors.length * 58;
@@ -176,12 +177,12 @@ function Directory() {
       ctx.textAlign = 'left';
       ctx.fillStyle = '#ffffff';
       ctx.font = `600 28px ${SANS}`;
-      ctx.fillText("Lobby & manager's office", 108, gy);
+      ctx.fillText(t('world.lobby.ground'), 108, gy);
       if (stats.floors.length === 0) {
         ctx.fillStyle = '#a9adc6';
         ctx.font = `500 26px ${SANS}`;
-        ctx.fillText('No floors yet: connect a repo in the', 36, gy + 80);
-        ctx.fillText("manager's office (back left corner).", 36, gy + 116);
+        ctx.fillText(t('world.lobby.noFloors1'), 36, gy + 80);
+        ctx.fillText(t('world.lobby.noFloors2'), 36, gy + 116);
       }
     },
     [stats],
@@ -201,7 +202,7 @@ function TrophyCabinet() {
   const tex = useCanvasTexture(
     512,
     160,
-    (ctx) => drawSign(ctx, 512, 160, [{ text: `🏆 ${stats.merged} PRs merged`, size: 50, color: '#2d3142' }], '#ffe8a3'),
+    (ctx) => drawSign(ctx, 512, 160, [{ text: t('world.lobby.merged', { count: stats.merged }), size: 50, color: '#2d3142' }], '#ffe8a3'),
     [stats.merged],
   );
   const cups = Math.min(8, stats.merged);
@@ -234,12 +235,12 @@ function CeoBoard() {
   const pending = waiting.length;
   const hires = waiting.filter((r) => r.kind === 'hire').length;
   const changes = !pending
-    ? '👥 no team changes waiting'
+    ? t('world.ceoBoard.noChanges')
     : hires === pending
-      ? `🪑 ${hires} new agent${hires === 1 ? '' : 's'} waiting in the lobby`
-      : `👥 ${pending} team change${pending === 1 ? '' : 's'} waiting`;
-  const now = ceo?.status === 'working' ? (info.job?.label ?? 'Working') : 'Free for a chat (press P)';
-  const next = info.queue.length ? `${info.queue[0].label}${info.queue.length > 1 ? ` (+${info.queue.length - 1})` : ''}` : 'nothing queued';
+      ? t('world.ceoBoard.hires', { count: hires })
+      : t('world.ceoBoard.changes', { count: pending });
+  const now = ceo?.status === 'working' ? (info.job?.label ?? t('world.ceoBoard.working')) : t('world.ceoBoard.free');
+  const next = info.queue.length ? `${info.queue[0].label}${info.queue.length > 1 ? ` (+${info.queue.length - 1})` : ''}` : t('world.ceoBoard.nothingQueued');
   return (
     <WallSign
       position={[HALF_W - 0.03, 2.05, CEO_DESK.z]}
@@ -252,9 +253,9 @@ function CeoBoard() {
           816,
           456,
           [
-            { text: `🧠 ${ceo?.name ?? 'CEO'}'s board`, size: 54 },
-            { text: `Now: ${now}`, size: 36, weight: 600 },
-            { text: `Next: ${next}`, size: 32, weight: 500, color: 'rgba(255,255,255,0.8)' },
+            { text: t('world.ceoBoard.title', { name: ceo?.name ?? 'CEO' }), size: 54 },
+            { text: t('world.ceoBoard.now', { now }), size: 36, weight: 600 },
+            { text: t('world.ceoBoard.next', { next }), size: 32, weight: 500, color: 'rgba(255,255,255,0.8)' },
             { text: changes, size: 34, weight: 600, color: pending ? '#ffe066' : '#ffffff' },
           ],
           '#3c2a63',
@@ -334,8 +335,8 @@ export function Lobby() {
         draw={(ctx) =>
           drawSign(ctx, 512, 256, [
             { text: '⭐', size: 70 },
-            { text: 'World’s Best', size: 44, weight: 600 },
-            { text: 'Agent Wrangler', size: 50 },
+            { text: t('world.lobby.best1'), size: 44, weight: 600 },
+            { text: t('world.lobby.best2'), size: 50 },
           ], '#9b5de5')
         }
         deps={[]}
@@ -370,7 +371,7 @@ export function Lobby() {
         draw={(ctx) =>
           drawSign(ctx, 1400, 320, [
             { text: `✻ ${company || 'cubefarm'}`, size: 120 },
-            { text: company ? 'powered by a team of AI coding agents' : 'a team of AI coding agents', size: 48, weight: 500 },
+            { text: company ? t('world.lobby.poweredBy') : t('world.lobby.tagline'), size: 48, weight: 500 },
           ], ACCENT)
         }
         deps={[company]}
@@ -379,7 +380,7 @@ export function Lobby() {
       <MissionControl />
       <CeoOffice />
       <WaitingRoom />
-      <Elevator floorLabel="▲ G · Lobby" accent={ACCENT} />
+      <Elevator floorLabel={`▲ G · ${t('world.lobby.lobby')}`} accent={ACCENT} />
       <Toys floor="lobby" />
       <Directory />
       <TimeLapseScreen />

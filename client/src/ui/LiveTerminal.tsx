@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Terminal, type ITheme } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
+import { t } from '../i18n';
 import '@xterm/xterm/css/xterm.css';
 import type { TermClientMessage, TermServerMessage } from '../../../shared/types';
 
@@ -138,7 +139,7 @@ export function LiveTerminal({ agentId, className }: { agentId: string; classNam
       <div className="live-term-screen" ref={host} />
       <div className="live-term-foot">
         <span className={`live-dot ${live ? 'live-dot-on' : ''}`} />
-        {!connected ? 'Reconnecting…' : live ? (focused ? 'Typing goes straight to the agent · Esc goes to them too; click outside to use the office keys' : 'Live · click the terminal to type into it') : 'Not running · a message below picks the session back up'}
+        {!connected ? t('ui.term.reconnecting') : live ? (focused ? t('ui.term.typing') : t('ui.term.live')) : t('ui.term.notRunning')}
       </div>
     </div>
   );

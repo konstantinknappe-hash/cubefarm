@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
+import { t } from '../i18n';
 import { loadView, pendingRequests, saveView, unreadMessages, useStore, type Focus } from '../store';
 import { api } from '../api';
 import { EYE_HEIGHT, ROOF, SPAWN, collide, surfaceAt, type Rect } from './layout';
@@ -90,7 +91,7 @@ export function runFocusAction(focus: Focus, via: 'key' | 'click' = 'key') {
       puffs: 6,
       puffAt: 0,
     });
-    s.pushToast('info', '🚬 Kippe genommen. E zum Anzünden.');
+    s.pushToast('info', t('world.player.cigTaken'));
     return;
   }
   if (focus.action.kind === 'pickup' && isMugId(focus.action.toyId)) {
@@ -148,7 +149,7 @@ export function runFocusAction(focus: Focus, via: 'key' | 'click' = 'key') {
         .hireAgent(repoId, {})
         .then((a) => {
           const floor = useStore.getState().repos.find((r) => r.id === repoId)?.floor;
-          s.pushToast('success', floor != null ? `${a.name} joined floor ${floor}` : `${a.name} joined the team`);
+          s.pushToast('success', floor != null ? t('world.player.joinedFloor', { name: a.name, floor }) : t('world.player.joined', { name: a.name }));
         })
         .catch(() => undefined);
     if (via === 'key') {
@@ -159,8 +160,8 @@ export function runFocusAction(focus: Focus, via: 'key' | 'click' = 'key') {
     if (document.pointerLockElement) document.exitPointerLock();
     void confirmDialog({
       icon: '🪑',
-      title: 'Add an agent at this desk?',
-      confirm: 'Add',
+      title: t('world.player.addTitle'),
+      confirm: t('world.player.add'),
     }).then((ok) => {
       if (ok) void hire();
     });
@@ -178,12 +179,12 @@ function interact() {
 
     if (!cigarette.lit) {
       s.setHeld({ ...cigarette, lit: true });
-      s.pushToast('info', '🔥 Kippe brennt. E zum Ziehen, G zum Weglegen.');
+      s.pushToast('info', t('world.player.cigLit'));
     } else if (performance.now() - cigarette.puffAt < 2500) {
       return;
     } else if (cigarette.puffs <= 1) {
       s.setHeld(null);
-      s.pushToast('info', '🚬 Kippe aufgeraucht.');
+      s.pushToast('info', t('world.player.cigDone'));
     } else {
       s.setHeld({
         ...cigarette,
@@ -196,7 +197,7 @@ function interact() {
 
   const act = eAction(s.held, s.focus?.action.kind ?? null);
   if (act === 'sip') sipCoffee();
-  else if (act === 'empty') s.pushToast('info', "☕ It's empty: refill it at the machine");
+  else if (act === 'empty') s.pushToast('info', t('world.player.mugEmpty'));
   else if (s.focus) runFocusAction(s.focus);
 }
 
@@ -323,7 +324,7 @@ export function Player({ colliders, floor }: { colliders: Rect[]; floor: number 
       const b = bindings();
       if (isBound(b, 'mute', e.code) && !e.repeat && !isConfirmOpen()) {
         toggleMute();
-        s.pushToast('info', getAudioPrefs().muted ? `🔇 Sound off (${keyName('mute')} to turn it back on)` : '🔊 Sound on');
+        s.pushToast('info', getAudioPrefs().muted ? t('world.player.soundOff', { key: keyName('mute') }) : t('world.player.soundOn'));
       }
       if (s.overlay || !s.started || isConfirmOpen() || photoActive()) return;
       keys.current.add(e.code);
@@ -394,7 +395,7 @@ export function Player({ colliders, floor }: { colliders: Rect[]; floor: number 
     window.addEventListener('blur', onBlur);
     const stopLookLock = watchLookLock(requestLook, hushMouse);
     const stopPads = watchPads((on, id) =>
-      useStore.getState().pushToast('info', on ? `🎮 ${padName(id)} connected: left stick walks, right stick looks, A uses, Start for the phone` : `🎮 ${padName(id)} disconnected`),
+      useStore.getState().pushToast('info', on ? t('world.player.padOn', { name: padName(id) }) : t('world.player.padOff', { name: padName(id) })),
     );
     return () => {
       stopLookLock();

@@ -11,6 +11,7 @@ import type { BodyState } from './body';
 import { CI_SLOW, DEMO_CI_SLOW, currentWork, greeting, lastFile, logNews, slowChecks, storeNews, type Said } from './chatterEvents';
 import { isFree } from './errands';
 import type { Pick as AimPick } from './interact';
+import { t } from '../i18n';
 import { bodyState, errandOf, liveBodies, say, saying } from './people';
 
 // Lives inside the Canvas: the people on the floor you're on talk. Lines come from what happens in the office (the
@@ -366,7 +367,7 @@ export function greetPick(id: string, desk: string): AimPick {
     const top = headY(b) + 0.45;
     if (Math.hypot(point.x - b.x, point.z - b.z) > AIM_RADIUS || point.y < 0.55 || point.y > top) return null;
     const name = useStore.getState().agents[id]?.name ?? 'them';
-    const focus: Focus = { id: `greet-${id}`, label: `Say hi to ${name} 👋 · aim at the desk ${desk}`, action: { kind: 'greet', agentId: id } };
+    const focus: Focus = { id: `greet-${id}`, label: t('world.greet.label', { name, desk }), action: { kind: 'greet', agentId: id } };
     return focus;
   };
 }

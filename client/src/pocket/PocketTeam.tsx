@@ -2,6 +2,7 @@
 // ■ Stop, ↺ Clear desk and assigning an issue (or a PR to test). The terminal itself is one tap away.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../api';
+import { t as tr } from '../i18n';
 import { agentsOnRepo, kanbanFor, useStore, type Agent } from '../store';
 import { CEO_ID, type RepoView } from '../../../shared/types';
 import { agentLabel } from '../ui/floorRows';
@@ -9,10 +10,10 @@ import { MessageBox } from '../ui/MessageBox';
 import { toolVerb } from '../world/draw';
 import { agentActions, assignChoices, doing } from './pocketData';
 
-const STATUS_LABEL: Record<string, string> = { idle: 'free', preparing: 'setting up', working: 'working', done: 'done', error: 'needs help', stopped: 'stopped' };
+const STATUS_LABEL: Record<string, string> = { idle: 'ui.card.idle', preparing: 'ui.card.preparing', working: 'ui.card.working', done: 'ui.card.done', error: 'world.chip.needsHelp', stopped: 'ui.card.stopped' };
 
 export function Status({ status }: { status: string }) {
-  return <span className={`status status-${status}`}>{STATUS_LABEL[status] ?? status}</span>;
+  return <span className={`status status-${status}`}>{STATUS_LABEL[status] ? tr(STATUS_LABEL[status]) : status}</span>;
 }
 
 /** Runs one REST call at a time per card; api() already toasts errors. */
@@ -74,13 +75,13 @@ function AgentCard({ agent, repo }: { agent: Agent; repo: RepoView }) {
       <div className="pk-actions">
         {can.stop && (
           <button className="btn btn-small btn-bad" disabled={busy} onClick={() => void run(() => api.stop(agent.id))}>
-            ■ Stop
+            ■ {tr('ui.cam.stop')}
           </button>
         )}
         {can.assign && (
           <>
-            <select className="pk-assign" value={pick} aria-label={`Give ${agent.name} an issue or a pull request to test`} onChange={(e) => setPick(e.target.value)} disabled={busy || choices.length === 0}>
-              <option value="">{choices.length ? 'Pick an issue or a PR…' : 'Nothing to pick up'}</option>
+            <select className="pk-assign" value={pick} aria-label={tr('ui.pocket.giveAria', { name: agent.name })} onChange={(e) => setPick(e.target.value)} disabled={busy || choices.length === 0}>
+              <option value="">{choices.length ? tr('ui.pocket.pick') : tr('ui.pocket.nothingToPick')}</option>
               {choices.map((c) => (
                 <option key={c.key} value={c.key}>
                   {c.kind === 'qa' ? '🔍 PR ' : ''}#{c.number} {c.title}
@@ -94,22 +95,22 @@ function AgentCard({ agent, repo }: { agent: Agent; repo: RepoView }) {
                 chosen && void run(() => (chosen.kind === 'qa' ? api.sendToQa(repo.id, chosen.number, agent.id) : api.assign(agent.id, chosen.number))).then((ok) => ok && setPick(''))
               }
             >
-              {chosen?.kind === 'qa' ? '🔍 Test' : '▶ Start'}
+              {chosen?.kind === 'qa' ? tr('ui.pocket.test') : tr('ui.pocket.start')}
             </button>
           </>
         )}
         {can.clear && (
           <button className="btn btn-small" disabled={busy} onClick={() => void run(() => api.reset(agent.id))}>
-            ↺ Clear desk
+            {tr('ui.pocket.clear')}
           </button>
         )}
         {can.message && (
           <button className={`btn btn-small ${writing ? 'btn-ghost' : ''}`} aria-expanded={writing} onClick={() => setWriting(!writing)}>
-            💬 Message
+            {tr('ui.pocket.message')}
           </button>
         )}
         <button className="btn btn-small btn-ghost" onClick={() => openOverlay({ kind: 'terminal', agentId: agent.id })}>
-          Terminal
+          {tr('kanban.terminal')}
         </button>
       </div>
       {writing && can.message && (
@@ -124,11 +125,11 @@ function AgentCard({ agent, repo }: { agent: Agent; repo: RepoView }) {
             value={text}
             onChange={setText}
             autoFocus
-            aria-label={`Message ${agent.name}`}
-            placeholder={working ? `Tell ${agent.name} something while they work…` : `Ask ${agent.name} for a follow-up…`}
+            aria-label={tr('ui.pocket.messageAria', { name: agent.name })}
+            placeholder={working ? tr('ui.pocket.tellWhile', { name: agent.name }) : tr('ui.pocket.followUp', { name: agent.name })}
           />
           <button className="btn btn-small btn-good" disabled={busy || !text.trim()}>
-            Send
+            {tr('ui.pocket.send')}
           </button>
         </form>
       )}
@@ -150,14 +151,14 @@ function CeoCard() {
         </span>
         <div className="grow">
           <b>{ceo.name}</b> <span className="muted small">CEO</span>
-          <div className="small pk-ellipsis">{working ? (info.job?.label ?? 'Working') : info.queue.length ? `Up next: ${info.queue.map((j) => j.label).join(' → ')}` : 'Free'}</div>
+          <div className="small pk-ellipsis">{working ? (info.job?.label ?? tr('ui.status.working')) : info.queue.length ? tr('ui.pocket.upNext', { list: info.queue.map((j) => j.label).join(' → ') }) : tr('ui.pocket.free')}</div>
         </div>
         <Status status={ceo.status} />
       </div>
       {working && (
         <div className="pk-actions">
           <button className="btn btn-small btn-bad" disabled={busy} onClick={() => void run(() => api.stop(ceo.id))}>
-            ■ Stop
+            ■ {tr('ui.cam.stop')}
           </button>
         </div>
       )}
@@ -173,16 +174,16 @@ export function Team({ focusRepo }: { focusRepo: string | null }) {
   return (
     <div className="pk-page">
       <CeoCard />
-      {repos.length === 0 && <p className="muted">No floors yet, so no team.</p>}
+      {repos.length === 0 && <p className="muted">{tr('ui.pocket.noFloors')}</p>}
       {repos.map((repo) => {
         const team = agentsOnRepo(agents, repo.id);
         return (
           <section key={repo.id} ref={repo.id === focusRepo ? focus : undefined} className="pk-section" style={{ ['--accent' as string]: repo.color }}>
             <h3 className="pk-h">
               <span className="floor-badge">{repo.floor}</span> {repo.fullName.split('/')[1]}
-              <span className="muted small"> · {team.length} {team.length === 1 ? 'agent' : 'agents'}</span>
+              <span className="muted small"> · {tr('ui.pocket.agents', { count: team.length })}</span>
             </h3>
-            {team.length === 0 && <p className="muted small">Nobody works here yet.</p>}
+            {team.length === 0 && <p className="muted small">{tr('floorlist.nobody')}</p>}
             {team.map((a) => (
               <AgentCard key={a.id} agent={a} repo={repo} />
             ))}

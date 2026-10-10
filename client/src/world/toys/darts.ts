@@ -2,6 +2,8 @@
 // current physics world. The registry lives here (not in the lazily loaded toy chunk) so anything can ask which
 // darts are lying on the floor, or tidy one away, without pulling in the physics engine.
 
+import { t } from '../../../../shared/i18n';
+
 export interface BlasterDef {
   id: string;
   body: string;
@@ -62,7 +64,7 @@ export function reload(m: Mag, now: number): Mag | null {
 
 /** The HUD's ammo text, e.g. "Darts 9/12". */
 export function ammoLabel(m: Mag, now: number) {
-  return `Darts ${settle(m, now).ammo}/${BLASTER.mag}`;
+  return t('ui.held.darts', { n: settle(m, now).ammo, of: BLASTER.mag });
 }
 
 // ---------- hits ----------

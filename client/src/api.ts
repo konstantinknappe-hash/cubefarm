@@ -1,3 +1,4 @@
+import { t } from '../../shared/i18n';
 import { useStore } from './store';
 import type { PongResult } from '../../shared/pong';
 import type { AgentStyle } from '../../shared/looks';
@@ -8,8 +9,8 @@ import type { DecorItem, ProgressView } from '../../shared/progress';
 async function call<T = unknown>(method: string, url: string, body?: unknown, toast = true): Promise<T> {
   // The time-lapse shows a recorded day: nothing in it can be acted on.
   if (method !== 'GET' && useStore.getState().replaying) {
-    useStore.getState().pushToast('info', '▶ Replaying: live actions are off. Press Esc to go back to the live office.');
-    throw new Error('The time-lapse is playing');
+    useStore.getState().pushToast('info', t('ui.replay.actionsOff'));
+    throw new Error(t('ui.replay.playing'));
   }
   const res = await fetch(url, {
     method,

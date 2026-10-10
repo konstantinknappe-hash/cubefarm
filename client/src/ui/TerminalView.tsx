@@ -14,7 +14,7 @@ import { closeOverlay, Panel } from './Panel';
 import { loadScreenshot } from '../screenshot';
 import { toolVerb } from '../world/draw';
 import { followAgent } from '../world/camera/rig';
-import { useT } from '../i18n';
+import { formatTime, useT } from '../i18n';
 
 export function StatusPill({ status }: { status: string }) {
   const t = useT();
@@ -195,8 +195,8 @@ export function TerminalView({ agentId }: { agentId: string }) {
           {agent.effort || settings.defaultEffort} {t('terminal.effort')}
         </span>
         {agent.startedAt && <span className="muted">⏱ {elapsed(agent.startedAt, working ? null : agent.endedAt)}</span>}
-        {agent.turns > 0 && <span className="muted">{agent.turns} turns</span>}
-        {agent.costUsd > 0 && <span className="muted" title="API-equivalent cost reported by the coding agent; subscription usage is billed by plan">≈${agent.costUsd.toFixed(2)}</span>}
+        {agent.turns > 0 && <span className="muted">{t('ui.term.turns', { count: agent.turns })}</span>}
+        {agent.costUsd > 0 && <span className="muted" title={t('ui.term.costTip')}>≈${agent.costUsd.toFixed(2)}</span>}
       </div>
       {agent.lastError && agent.status !== 'working' && <div className="term-error">⚠️ {agent.lastError}</div>}
       {showCareer && <CareerCard agent={agent} />}
@@ -235,7 +235,7 @@ export function TerminalView({ agentId }: { agentId: string }) {
           <div className="browser">
             <div className="browser-bar">🔒 {agent.browserUrl ?? 'about:blank'}</div>
             <div className="browser-view" ref={shotView} />
-            <div className="muted small">{t('terminal.screenshot')}{agent.screenshotAt ? ` · ${new Date(agent.screenshotAt).toLocaleTimeString()}` : ''}</div>
+            <div className="muted small">{t('terminal.screenshot')}{agent.screenshotAt ? ` · ${formatTime(agent.screenshotAt, { second: '2-digit' })}` : ''}</div>
           </div>
         )}
       </div>

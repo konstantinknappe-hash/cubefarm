@@ -1,16 +1,30 @@
 // Photo mode's filters as numbers for its one grading shader (post.ts), applied to the finished picture (after tone
 // mapping, in display colours) so 'none' is the office exactly as it looks. Pure data, tested.
 
+import { t } from '../../../shared/i18n';
+
 export const FILTERS = ['none', 'warm', 'night', 'mono', 'polaroid', 'comic'] as const;
 export type Filter = (typeof FILTERS)[number];
 
 export const FILTER_LABELS: Record<Filter, string> = {
-  none: 'None',
-  warm: 'Warm film',
-  night: 'Cool night',
-  mono: 'Black & white',
-  polaroid: 'Polaroid',
-  comic: 'Comic book',
+  get none() {
+    return t('ui.photo.filter.none');
+  },
+  get warm() {
+    return t('ui.photo.filter.warm');
+  },
+  get night() {
+    return t('ui.photo.filter.night');
+  },
+  get mono() {
+    return t('ui.photo.filter.mono');
+  },
+  get polaroid() {
+    return t('ui.photo.filter.polaroid');
+  },
+  get comic() {
+    return t('ui.photo.filter.comic');
+  },
 };
 
 export interface Grade {

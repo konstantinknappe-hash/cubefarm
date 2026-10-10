@@ -1,3 +1,4 @@
+import { t } from '../../i18n';
 import { useInteractable } from '../interact';
 import { GRILL, MANAGER_DESK } from '../layout';
 import * as THREE from 'three';
@@ -10,7 +11,7 @@ export function CigarettePack({
   const manager = location === 'manager';
   const ref = useInteractable<THREE.Group>({
     id: manager ? 'cigarette-pack-manager' : 'cigarette-pack',
-    label: '🚬 Zigarette nehmen',
+    label: t('world.roof.cigarette'),
     action: { kind: 'pickup', toyId: manager ? 'cigarette-pack-manager' : 'cigarette-pack' },
   }, 3);
 

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { t as tr } from '../../i18n';
 import { useStore } from '../../store';
 import { noise, tone } from '../../ui/sfx';
 import { useInteractable } from '../interact';
@@ -123,7 +124,7 @@ export function Grill() {
     const t = now();
     const { op, grill: next } = pressGrill(model.current, t, s.held !== null);
     if (op === 'full') {
-      s.pushToast('info', s.held?.kind === 'sausage' ? '🌭 One at a time: eat that one first (E)' : '🙌 Your hands are full');
+      s.pushToast('info', s.held?.kind === 'sausage' ? tr('world.grill.oneAtATime') : tr('world.grill.handsFull'));
       return;
     }
     const was = model.current;

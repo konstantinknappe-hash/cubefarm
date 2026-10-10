@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { useLanguage } from '../i18n';
 import type { Focus } from '../store';
 import { PaintedTexture } from './paint/painter';
 
@@ -13,6 +14,7 @@ export const interactables = new Map<THREE.Object3D, Focus & { range: number; pi
 
 export function useInteractable<T extends THREE.Object3D>(focus: Focus | null, range = 3.2, pick?: Pick) {
   const ref = useRef<T>(null);
+  useLanguage(); // labels are worded in render: a language change renders them again
   const key = focus ? `${focus.id}|${focus.label}` : '';
   useEffect(() => {
     const obj = ref.current;
@@ -32,6 +34,7 @@ export function useInteractable<T extends THREE.Object3D>(focus: Focus | null, r
  * With `near` (a mesh showing it and a distance), a change waits to be painted until the camera is that close.
  */
 export function useCanvasTexture(w: number, h: number, draw: (ctx: CanvasRenderingContext2D) => void, deps: unknown[], near?: { anchor: React.RefObject<THREE.Object3D | null>; range: number }) {
+  const language = useLanguage();
   const painted = useMemo(() => new PaintedTexture(w, h), [w, h]);
   const later = useRef<((ctx: CanvasRenderingContext2D) => void) | null>(null);
   const spot = useMemo(() => new THREE.Vector3(), []);
@@ -57,7 +60,7 @@ export function useCanvasTexture(w: number, h: number, draw: (ctx: CanvasRenderi
       alive = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [painted, ...deps]);
+  }, [painted, language, ...deps]);
   useFrame(({ camera }) => {
     cameraAt.copy(camera.position);
     if (!later.current || far()) return;

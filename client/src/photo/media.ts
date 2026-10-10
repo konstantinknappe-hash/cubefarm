@@ -1,6 +1,8 @@
 // Browser plumbing for shots and clips: which video format this browser records, whether it can record a canvas at
 // all, saving a file as a download and copying a picture to the clipboard. Nothing leaves the browser.
 
+import { t as tr } from '../../../shared/i18n';
+
 /** WebM, best codec first; the first one this browser's MediaRecorder takes, or null. */
 export function recordingType(): string | null {
   if (typeof MediaRecorder === 'undefined') return null;
@@ -12,7 +14,7 @@ export function recordingType(): string | null {
 export function clipSupport(canvas: HTMLCanvasElement | null): { ok: true; type: string } | { ok: false; why: string } {
   const type = recordingType();
   if (!canvas || typeof canvas.captureStream !== 'function' || !type)
-    return { ok: false, why: "This browser can't record the office (it needs MediaRecorder with WebM, as in Chrome, Edge or Firefox). Shots still work." };
+    return { ok: false, why: tr('ui.photo.cantRecord') };
   return { ok: true, type };
 }
 

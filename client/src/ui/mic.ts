@@ -6,6 +6,7 @@
 // The rules are pure (micSilence.ts, handsFree.ts, micKeys.ts, micText.ts); window.__swarmMic is the probe.
 import { create } from 'zustand';
 import { CLIP_MAX_BYTES, clipProblem } from '../../../shared/clipLimits';
+import { t } from '../../../shared/i18n';
 import type { ListenProvider } from '../../../shared/types';
 import { api } from '../api';
 import { useStore } from '../store';
@@ -516,14 +517,14 @@ export function replyEnded() {
   if (listening().handsFree && !micAllowed && r.phoneChat && !askedToAllow) {
     // The browser hasn't been asked for the mic yet, and hands-free never asks out of the blue.
     askedToAllow = true;
-    useStore.getState().pushToast('info', '🎧 Hold 🎙️ once to let the office use your microphone, then hands-free can listen.');
+    useStore.getState().pushToast('info', t('ui.mic.allowFirst'));
   }
   step({ type: 'reply-ended', now: performance.now(), room: r });
 }
 
 /** Why hands-free can't be turned on now, or ''. */
 export function handsFreeProblem(ceoName: string): string {
-  return micProblem() || (useStore.getState().settings.voice.provider === 'off' ? `Hands-free needs ${ceoName}'s voice: turn on Speak messages in Settings → Voice.` : '');
+  return micProblem() || (useStore.getState().settings.voice.provider === 'off' ? t('ui.mic.needsVoice', { name: ceoName }) : '');
 }
 
 /** The hands-free switch (the phone's 🎧, Settings → Voice). Turning it on asks for the mic now, from the click. */

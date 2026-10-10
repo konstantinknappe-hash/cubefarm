@@ -1,22 +1,23 @@
 // The PR theatre's channels, as pure helpers: a floor's big screen and app viewer show "main" (the floor's own
 // preview) or one of its open PRs, each PR running in a preview of its own.
 
+import { t } from '../../../shared/i18n';
 import type { PreviewStatus, PreviewView, PrPreviewView, PullInfo, QaStatus, QaView } from '../../../shared/types';
 
 /** What a floor's screen shows: its main preview (null) or an open PR's. */
 export type Channel = number | null;
 
-export const QA_BADGE: Record<QaStatus, string> = {
-  queued: '⏳ QA queued',
-  testing: '🔍 QA testing',
-  passed: '✅ QA passed',
-  failed: '❌ QA failed',
-  fixing: '🔧 being fixed',
-  'needs-human': '🙋 needs you',
+const QA_BADGE: Record<QaStatus, string> = {
+  queued: 'ui.badge.queued',
+  testing: 'ui.badge.testing',
+  passed: 'ui.badge.passed',
+  failed: 'ui.badge.failed',
+  fixing: 'ui.badge.fixing',
+  'needs-human': 'ui.badge.needsHuman',
 };
 
 /** A PR's QA state in a few words, '' when QA hasn't seen it. */
-export const qaBadge = (qa?: Pick<QaView, 'status'> | null) => (qa ? QA_BADGE[qa.status] : '');
+export const qaBadge = (qa?: Pick<QaView, 'status'> | null) => (qa ? t(QA_BADGE[qa.status]) : '');
 
 /** Shorten to max characters with an ellipsis. */
 const clip = (s: string, max: number) => (s.length > max ? `${s.slice(0, max - 1).trimEnd()}…` : s);

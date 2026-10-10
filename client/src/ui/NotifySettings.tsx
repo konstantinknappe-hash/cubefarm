@@ -278,7 +278,7 @@ export function NotifySettings() {
         {NOTIFY_EVENTS.map((e) => (
           <label key={e.id} className="toggle block">
             <input type="checkbox" checked={notify.events[e.id]} onChange={(ev) => save({ events: { ...notify.events, [e.id]: ev.target.checked } })} />
-            <span>{e.label}</span>
+            <span>{t(`ui.notify.event.${e.id}`)}</span>
           </label>
         ))}
       </div>

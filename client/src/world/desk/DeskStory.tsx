@@ -11,6 +11,7 @@ import { roundRect, SANS } from '../draw';
 import { useCanvasTexture } from '../interact';
 import { HALF_D, deskPosition, deskRotation } from '../layout';
 import { ball, box, cone, cyl, model, ramp, torus, vertexToon, type Part } from '../decor/parts';
+import { t } from '../../i18n';
 import { deskLayout, PLAQUE, SHELF, type Spot } from './deskLayout';
 
 /** Re-render every `ms` (the plants grow, the week moves on). */
@@ -309,7 +310,7 @@ export function DeskStory({ agents }: { agents: Agent[] }) {
 export function MvpSign({ agents }: { agents: Agent[] }) {
   const now = useNow(10 * 60_000);
   const mvp = mvpOfWeek(agents, now);
-  const text = mvp ? `🏅 MVP of the week: ${mvp.who.name} · ${mvp.merges} merge${mvp.merges === 1 ? '' : 's'}` : '🏅 MVP of the week: still up for grabs';
+  const text = mvp ? t('world.mvp.who', { name: mvp.who.name, count: mvp.merges }) : t('world.mvp.none');
   const tex = useCanvasTexture(
     1024,
     104,

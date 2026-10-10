@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Billboard } from '@react-three/drei';
+import { t } from '../i18n';
 import * as THREE from 'three';
 import type { HireRequestView } from '../../../shared/types';
 import { useStore, type Agent } from '../store';
@@ -103,7 +104,7 @@ function CandidateTag({ req, high }: { req: HireRequestView; high: boolean }) {
 
 function Candidate({ c, req }: { c: LobbyCandidate; req: HireRequestView }) {
   const waiting = c.phase === 'waiting';
-  const ref = useInteractable<THREE.Group>(waiting ? { id: `candidate-${req.id}`, label: `Set up and hire ${req.name}`, action: { kind: 'interview', requestId: req.id } } : null, 3.4);
+  const ref = useInteractable<THREE.Group>(waiting ? { id: `candidate-${req.id}`, label: t('world.lobby.hire', { name: req.name }), action: { kind: 'interview', requestId: req.id } } : null, 3.4);
   const agent = useMemo(() => candidateAgent(req), [req]);
   const lap = useRef<THREE.Group>(null);
   useFrame(() => {
@@ -252,8 +253,8 @@ export function WaitingRoom() {
   }, [lobby, byId, gone]);
   const n = lobby.list.filter((c) => c.phase === 'waiting').length;
   const out = lobby.outside;
-  const sign = useInteractable<THREE.Group>(n + out > 0 ? { id: 'waiting-room', label: 'See every team change on your phone', action: { kind: 'phone', tab: 'hires' } } : null, 5);
-  const label = n + out ? `${n} new agent${n === 1 ? '' : 's'}${out ? ` · +${out} waiting` : ''}` : 'nobody waiting';
+  const sign = useInteractable<THREE.Group>(n + out > 0 ? { id: 'waiting-room', label: t('world.lobby.seeChanges'), action: { kind: 'phone', tab: 'hires' } } : null, 5);
+  const label = n + out ? `${t('world.lobby.newAgents', { count: n })}${out ? t('world.lobby.plusWaiting', { n: out }) : ''}` : t('world.lobby.nobodyWaiting');
   return (
     <group>
       {WAITING.seats.map((z) => (
@@ -276,7 +277,7 @@ export function WaitingRoom() {
               864,
               206,
               [
-                { text: '🪑 Waiting room', size: 54 },
+                { text: t('world.lobby.waitingRoom'), size: 54 },
                 { text: label, size: 42, weight: 600, color: out ? '#ffe066' : '#ffffff' },
               ],
               '#06a77d',

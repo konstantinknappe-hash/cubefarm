@@ -2,6 +2,7 @@ import { memo, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import type { RepoView } from '../../../shared/types';
 import { EMPTY_NUMBERS, signLine } from '../ops';
+import { t } from '../i18n';
 import { agentsOnRepo, floorPrCounts, useStore } from '../store';
 import { useKeyName } from '../ui/controls';
 import { ActivityIcon } from './ActivityIcon';
@@ -123,9 +124,9 @@ export const OfficeFloor = memo(function OfficeFloor({ repo }: { repo: RepoView 
             1024,
             317,
             [
-              { text: `FLOOR ${repo.floor}`, size: 58, color: 'rgba(255,255,255,0.85)', weight: 600 },
+              { text: t('world.app.floor', { n: repo.floor }), size: 58, color: 'rgba(255,255,255,0.85)', weight: 600 },
               { text: repo.fullName, size: 74 },
-              { text: repo.description || 'no description', size: 36, weight: 500, color: 'rgba(255,255,255,0.85)' },
+              { text: repo.description || t('world.floor.noDescription'), size: 36, weight: 500, color: 'rgba(255,255,255,0.85)' },
             ],
             repo.color,
           )
@@ -143,10 +144,10 @@ export const OfficeFloor = memo(function OfficeFloor({ repo }: { repo: RepoView 
               1024,
               317,
               [
-                { text: `👩‍💻 ${agents.length} on the team`, size: 50, color: '#2d3142' },
-                { text: `⚙️ ${working} busy · 🔍 ${inQa} in QA · ✅ ${ready} to merge`, size: 42, color: '#2d3142', weight: 600 },
-                { text: `📋 ${repo.issues.length} open issue${repo.issues.length === 1 ? '' : 's'}${repo.autoAssign ? ' · ⚡ auto' : ''}`, size: 40, color: '#5c6078', weight: 500 },
-                alarm ? { text: `🚨 ${alarm.text.split(':')[0]} · press ${use}`, size: 38, color: '#d62839' } : { text: ops, size: 36, color: '#3a6ea5', weight: 600 },
+                { text: t('world.floor.team', { n: agents.length }), size: 50, color: '#2d3142' },
+                { text: t('world.floor.counts', { working, inQa, ready }), size: 42, color: '#2d3142', weight: 600 },
+                { text: `${t('world.floor.issues', { count: repo.issues.length })}${repo.autoAssign ? ' · ⚡ auto' : ''}`, size: 40, color: '#5c6078', weight: 500 },
+                alarm ? { text: t('world.floor.alarm', { alarm: alarm.text.split(':')[0], key: use }), size: 38, color: '#d62839' } : { text: ops, size: 36, color: '#3a6ea5', weight: 600 },
               ],
               '#fffdf5',
             )
@@ -177,8 +178,8 @@ export const OfficeFloor = memo(function OfficeFloor({ repo }: { repo: RepoView 
         draw={(ctx) =>
           drawSign(ctx, 512, 326, [
             { text: '🚀', size: 90 },
-            { text: 'SHIP IT', size: 64 },
-            { text: 'small PRs, happy reviewers', size: 26, weight: 500 },
+            { text: t('world.floor.shipIt'), size: 64 },
+            { text: t('world.floor.smallPrs'), size: 26, weight: 500 },
           ], '#3a86ff')
         }
         deps={[]}

@@ -2,6 +2,7 @@
 // what they're known for), the card that pops up when you look at a desk for a moment, and the Team tab's table.
 import { useEffect, useRef, useState } from 'react';
 import { avgFixRounds, knownFor, mergesThisWeek, passRate, rank, tenureDays, type CareerView } from '../../../shared/careers';
+import { t } from '../i18n';
 import { useStore, type Agent } from '../store';
 import { drawPortrait } from './portrait';
 
@@ -14,19 +15,19 @@ export const fixed1 = (x: number | null) => (x === null ? '—' : x.toFixed(1));
 /** "3 days", "5 hours", "12 minutes" on the team. */
 export function tenureText(c: CareerView, now: number) {
   const d = tenureDays(c, now);
-  if (d >= 1) return `${Math.floor(d)} day${Math.floor(d) === 1 ? '' : 's'}`;
+  if (d >= 1) return t('ui.career.days', { count: Math.floor(d) });
   const h = d * 24;
-  if (h >= 1) return `${Math.floor(h)} hour${Math.floor(h) === 1 ? '' : 's'}`;
+  if (h >= 1) return t('ui.career.hours', { count: Math.floor(h) });
   const m = Math.max(1, Math.round(h * 60));
-  return `${m} minute${m === 1 ? '' : 's'}`;
+  return t('ui.career.minutes', { count: m });
 }
 
 function ago(at: number, now: number) {
   const m = Math.max(0, Math.round((now - at) / 60_000));
-  if (m < 60) return m <= 1 ? 'just now' : `${m} min ago`;
+  if (m < 60) return m <= 1 ? t('ui.career.justNow') : t('ui.career.minAgo', { n: m });
   const h = Math.round(m / 60);
-  if (h < 24) return `${h} h ago`;
-  return `${Math.round(h / 24)} d ago`;
+  if (h < 24) return t('ui.career.hAgo', { n: h });
+  return t('ui.career.dAgo', { n: Math.round(h / 24) });
 }
 
 function Portrait({ agent, size }: { agent: Agent; size: number }) {
@@ -35,7 +36,7 @@ function Portrait({ agent, size }: { agent: Agent; size: number }) {
     const ctx = ref.current?.getContext('2d');
     if (ctx) drawPortrait(ctx, size * 2, agent);
   }, [agent.id, agent.look, agent.role, agent.color, agent.hair, agent.skin, size]); // eslint-disable-line react-hooks/exhaustive-deps
-  return <canvas ref={ref} className="career-portrait" width={size * 2} height={size * 2} style={{ width: size, height: size }} aria-label={`${agent.name}'s portrait`} />;
+  return <canvas ref={ref} className="career-portrait" width={size * 2} height={size * 2} style={{ width: size, height: size }} aria-label={t('ui.career.portrait', { name: agent.name })} />;
 }
 
 function Stat({ label, value, title }: { label: string; value: string | number; title?: string }) {
@@ -51,7 +52,7 @@ export function CareerCard({ agent, compact = false }: { agent: Agent; compact?:
   const repo = useStore((s) => s.repos.find((r) => r.id === agent.repoId));
   const now = Date.now();
   const c = agent.career;
-  if (!c) return <div className="career-card muted small">{agent.name} runs the company; their record is the whole office.</div>;
+  if (!c) return <div className="career-card muted small">{t('ui.career.ceo', { name: agent.name })}</div>;
   return (
     <div className={`career-card ${compact ? 'career-compact' : ''}`} style={{ ['--accent' as string]: agent.color }}>
       <div className="career-head">
@@ -60,34 +61,34 @@ export function CareerCard({ agent, compact = false }: { agent: Agent; compact?:
           <div className="career-name">{agent.name}</div>
           <div className="career-title">
             {rank(c)}
-            {repo ? ` · floor ${repo.floor}` : ''}
+            {repo ? ` · ${t('ui.career.floor', { n: repo.floor })}` : ''}
           </div>
           {c.firstPass >= 10 && (
             <div className="career-badges">
-              <span className="career-badge career-star">⭐ 10 first-time passes</span>
+              <span className="career-badge career-star">{t('ui.career.star')}</span>
             </div>
           )}
           <div className="career-known">“{knownFor(c)}”</div>
         </div>
       </div>
       <div className="career-stats">
-        <Stat label="PRs merged" value={c.merged} />
-        <Stat label="PRs opened" value={c.opened} />
-        <Stat label="first-time QA" value={c.firstPass} title="PRs that passed QA on their first round" />
-        <Stat label="QA pass rate" value={pct(passRate(c))} title={`${c.qaPass} of ${c.qaPass + c.qaFail} QA rounds on their PRs passed`} />
-        <Stat label="fix rounds / PR" value={fixed1(avgFixRounds(c))} />
-        <Stat label="QA reviews" value={c.reviews} />
-        <Stat label="longest streak" value={c.best} title="PRs in a row that passed QA first time" />
-        <Stat label="on the team" value={tenureText(c, now)} />
-        {!compact && <Stat label="est. cost" value={`$${c.costUsd.toFixed(2)}`} title="What the coding agents report, API-equivalent; subscription usage is billed by plan" />}
-        {!compact && <Stat label="turns" value={c.turns} />}
+        <Stat label={t('ui.career.sMerged')} value={c.merged} />
+        <Stat label={t('ui.career.sOpened')} value={c.opened} />
+        <Stat label={t('ui.career.sFirst')} value={c.firstPass} title={t('ui.career.firstTitle')} />
+        <Stat label={t('ui.career.sRate')} value={pct(passRate(c))} title={t('ui.career.rateTitle', { n: c.qaPass, of: c.qaPass + c.qaFail })} />
+        <Stat label={t('ui.career.sFixes')} value={fixed1(avgFixRounds(c))} />
+        <Stat label={t('ui.career.sReviews')} value={c.reviews} />
+        <Stat label={t('ui.career.sStreak')} value={c.best} title={t('ui.career.streakTitle')} />
+        <Stat label={t('ui.career.sTeam')} value={tenureText(c, now)} />
+        {!compact && <Stat label={t('ui.career.sCost')} value={`$${c.costUsd.toFixed(2)}`} title={t('ui.career.costTitle')} />}
+        {!compact && <Stat label={t('ui.career.sTurns')} value={c.turns} />}
       </div>
       {c.recent.length > 0 && (
         <div className="career-recent">
-          {!compact && <div className="muted small">Last merged</div>}
+          {!compact && <div className="muted small">{t('ui.career.lastMerged')}</div>}
           {c.recent.slice(0, compact ? 1 : LAST).map((r) => (
             <div key={r.n} className="career-pr">
-              {compact && <span className="muted">Last merged </span>}
+              {compact && <span className="muted">{t('ui.career.lastMerged')} </span>}
               {repo ? (
                 <a href={`https://github.com/${repo.fullName}/pull/${r.n}`} target="_blank" rel="noreferrer">
                   #{r.n}
@@ -95,7 +96,7 @@ export function CareerCard({ agent, compact = false }: { agent: Agent; compact?:
               ) : (
                 <b>#{r.n}</b>
               )}{' '}
-              <span className="career-pr-title">{r.title || 'untitled'}</span> <span className="muted">{ago(r.at, now)}</span>
+              <span className="career-pr-title">{r.title || t('ui.career.untitled')}</span> <span className="muted">{ago(r.at, now)}</span>
             </div>
           ))}
         </div>
@@ -127,18 +128,19 @@ export function CareerPeek() {
 
 type Col = { key: string; label: string; title?: string; value: (a: Agent, c: CareerView, now: number) => number | string; show?: (a: Agent, c: CareerView, now: number) => string };
 
+// label and title are translation keys
 const COLS: Col[] = [
-  { key: 'merged', label: 'Merged', value: (_a, c) => c.merged },
-  { key: 'opened', label: 'Opened', value: (_a, c) => c.opened },
-  { key: 'firstPass', label: '1st-time QA', title: 'PRs that passed QA on their first round', value: (_a, c) => c.firstPass },
-  { key: 'rate', label: 'Pass rate', value: (_a, c) => passRate(c) ?? -1, show: (_a, c) => pct(passRate(c)) },
-  { key: 'fixes', label: 'Fixes / PR', title: 'Fix rounds per merged PR', value: (_a, c) => avgFixRounds(c) ?? -1, show: (_a, c) => fixed1(avgFixRounds(c)) },
-  { key: 'reviews', label: 'Reviews', title: 'QA reviews done', value: (_a, c) => c.reviews },
-  { key: 'best', label: 'Streak', title: 'Longest run of PRs passing QA first time', value: (_a, c) => c.best },
-  { key: 'week', label: 'This week', value: (_a, c, now) => mergesThisWeek(c, now) },
-  { key: 'since', label: 'On the team', value: (_a, c) => -c.since, show: (_a, c, now) => tenureText(c, now) },
-  { key: 'cost', label: 'Cost', title: 'Estimated, as the coding agents report it', value: (_a, c) => c.costUsd, show: (_a, c) => `$${c.costUsd.toFixed(2)}` },
-  { key: 'turns', label: 'Turns', value: (_a, c) => c.turns },
+  { key: 'merged', label: 'ui.career.cMerged', value: (_a, c) => c.merged },
+  { key: 'opened', label: 'ui.career.cOpened', value: (_a, c) => c.opened },
+  { key: 'firstPass', label: 'ui.career.cFirst', title: 'ui.career.firstTitle', value: (_a, c) => c.firstPass },
+  { key: 'rate', label: 'ui.career.cRate', value: (_a, c) => passRate(c) ?? -1, show: (_a, c) => pct(passRate(c)) },
+  { key: 'fixes', label: 'ui.career.cFixes', title: 'ui.career.fixesTitle', value: (_a, c) => avgFixRounds(c) ?? -1, show: (_a, c) => fixed1(avgFixRounds(c)) },
+  { key: 'reviews', label: 'ui.career.cReviews', title: 'ui.career.reviewsTitle', value: (_a, c) => c.reviews },
+  { key: 'best', label: 'ui.career.cStreak', title: 'ui.career.cStreakTitle', value: (_a, c) => c.best },
+  { key: 'week', label: 'ui.career.cWeek', value: (_a, c, now) => mergesThisWeek(c, now) },
+  { key: 'since', label: 'ui.career.sTeamCap', value: (_a, c) => -c.since, show: (_a, c, now) => tenureText(c, now) },
+  { key: 'cost', label: 'ui.career.cCost', title: 'ui.career.cCostTitle', value: (_a, c) => c.costUsd, show: (_a, c) => `$${c.costUsd.toFixed(2)}` },
+  { key: 'turns', label: 'ui.career.cTurns', value: (_a, c) => c.turns },
 ];
 
 /** Everyone's stats in one sortable table (click a heading; again to flip it). */
@@ -172,16 +174,16 @@ export function TeamStats() {
   return (
     <div className="card team-stats">
       <div className="row">
-        <b className="grow">🏅 Careers</b>
-        <span className="muted small">Counted from what the office sees: PRs, QA rounds, fixes and merges. Look at a desk for a moment to see its card.</span>
+        <b className="grow">{t('ui.career.title')}</b>
+        <span className="muted small">{t('ui.career.blurb')}</span>
       </div>
       <div className="team-stats-scroll">
         <table className="team stats-table">
           <thead>
             <tr>
-              {head('name', 'Name')}
-              {head('floor', 'Floor')}
-              {COLS.map((c) => head(c.key, c.label, c.title))}
+              {head('name', t('ui.career.name'))}
+              {head('floor', t('ui.career.floorCol'))}
+              {COLS.map((c) => head(c.key, t(c.label), c.title && t(c.title)))}
             </tr>
           </thead>
           <tbody>
@@ -189,7 +191,7 @@ export function TeamStats() {
               <tr key={a.id}>
                 <td className="nowrap">
                   <span className="dot" style={{ background: a.color }} />{' '}
-                  <button className="link-btn" title="Open their desk" onClick={() => openOverlay({ kind: 'terminal', agentId: a.id })}>
+                  <button className="link-btn" title={t('ui.career.openDesk')} onClick={() => openOverlay({ kind: 'terminal', agentId: a.id })}>
                     {a.name}
                   </button>
                 </td>

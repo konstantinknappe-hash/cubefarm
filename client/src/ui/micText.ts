@@ -1,5 +1,6 @@
 // The words around the 🎙 (mic.ts): tidying a transcript, putting it in the message box, and one friendly line for
 // each way listening can fail. Pure, so it's tested without a browser.
+import { t } from '../../../shared/i18n';
 import type { ListenProvider } from '../../../shared/types';
 
 /** A transcript tidied for the message box: single spaces, no "(laughter)" or "[music]" tags, a capital first letter. */
@@ -44,18 +45,18 @@ export function micErrorLine(code: string): string | null {
     case 'service-not-allowed':
     case 'NotAllowedError':
     case 'SecurityError':
-      return '🎙️ The microphone is blocked for the office. Allow it from the icon at the left of the address bar to talk instead of type.';
+      return t('ui.mic.blocked');
     case 'audio-capture':
     case 'NotFoundError':
     case 'NotReadableError':
     case 'OverconstrainedError':
-      return "🎙️ No microphone is working here. Plug one in (or close what's using it), or keep typing.";
+      return t('ui.mic.noMic');
     case 'network':
-      return "🎙️ The browser's speech service couldn't be reached. Try again, or pick ElevenLabs in Settings → Voice.";
+      return t('ui.mic.network');
     case 'language-not-supported':
-      return "🎙️ The browser can't recognise your language. Pick ElevenLabs in Settings → Voice.";
+      return t('ui.mic.language');
     default:
-      return `🎙️ Listening stopped (${code}).`;
+      return t('ui.mic.stopped', { code });
   }
 }
 
@@ -67,8 +68,8 @@ export interface MicCaps {
 
 /** Why the 🎙 can't listen here, in one line, or '' when it can. */
 export function cantListen(provider: ListenProvider, caps: MicCaps, keySet: boolean): string {
-  if (provider === 'browser' && !caps.recognition) return "🎙️ This browser can't turn speech into text. Use Chrome, Edge or Safari, or pick ElevenLabs in Settings → Voice.";
-  if (provider === 'elevenlabs' && !caps.recorder) return "🎙️ This browser can't record from a microphone, so ElevenLabs can't hear you. Use a current Chrome, Edge, Firefox or Safari.";
-  if (provider === 'elevenlabs' && !keySet) return '🎙️ Add your ElevenLabs API key in Settings → Voice to talk instead of type.';
+  if (provider === 'browser' && !caps.recognition) return t('ui.mic.noRecognition');
+  if (provider === 'elevenlabs' && !caps.recorder) return t('ui.mic.noRecorder');
+  if (provider === 'elevenlabs' && !keySet) return t('ui.mic.noKey');
   return '';
 }

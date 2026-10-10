@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import * as THREE from 'three';
+import { t } from '../../i18n';
 import { useStore } from '../../store';
 import { addProbe, useTheme, useThemeRuntime } from './active';
 import { Burst, burstAt } from './kit/Burst';
@@ -104,7 +105,7 @@ function EggMesh({ egg }: { egg: Egg }) {
   const geo = useMemo(() => eggGeometry(egg.color, egg.band), [egg]);
   useEffect(() => () => geo.dispose(), [geo]);
   return (
-    <Hotspot id={`egg:${egg.id}`} label="Pick up the egg 🥚" range={2.4} position={[egg.x, 0, egg.z]} rotationY={(egg.x * 7 + egg.z) % Math.PI}>
+    <Hotspot id={`egg:${egg.id}`} label={t('world.easter.pick')} range={2.4} position={[egg.x, 0, egg.z]} rotationY={(egg.x * 7 + egg.z) % Math.PI}>
       <mesh geometry={geo} material={paintedToon()} rotation={[0, 0, 0.35]} castShadow />
       {/* a bigger, unseen target than the egg itself, so it's easy to aim at */}
       <mesh position={[0, 0.12, 0]} material={HIT}>
@@ -115,7 +116,7 @@ function EggMesh({ egg }: { egg: Egg }) {
 }
 
 function statusOf(found: number) {
-  return found >= EGG_COUNT ? '🏆 All 12 eggs found: the golden egg is yours!' : `🥚 Egg hunt: ${found} / ${EGG_COUNT} found`;
+  return found >= EGG_COUNT ? t('world.easter.allFound', { n: EGG_COUNT }) : t('world.easter.status', { n: found, of: EGG_COUNT });
 }
 
 export default function Easter({ kind, floor }: ThemeProps) {
@@ -139,8 +140,8 @@ export default function Easter({ kind, floor }: ThemeProps) {
       const s = useStore.getState();
       if (all) {
         burstAt(egg.x, 0.5, egg.z, DEF.confetti!.colors);
-        s.pushToast('success', '🏆 All 12 eggs! The golden egg trophy is on the trophy cabinet in the lobby.');
-      } else s.pushToast('info', `🥚 Egg ${now.length} of ${EGG_COUNT}!${now.length === EGG_COUNT - 1 ? ' One to go…' : ''}`);
+        s.pushToast('success', t('world.easter.trophy', { n: EGG_COUNT }));
+      } else s.pushToast('info', `${t('world.easter.egg', { n: now.length, of: EGG_COUNT })}${now.length === EGG_COUNT - 1 ? t('world.easter.oneToGo') : ''}`);
       return now.length;
     },
     [eggs, day],

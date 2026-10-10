@@ -10,6 +10,7 @@ import { toon } from './materials';
 import { Outlines } from './Outlines';
 import { paddleTaken, pongView, subscribePong, type PongView } from './toys/pongState';
 import { PONG } from './toys/pongPhysics';
+import { t } from '../i18n';
 import { Box, Cyl } from './Toon';
 
 // The ping-pong table on every office floor, as furniture: the table, its net, the paddles hanging on its side (gone
@@ -161,7 +162,7 @@ function drawScore(ctx: CanvasRenderingContext2D, w: number, h: number, v: PongV
     ctx.fillText('🏓', w / 2, h * 0.33);
     ctx.font = `700 34px ${SANS}`;
     ctx.fillStyle = '#f8f9fa';
-    ctx.fillText(waiting ? 'Waiting for a player…' : 'Fancy a game? E at an end', w / 2, h * 0.7);
+    ctx.fillText(waiting ? t('world.pong.waiting') : t('world.pong.fancy'), w / 2, h * 0.7);
     return;
   }
   const right = left === 'west' ? 'east' : 'west';
@@ -237,15 +238,15 @@ function drawLeaderboard(ctx: CanvasRenderingContext2D, w: number, h: number, ro
   ctx.textAlign = 'center';
   ctx.fillStyle = '#ffd166';
   ctx.font = `800 54px ${SANS}`;
-  ctx.fillText('🏓 PING-PONG LADDER', w / 2, 62);
+  ctx.fillText(t('world.pong.ladder'), w / 2, 62);
   ctx.font = `600 26px ${SANS}`;
   ctx.fillStyle = 'rgba(255,255,255,0.7)';
-  ctx.fillText('games won – lost on this floor', w / 2, 108);
+  ctx.fillText(t('world.pong.wonLost'), w / 2, 108);
   if (!rows.length) {
     ctx.font = `600 36px ${SANS}`;
     ctx.fillStyle = '#f8f9fa';
-    ctx.fillText('No games yet.', w / 2, h / 2 + 20);
-    ctx.fillText('Pick up a paddle!', w / 2, h / 2 + 70);
+    ctx.fillText(t('world.pong.noGames'), w / 2, h / 2 + 20);
+    ctx.fillText(t('world.pong.pickUp'), w / 2, h / 2 + 70);
     return;
   }
   const top = 150;

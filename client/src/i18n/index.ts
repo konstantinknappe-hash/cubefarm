@@ -16,4 +16,8 @@ export function useT() {
   useSyncExternalStore(i18n.subscribe, i18n.getLanguage, i18n.getLanguage);
   return i18n.t;
 }
-export { t, formatTime, formatDate, formatNumber } from '../../../shared/i18n';
+/** Die aktuelle Sprache, z. B. als Abhängigkeit für Canvas-Texturen, die bei einem Sprachwechsel neu zeichnen. */
+export function useLanguage() {
+  return useSyncExternalStore(i18n.subscribe, i18n.getLanguage, i18n.getLanguage);
+}
+export { t, formatTime, formatDate, formatNumber, getLanguage } from '../../../shared/i18n';

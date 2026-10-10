@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { t } from '../i18n';
 import type { Held } from '../store';
 import { ammoLabel, reloadProgress } from '../world/toys/darts';
 import { Key } from './Key';
@@ -22,7 +23,7 @@ export function BlasterHud({ held }: { held: Extract<Held, { kind: 'blaster' }> 
   return (
     <>
       <div className="hud-hint hud-held">
-        <kbd>Click</kbd> / <Key action="throw" /> fire · <Key action="reload" /> reload · <Key action="drop" /> drop
+        <kbd>{t('ui.held.click')}</kbd> / <Key action="throw" /> {t('ui.held.fire')} · <Key action="reload" /> {t('ui.held.reload')} · <Key action="drop" /> {t('ui.held.drop')}
       </div>
       <div className={`hud-ammo ${empty ? 'hud-ammo-empty' : ''}`}>
         <span className="hud-ammo-count">🎯 {ammoLabel(held, performance.now())}</span>
@@ -31,8 +32,8 @@ export function BlasterHud({ held }: { held: Extract<Held, { kind: 'blaster' }> 
             <div ref={bar} className="hud-ammo-fill" />
           </div>
         )}
-        {reloading && <span className="hud-ammo-note">Reloading…</span>}
-        {empty && <span className="hud-ammo-note">Empty: R to reload</span>}
+        {reloading && <span className="hud-ammo-note">{t('ui.held.reloading')}</span>}
+        {empty && <span className="hud-ammo-note">{t('ui.held.emptyAmmo')}</span>}
       </div>
     </>
   );

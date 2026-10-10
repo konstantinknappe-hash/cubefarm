@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { CEO_ID, DEFAULT_DOG_NAME, DEFAULT_MAX_AGENTS, type AgentView, type CeoInfo, type CliView, type DoctorFinding, type HireRequestView, type LogLine, type NotifyChannelsView, type OfficeUpdateView, type OpsView, type PhoneMessage, type PongRow, type PrPreviewView, type QaView, type RepoView, type ServerEvent, type SwarmSettings, type TickerItem, type UsageView, type VisitorView, type VoiceCacheView, type WorldSnapshot } from '../../shared/types';
+import { t } from '../../shared/i18n';
 import { blockers } from '../../shared/issues';
 import { latestListed } from '../../shared/watch';
 import { DEFAULT_WEATHER, DEFAULT_WORLD_EVENTS, EMPTY_WEATHER_VIEW, type WeatherView } from '../../shared/outside';
@@ -465,7 +466,7 @@ export const useStore = create<State>((set, get) => ({
           void import('./ui/voiceMessages').then((v) => v.speakMessage(ev.message, arrived, wait));
         }
         // Screen readers hear every message from the CEO, in words (no markdown or emoji), wherever focus is.
-        if (live && ev.message.from === 'ceo') announce(`Message from ${get().agents[CEO_ID]?.name ?? 'the CEO'}: ${speechText(ev.message.text, 600)}`);
+        if (live && ev.message.from === 'ceo') announce(t('ui.store.message', { name: get().agents[CEO_ID]?.name ?? t('ui.store.theCeo'), text: speechText(ev.message.text, 600) }));
         if (ev.message.from === 'ceo' && !reading) {
           if (!speak) chirp();
           const ceo = get().agents[CEO_ID]?.name ?? 'CEO';
@@ -546,7 +547,7 @@ export const useStore = create<State>((set, get) => ({
   openOverlay(overlay) {
     // Terminals and the floor's app are live, whatever the time-lapse shows.
     if (overlay && get().replaying && (overlay.kind === 'terminal' || overlay.kind === 'app')) {
-      get().pushToast('info', '▶ That shows the live office: press Esc to leave the replay first.');
+      get().pushToast('info', t('ui.replay.liveOnly'));
       return;
     }
     // Opening any panel drops whatever you're carrying, so nothing is left floating behind it.
@@ -657,7 +658,7 @@ export function kanbanFor(repo: RepoView, agents: Agent[], qaRecords: Record<str
     // Their PR's card is the work now; once it's closed or merged there is no card ("finished · no PR" was wrong).
     if (a.prNumber != null) continue;
     const note =
-      a.status === 'preparing' ? 'setting up' : a.status === 'working' ? 'working' : a.status === 'error' ? 'needs help' : a.status === 'stopped' ? 'stopped' : 'finished · no PR';
+      a.status === 'preparing' ? t('ui.card.preparing') : a.status === 'working' ? t('ui.card.working') : a.status === 'error' ? t('world.chip.needsHelp') : a.status === 'stopped' ? t('ui.card.stopped') : t('ui.store.finishedNoPr');
     progress.push({
       key: `a-${a.id}`,
       number: a.issueNumber,
@@ -683,7 +684,7 @@ export function kanbanFor(repo: RepoView, agents: Agent[], qaRecords: Record<str
   const claimed = new Set<number>([...progress.map((c) => c.number), ...openPulls.flatMap((p) => p.closesIssues)]);
   const open = new Set(repo.issues.map((i) => i.number));
   const held = new Map((repo.held ?? []).map((h) => [h.issue, h.pr]));
-  const paced = repo.autoAssign && usage && usage.state !== 'normal' ? (usage.state === 'paused' ? '⏸ paused' : '⏸ paced') : '';
+  const paced = repo.autoAssign && usage && usage.state !== 'normal' ? (usage.state === 'paused' ? t('ui.store.paused') : t('ui.store.paced')) : '';
   const backlog: KanbanCard[] = repo.issues
     .filter((i) => !claimed.has(i.number))
     .map((i) => {
@@ -691,8 +692,8 @@ export function kanbanFor(repo: RepoView, agents: Agent[], qaRecords: Record<str
       const labels = i.labels.slice(0, 2).join(', ');
       const card = { key: `i-${i.number}`, number: i.number, title: i.title, url: i.url };
       // Its PR was closed: it waits for the manager rather than going back to auto-assign.
-      if (held.has(i.number)) return { ...card, note: `⏸ PR #${held.get(i.number)} closed · assign by hand`, tone: 'warn' as const };
-      return { ...card, note: (waits.length ? `⏳ after #${waits.join(', #')}` : [paced, labels].filter(Boolean).join(' · ')) || undefined };
+      if (held.has(i.number)) return { ...card, note: t('ui.store.held', { n: held.get(i.number) ?? '?' }), tone: 'warn' as const };
+      return { ...card, note: (waits.length ? t('ui.store.after', { list: waits.join(', #') }) : [paced, labels].filter(Boolean).join(' · ')) || undefined };
     });
 
   const merged: KanbanCard[] = repo.pulls

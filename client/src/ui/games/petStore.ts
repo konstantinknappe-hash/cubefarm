@@ -1,3 +1,4 @@
+import { t } from '../../../../shared/i18n';
 import { useStore, type Agent } from '../../store';
 import { cheer, parsePet, type PetState } from './pet';
 import { readJson, writeJson } from './storage';
@@ -26,10 +27,10 @@ export function subscribePet(fn: () => void) {
 
 /** What the pet says when someone finishes a job. */
 export function finishedLine(a: Pick<Agent, 'name' | 'task' | 'issueNumber' | 'prNumber'>): string {
-  if (a.task === 'qa') return `Yay! ${a.name} finished testing${a.prNumber ? ` PR #${a.prNumber}` : ' a PR'}! 🧪`;
-  if (a.task === 'fix') return `Yay! ${a.name} fixed${a.prNumber ? ` PR #${a.prNumber}` : ' a PR'}! 🔧`;
-  if (a.issueNumber) return `Yay! ${a.name} finished issue #${a.issueNumber}! 🎉`;
-  return `Yay! ${a.name} finished a job! 🎉`;
+  if (a.task === 'qa') return a.prNumber ? t('ui.pet.yayTestedPr', { name: a.name, n: a.prNumber }) : t('ui.pet.yayTested', { name: a.name });
+  if (a.task === 'fix') return a.prNumber ? t('ui.pet.yayFixedPr', { name: a.name, n: a.prNumber }) : t('ui.pet.yayFixed', { name: a.name });
+  if (a.issueNumber) return t('ui.pet.yayIssue', { name: a.name, n: a.issueNumber });
+  return t('ui.pet.yayJob', { name: a.name });
 }
 
 // Agents going to 'done' (not on the first snapshot, which isn't news).

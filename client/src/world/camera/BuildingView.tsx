@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { CEO_ID } from '../../../../shared/types';
+import { t } from '../../i18n';
 import { repoOnFloor, useStore } from '../../store';
 import { SANS, roundRect } from '../draw';
 import { useCanvasTexture } from '../interact';
@@ -31,13 +32,13 @@ interface SliceInfo {
 function sliceInfo(f: number, s: ReturnType<typeof useStore.getState>): string {
   if (f === 0) {
     const l = lobbySummary(s.agents[CEO_ID], s.requests);
-    const parts = [l.ceo ? `CEO ${l.ceo === 'idle' ? 'free' : l.ceo}` : 'no CEO yet', `${l.waiting} candidate${l.waiting === 1 ? '' : 's'} waiting`];
-    if (l.needsYou) parts.push(`${l.needsYou} need${l.needsYou === 1 ? 's' : ''} you`);
-    const info: SliceInfo = { label: 'G', name: s.settings.companyName || 'Lobby', sub: 'Lobby', color: '#ff8a5b', line: parts.join(' · '), chips: l.ceo ? [l.ceo] : [], alert: l.needsYou > 0 };
+    const parts = [l.ceo ? t('world.building.ceo', { state: t(`world.chip.${l.ceo}`) }) : t('world.building.noCeo'), t('world.building.candidates', { count: l.waiting })];
+    if (l.needsYou) parts.push(t('world.building.needsYou', { count: l.needsYou }));
+    const info: SliceInfo = { label: 'G', name: s.settings.companyName || t('world.lobby.lobby'), sub: t('world.lobby.lobby'), color: '#ff8a5b', line: parts.join(' · '), chips: l.ceo ? [l.ceo] : [], alert: l.needsYou > 0 };
     return JSON.stringify(info);
   }
   const repo = repoOnFloor(s.repos, f);
-  if (!repo) return JSON.stringify({ label: String(f), name: 'Empty floor', sub: '', color: '#adb5bd', line: 'nobody here yet', chips: [], alert: false } satisfies SliceInfo);
+  if (!repo) return JSON.stringify({ label: String(f), name: t('world.building.empty'), sub: '', color: '#adb5bd', line: t('world.building.nobody'), chips: [], alert: false } satisfies SliceInfo);
   const sum = floorSummary(repo, Object.values(s.agents), s.qa);
   const [owner, name] = repo.fullName.split('/');
   const info: SliceInfo = { label: String(f), name: name ?? repo.fullName, sub: owner ?? '', color: repo.color, line: summaryLine(sum), chips: sum.chips, alert: sum.needsYou + sum.errors > 0 };
@@ -75,7 +76,7 @@ function drawSlice(ctx: CanvasRenderingContext2D, info: SliceInfo, here: boolean
   ctx.fillText(name, x0, 40);
   ctx.font = `500 22px ${SANS}`;
   ctx.fillStyle = '#5c6078';
-  let sub = here ? `📍 you are here${info.sub ? ` · ${info.sub}` : ''}` : info.sub;
+  let sub = here ? `${t('world.building.here')}${info.sub ? ` · ${info.sub}` : ''}` : info.sub;
   while (sub.length > 3 && ctx.measureText(sub).width > 290) sub = `${sub.slice(0, -2)}…`;
   ctx.fillText(sub, x0, 78);
   // everyone on the floor, in their status colour
@@ -113,7 +114,7 @@ function Slice({ f, here, y }: { f: number; here: boolean; y: number }) {
   useEffect(() => {
     const m = ref.current;
     if (!m) return;
-    m.userData.pick = { kind: 'floor', floor: f, label: here ? `Look over ${info.name}` : `Go to ${f === 0 ? 'the lobby' : `floor ${f} · ${info.name}`}` };
+    m.userData.pick = { kind: 'floor', floor: f, label: here ? t('world.building.look', { name: info.name }) : f === 0 ? t('world.building.goLobby') : t('world.building.goFloor', { n: f, name: info.name }) };
     pickables.add(m);
     return () => void pickables.delete(m);
   }, [f, here, info.name]);

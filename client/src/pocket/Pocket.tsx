@@ -2,6 +2,7 @@
 // and REST as the 3D office. Five tabs: Company (each floor's pipeline), Chat (the CEO), Kanban, Team and Approvals.
 // Nothing 3D loads here until "Open the 3D office".
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { formatTime, t as tr, useT } from '../i18n';
 import { agentsOnRepo, kanbanFor, unreadMessages, useStore } from '../store';
 import { CEO_ID } from '../../../shared/types';
 import { officeUpdateChip } from '../officeUpdate';
@@ -38,24 +39,24 @@ function openOffice() {
 // ---------- company ----------
 
 const STAGES: [keyof Pipeline, string, string][] = [
-  ['building', '🔨', 'Building'],
-  ['qa', '🔍', 'QA'],
-  ['fixing', '🔧', 'Fixing'],
-  ['ready', '✅', 'Ready'],
-  ['needsYou', '⚠️', 'Needs you'],
+  ['building', '🔨', 'world.ops.building'],
+  ['qa', '🔍', 'world.ops.inQa'],
+  ['fixing', '🔧', 'world.ops.fixing'],
+  ['ready', '✅', 'world.ops.ready'],
+  ['needsYou', '⚠️', 'world.ops.needsYou'],
 ];
 
 function Banners() {
   const connected = useStore((s) => s.connected);
   const loaded = useStore((s) => s.loaded);
   const usage = useStore((s) => s.usage);
-  const update = useStore((s) => (s.restarting ? '⟳ The office is restarting…' : officeUpdateChip(s.officeUpdate)));
-  const until = usage.until ? new Date(usage.until).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : null;
+  const update = useStore((s) => (s.restarting ? tr('hud.officeRestarting') : officeUpdateChip(s.officeUpdate)));
+  const until = usage.until ? formatTime(usage.until) : null;
   return (
     <>
-      {!connected && <div className="pk-banner pk-banner-bad">{loaded ? '📡 Reconnecting to the office…' : '📡 Connecting to the office…'}</div>}
-      {usage.state === 'paused' && <div className="pk-banner pk-banner-bad">⏸ Claude's usage limit was reached: no new work starts{until ? ` until ${until}` : ''}.</div>}
-      {usage.state === 'pacing' && <div className="pk-banner">🐢 Pacing new work after a usage warning{until ? ` until ${until}` : ''}.</div>}
+      {!connected && <div className="pk-banner pk-banner-bad">{loaded ? tr('ui.pocket.reconnecting') : tr('ui.pocket.connecting')}</div>}
+      {usage.state === 'paused' && <div className="pk-banner pk-banner-bad">{tr('ui.pocket.paused')}{until ? tr('ui.pocket.until', { until }) : ''}.</div>}
+      {usage.state === 'pacing' && <div className="pk-banner">{tr('ui.pocket.pacing')}{until ? tr('ui.pocket.until', { until }) : ''}.</div>}
       {update && <div className="pk-banner">{update}</div>}
     </>
   );
@@ -85,9 +86,9 @@ function Company({ go }: { go: (tab: PocketTab, repoId?: string) => void }) {
       {waiting > 0 && (
         <button className="pk-callout" onClick={() => go('approvals')}>
           <span>
-            ⚠️ <b>{waiting}</b> decision{waiting === 1 ? '' : 's'} waiting on you
+            ⚠️ {tr('ui.pocket.decisions', { count: waiting })}
           </span>
-          <span>Approvals →</span>
+          <span>{tr('ui.pocket.approvals')} →</span>
         </button>
       )}
       {ceo && (
@@ -97,14 +98,14 @@ function Company({ go }: { go: (tab: PocketTab, repoId?: string) => void }) {
           </span>
           <div className="grow">
             <b>{ceo.name}</b> <span className="muted small">CEO</span>
-            <div className="small">{ceo.status === 'working' ? (ceoInfo.job?.label ?? 'Working') : ceoInfo.queue.length ? `Next: ${ceoInfo.queue[0].label}` : 'Free'}</div>
+            <div className="small">{ceo.status === 'working' ? (ceoInfo.job?.label ?? tr('ui.status.working')) : ceoInfo.queue.length ? tr('world.ceoBoard.next', { next: ceoInfo.queue[0].label }) : tr('ui.pocket.free')}</div>
           </div>
           <button className="btn btn-small" onClick={() => go('chat')}>
-            💬 Chat
+            💬 {tr('ui.pocket.chat')}
           </button>
         </div>
       )}
-      {floors.length === 0 && <p className="muted">No projects yet. Connect a repo from the manager's console in the 3D office.</p>}
+      {floors.length === 0 && <p className="muted">{tr('ui.pocket.noProjects')}</p>}
       {floors.map(({ repo, team, busy, p }) => (
         <div key={repo.id} className="pk-card pk-floor" style={{ ['--accent' as string]: repo.color }}>
           <div className="pk-floor-head">
@@ -114,7 +115,7 @@ function Company({ go }: { go: (tab: PocketTab, repoId?: string) => void }) {
               <div className="muted small pk-ellipsis">{repo.summary || repo.description || repo.fullName}</div>
             </div>
           </div>
-          <div className="pk-pipeline" role="list" aria-label={`Floor ${repo.floor} pipeline`}>
+          <div className="pk-pipeline" role="list" aria-label={tr('ui.pocket.pipelineAria', { n: repo.floor })}>
             {STAGES.map(([k, icon, label]) => (
               <div key={k} role="listitem" className={`pk-stage ${p[k] ? '' : 'pk-stage-zero'} ${k === 'needsYou' && p[k] ? 'pk-stage-hot' : ''}`}>
                 <span className="pk-stage-n">
@@ -123,28 +124,28 @@ function Company({ go }: { go: (tab: PocketTab, repoId?: string) => void }) {
                   </span>
                   {p[k]}
                 </span>
-                <span className="pk-stage-label">{label}</span>
+                <span className="pk-stage-label">{tr(label)}</span>
               </div>
             ))}
           </div>
           <div className="pk-floor-foot small">
             <span className="muted">
-              👥 {team} · {busy} busy · 📋 {p.backlog} in backlog
+              {tr('ui.pocket.floorFoot', { team, busy, backlog: p.backlog })}
             </span>
             <span className="spacer" />
             <button className="btn btn-small" onClick={() => go('kanban', repo.id)}>
-              Board
+              {tr('ui.pocket.board')}
             </button>
             <button className="btn btn-small" onClick={() => go('team', repo.id)}>
-              Team
+              {tr('ui.pocket.team')}
             </button>
           </div>
         </div>
       ))}
       <button className="btn pk-wide" onClick={openOffice}>
-        🏢 Open the 3D office
+        {tr('ui.pocket.open3d')}
       </button>
-      {demo && <div className="pk-center small muted">DEMO MODE: fake repos, fake agents</div>}
+      {demo && <div className="pk-center small muted">{tr('ui.demoMode')}</div>}
       {version && <div className="pk-center small muted">cubefarm {version}</div>}
     </div>
   );
@@ -155,11 +156,11 @@ function Company({ go }: { go: (tab: PocketTab, repoId?: string) => void }) {
 function Board({ repoId, pick }: { repoId: string | null; pick: (id: string) => void }) {
   const repos = useStore((s) => s.repos);
   const id = repos.some((r) => r.id === repoId) ? repoId! : repos[0]?.id;
-  if (!id) return <p className="muted pk-page">No projects yet.</p>;
+  if (!id) return <p className="muted pk-page">{tr('ui.pocket.noProjectsShort')}</p>;
   return (
     <div className="pk-page">
       {repos.length > 1 && (
-        <div className="pk-chips" role="tablist" aria-label="Floor">
+        <div className="pk-chips" role="tablist" aria-label={tr('ui.career.floorCol')}>
           {repos.map((r) => (
             <button key={r.id} role="tab" aria-selected={r.id === id} className={`pk-chip ${r.id === id ? 'pk-chip-on' : ''}`} style={{ ['--accent' as string]: r.color }} onClick={() => pick(r.id)}>
               {r.floor} · {name(r.fullName)}
@@ -198,17 +199,16 @@ function PocketOverlay() {
 
 function Settings({ onClose }: { onClose: () => void }) {
   return (
-    <Panel title="⚙️ This device and notifications" onClose={onClose} className="pk-settings">
+    <Panel title={tr('ui.pocket.settingsTitle')} onClose={onClose} className="pk-settings">
       <NotifySettings />
       <AccessibilitySettings pocket />
       <div className="card">
-        <h3>📱 Pocket mode</h3>
+        <h3>{tr('ui.pocket.modeTitle')}</h3>
         <p className="muted small">
-          This is the office without the 3D building, for phones and touch screens. It's picked on its own on small or touch screens; this device remembers what you last chose. To reach the office from your phone
-          safely, see <a href="https://github.com/leonvanzyl/cubefarm/blob/main/docs/pocket.md">docs/pocket.md</a>.
+          {tr('ui.pocket.modeText')} <a href="https://github.com/leonvanzyl/cubefarm/blob/main/docs/pocket.md">docs/pocket.md</a>.
         </p>
         <button className="btn" onClick={openOffice}>
-          🏢 Open the 3D office
+          {tr('ui.pocket.open3d')}
         </button>
       </div>
     </Panel>
@@ -216,6 +216,7 @@ function Settings({ onClose }: { onClose: () => void }) {
 }
 
 export default function Pocket() {
+  useT(); // the whole pocket office reads its words in render: a language change renders it again
   const [tab, setTab] = useState<PocketTab>(() => tabFrom(location.href) ?? 'company');
   const [repoId, setRepoId] = useState<string | null>(null);
   const [settings, setSettings] = useState(false);
@@ -253,11 +254,11 @@ export default function Pocket() {
   }, [company]);
 
   const tabs: [PocketTab, string, string, number][] = [
-    ['company', '📊', 'Company', 0],
+    ['company', '📊', tr('ui.pocket.company'), 0],
     ['chat', '💬', ceoName, tab === 'chat' ? 0 : unread],
     ['kanban', '📋', 'Kanban', 0],
-    ['team', '👥', 'Team', 0],
-    ['approvals', '✋', 'Approvals', waiting],
+    ['team', '👥', tr('ui.pocket.team'), 0],
+    ['approvals', '✋', tr('ui.pocket.approvals'), waiting],
   ];
   return (
     <div className="pocket">
@@ -266,19 +267,19 @@ export default function Pocket() {
           ✻
         </span>
         <b className="pk-title">{company || 'cubefarm'}</b>
-        <span className={`pk-dot ${connected ? 'pk-dot-on' : ''}`} title={connected ? 'Connected' : 'Not connected'} />
+        <span className={`pk-dot ${connected ? 'pk-dot-on' : ''}`} title={connected ? tr('ui.pocket.connected') : tr('ui.pocket.notConnected')} />
         <span className="spacer" />
-        {usage !== 'normal' && <span className="chip chip-warn">{usage === 'paused' ? '⏸ paused' : '🐢 pacing'}</span>}
-        <button className="pk-icon-btn" onClick={() => setSettings(true)} aria-label="Settings and notifications" title="Settings and notifications">
+        {usage !== 'normal' && <span className="chip chip-warn">{usage === 'paused' ? tr('ui.store.paused') : tr('ui.pocket.pacingChip')}</span>}
+        <button className="pk-icon-btn" onClick={() => setSettings(true)} aria-label={tr('ui.pocket.settings')} title={tr('ui.pocket.settings')}>
           ⚙️
         </button>
       </header>
       <main className={`pk-main ${tab === 'chat' ? 'pk-main-chat' : ''}`}>
         {loaded && !setupDone ? (
           <div className="pk-page">
-            <p>The office isn't set up yet. Finish the setup in the 3D office (on a computer is easiest), then come back.</p>
+            <p>{tr('ui.pocket.notSetUp')}</p>
             <button className="btn" onClick={openOffice}>
-              🏢 Open the 3D office
+              {tr('ui.pocket.open3d')}
             </button>
           </div>
         ) : (
@@ -291,7 +292,7 @@ export default function Pocket() {
           </>
         )}
       </main>
-      <nav className="pk-tabs" aria-label="Pocket office">
+      <nav className="pk-tabs" aria-label={tr('ui.pocket.navAria')}>
         {tabs.map(([k, icon, label, badge]) => (
           <button key={k} className={`pk-tab ${tab === k ? 'pk-tab-on' : ''}`} aria-current={tab === k ? 'page' : undefined} onClick={() => setTab(k)}>
             <span className="pk-tab-icon">

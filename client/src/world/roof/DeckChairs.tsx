@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import * as THREE from 'three';
+import { t } from '../../i18n';
 import { useStore } from '../../store';
 import { chairCreak } from '../../ui/peopleSounds';
 import { useInteractable } from '../interact';
@@ -92,7 +93,7 @@ const takenByVisitor = (i: number, now = Date.now()) => roofVisits(now).some((v)
 /** A deck chair's aim target: E sits you down in it. */
 function ChairTarget({ i }: { i: number }) {
   const s = deckChairSeat(i);
-  const ref = useInteractable<THREE.Mesh>({ id: `deckchair-${i}`, label: 'Sit back in the deck chair', action: { kind: 'roof', op: `chair:${i}` } }, 3);
+  const ref = useInteractable<THREE.Mesh>({ id: `deckchair-${i}`, label: t('world.roof.chair'), action: { kind: 'roof', op: `chair:${i}` } }, 3);
   return (
     <mesh ref={ref} position={[s.x, 0.5, s.z + 0.05]} visible={false}>
       <boxGeometry args={[DECK_CHAIRS.w, 1, DECK_CHAIRS.l]} />
@@ -106,7 +107,7 @@ function sitIn(i: number) {
   const s = useStore.getState();
   if (useRoof.getState().sitting === i) return;
   if (takenByVisitor(i)) {
-    s.pushToast('info', "🪑 Someone's sitting there: try another chair");
+    s.pushToast('info', t('world.roof.chairTaken'));
     return;
   }
   const seat = deckChairSeat(i);

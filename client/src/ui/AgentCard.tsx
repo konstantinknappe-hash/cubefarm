@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { ACTIVITY_ICONS, ACTIVITY_LABELS, clipText, recentActions, redact } from '../../../shared/activity';
+import { ACTIVITY_ICONS, clipText, recentActions, redact } from '../../../shared/activity';
+import { t as tr } from '../i18n';
 import { isBusy, qaKey, useStore, type Agent } from '../store';
 import { reportCard } from '../world/activityProbe';
 import { agentLabel } from './floorRows';
@@ -9,7 +10,7 @@ import { agentLabel } from './floorRows';
 // the QA round while they're testing or fixing a PR. It only reads the store: E still opens their terminal.
 
 const AIM_MS = 400;
-const STATUS: Record<Agent['status'], string> = { idle: 'free', preparing: 'setting up', working: 'working', done: 'done', error: 'stuck', stopped: 'stopped' };
+const STATUS: Record<Agent['status'], string> = { idle: 'ui.card.idle', preparing: 'ui.card.preparing', working: 'ui.card.working', done: 'ui.card.done', error: 'ui.card.error', stopped: 'ui.card.stopped' };
 
 function elapsed(ms: number) {
   const m = Math.floor(ms / 60_000);
@@ -19,8 +20,8 @@ function elapsed(ms: number) {
 function onWhat(a: Agent): string | null {
   const title = a.issueTitle ? ` · ${a.issueTitle}` : '';
   if (a.role === 'ceo') return a.issueTitle;
-  if (a.task === 'qa' && a.prNumber) return `testing PR #${a.prNumber}${title}`;
-  if (a.task === 'fix' && a.prNumber) return `fixing PR #${a.prNumber}${title}`;
+  if (a.task === 'qa' && a.prNumber) return `${tr('world.term.testing', { n: a.prNumber })}${title}`;
+  if (a.task === 'fix' && a.prNumber) return `${tr('world.term.fixing', { n: a.prNumber })}${title}`;
   if (a.issueNumber) return `#${a.issueNumber}${a.issueTitle ? ` ${a.issueTitle}` : ''}${a.prNumber ? ` · PR #${a.prNumber}` : ''}`;
   return null;
 }
@@ -69,12 +70,12 @@ export function AgentCard() {
           <span className="ac-name">{agent.name}</span>
           <span className="ac-title">{agentLabel(agent, settings, clis)}</span>
         </span>
-        <span className="ac-time">{busy && agent.startedAt ? `⏱ ${elapsed(now - agent.startedAt)}` : STATUS[agent.status]}</span>
+        <span className="ac-time">{busy && agent.startedAt ? `⏱ ${elapsed(now - agent.startedAt)}` : tr(STATUS[agent.status])}</span>
       </div>
       {on && <div className="ac-on">{clipText(redact(on), 64)}</div>}
       {act && (
         <div className="ac-now">
-          {ACTIVITY_ICONS[act.kind]} {ACTIVITY_LABELS[act.kind]}
+          {ACTIVITY_ICONS[act.kind]} {tr(`ui.activity.${act.kind}`)}
           {act.detail && <span className="ac-detail"> · {act.detail}</span>}
         </div>
       )}
@@ -86,8 +87,8 @@ export function AgentCard() {
         </ul>
       )}
       <div className="ac-foot">
-        this task so far: {agent.turns} turn{agent.turns === 1 ? '' : 's'} · ${agent.costUsd.toFixed(2)}
-        {round ? ` · QA round ${round}` : ''}
+        {tr('ui.card.soFar', { count: agent.turns })} · ${agent.costUsd.toFixed(2)}
+        {round ? ` · ${tr('ui.card.qaRound', { n: round })}` : ''}
       </div>
     </div>
   );

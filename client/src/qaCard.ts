@@ -2,6 +2,7 @@
 // Only needs-human is red: failed and fixing go back to the developer by themselves, so they are amber. A needs-human
 // PR the CEO is triaging first is amber too, until the CEO hands it to the manager.
 
+import { t } from '../../shared/i18n';
 import type { PullInfo, QaView } from '../../shared/types';
 
 export { needsManager } from '../../shared/ops';
@@ -24,27 +25,27 @@ export function qaCardNote(
         note: rec.mergeNote
           ? `QA ✓ · ${rec.mergeNote}`
           : pr.mergeable === 'CONFLICTING'
-            ? 'QA ✓ · conflicts'
+            ? t('ui.qa.conflicts')
             : pr.checks === 'failing'
-              ? 'QA ✓ · CI failing'
+              ? t('ui.qa.ciFailing')
               : autoMerge && pr.checks === 'pending'
-                ? 'QA ✓ · waiting for checks'
-                : '✅ QA passed',
+                ? t('ui.qa.waitingChecks')
+                : t('ui.qa.passed'),
         tone: pr.mergeable === 'CONFLICTING' || pr.checks === 'failing' ? 'warn' : 'good',
       };
     case 'needs-human':
-      if (rec.ceoLooking) return { note: '🧭 CEO is looking', tone: 'warn' };
-      return { note: `⚠️ needs you${rec.mergeNote ? ` · ${rec.mergeNote}` : ''}`, tone: 'bad' };
+      if (rec.ceoLooking) return { note: t('ui.qa.ceoLooking'), tone: 'warn' };
+      return { note: `${t('ui.qa.needsYou')}${rec.mergeNote ? ` · ${rec.mergeNote}` : ''}`, tone: 'bad' };
     case 'failed':
-      return { note: '🔧 back to the developer', tone: 'warn' };
+      return { note: t('ui.qa.backToDev'), tone: 'warn' };
     case 'fixing':
-      return { note: `🔧 fixing · round ${rec.round}`, tone: 'warn' };
+      return { note: t('ui.qa.fixingRound', { round: rec.round }), tone: 'warn' };
     case 'testing':
-      return { note: `🔍 testing · round ${rec.round}` };
+      return { note: t('ui.qa.testingRound', { round: rec.round }) };
     case 'queued':
-      return { note: `waiting for QA${rec.round > 1 ? ` · round ${rec.round}` : ''}` };
+      return { note: `${t('ui.qa.waitingQa')}${rec.round > 1 ? ` · ${t('ui.qa.round', { round: rec.round })}` : ''}` };
     default:
-      return { note: pr.isDraft ? 'draft' : 'not tested yet', tone: 'warn' };
+      return { note: pr.isDraft ? t('ui.qa.draft') : t('ui.qa.notTested'), tone: 'warn' };
   }
 }
 
@@ -61,10 +62,10 @@ export function elapsedLabel(ms: number): string {
  * QA record's updatedAt: nothing changes it while a test runs); without a usable one no time is shown.
  */
 export function testingLabel(tester: string | undefined, round: number, since: number | null | undefined, now: number): { who: string; meta: string[] } {
-  const who = tester ? `🔍 ${tester} · testing` : '🔍 testing';
+  const who = tester ? t('ui.qa.testerTesting', { name: tester }) : t('ui.qa.testing');
   const time = since != null && Number.isFinite(since) && since > 0 && since <= now + 60_000 ? elapsedLabel(now - since) : null;
   const r = round >= 1 ? round : null;
-  if (r && time) return { who, meta: [`round ${r} · ${time}`, `R${r} · ${time}`, time] };
-  if (r) return { who, meta: [`round ${r}`, `R${r}`] };
+  if (r && time) return { who, meta: [`${t('ui.qa.round', { round: r })} · ${time}`, `R${r} · ${time}`, time] };
+  if (r) return { who, meta: [t('ui.qa.round', { round: r }), `R${r}`] };
   return { who, meta: time ? [time] : [] };
 }

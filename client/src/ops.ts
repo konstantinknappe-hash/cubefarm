@@ -2,6 +2,7 @@
 // chip and the manager's console, and which alarms are new (they sound). Pure, so it's tested without a browser.
 
 import type { OpsAlarm, OpsNumbers, OpsView, UsageView } from '../../shared/types';
+import { t } from '../../shared/i18n';
 import { clock } from '../../shared/usage';
 
 export const EMPTY_NUMBERS: OpsNumbers = {
@@ -52,8 +53,8 @@ export const fmtUsd = (n: number) => (n >= 100 ? `$${Math.round(n)}` : `$${n.toF
 export function usageChip(u: UsageView, pacingSessions: number, now: number): string | null {
   if (u.state === 'normal' || u.until === null) return null;
   const until = clock(u.until, now);
-  if (u.state === 'paused') return `⏸ Paused until ${until}: at Claude's usage limit, nothing new starts`;
-  return `🐢 Paced until ${until}: new issues start when fewer than ${pacingSessions} session${pacingSessions === 1 ? '' : 's'} run`;
+  if (u.state === 'paused') return t('ui.ops.pausedChip', { until });
+  return t('ui.ops.pacedChip', { until, count: pacingSessions });
 }
 
 /** The usage meter's headline and details: the state, and the last warning's limit, fill and reset time. */
@@ -63,7 +64,7 @@ export function usageMeter(u: UsageView, now: number): { state: string; tone: 'g
   return {
     state: u.state === 'paused' ? 'Paused' : u.state === 'pacing' ? 'Pacing' : 'Normal',
     tone: u.state === 'paused' ? 'bad' : u.state === 'pacing' ? 'warn' : 'good',
-    limit: w ? `${w.limit ?? "Claude's usage"}${w.pct === null ? '' : ` · ${w.pct}%`}` : 'No usage warnings',
+    limit: w ? `${w.limit ?? t('ui.ops.claudeUsage')}${w.pct === null ? '' : ` · ${w.pct}%`}` : t('ui.ops.noWarnings'),
     pct: w?.pct ?? null,
     resets: resetsAt ? clock(resetsAt, now) : null,
   };
@@ -74,5 +75,5 @@ export const newAlarms = (prev: OpsAlarm[], next: OpsAlarm[]) => next.filter((a)
 
 /** One floor's numbers, compact, for its wall sign: "🚀 3 today · ⏱ 1h 42m lead · ✅ CI 92% · 💵 ~$4.20". */
 export function signLine(n: OpsNumbers): string {
-  return `🚀 ${n.mergedToday} today · ⏱ ${fmtDuration(n.leadMs)} lead · ✅ CI ${fmtPct(n.ciPass)} · 💵 ~${fmtUsd(n.costToday)}`;
+  return t('ui.ops.signLine', { merged: n.mergedToday, lead: fmtDuration(n.leadMs), ci: fmtPct(n.ciPass), cost: fmtUsd(n.costToday) });
 }

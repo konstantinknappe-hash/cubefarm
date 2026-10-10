@@ -4,6 +4,7 @@ import { useKeyName } from '../ui/controls';
 import { roundRect, SANS } from './draw';
 import { useCanvasTexture, useInteractable } from './interact';
 import { HALF_D } from './layout';
+import { t } from '../i18n';
 import { Box } from './Toon';
 
 // The lobby's time-lapse screen, on the south wall between the basketball hoop and the elevator: E opens the
@@ -32,20 +33,20 @@ function drawScreen(ctx: CanvasRenderingContext2D, replaying: boolean, use: stri
   ctx.textBaseline = 'middle';
   ctx.fillStyle = '#ffd6a5';
   ctx.font = `700 64px ${SANS}`;
-  ctx.fillText('📼 Time-lapse', 40, 102);
+  ctx.fillText(t('world.timelapse.title'), 40, 102);
   ctx.fillStyle = '#ffffff';
   ctx.font = `600 34px ${SANS}`;
-  ctx.fillText('What happened while', 40, 180);
-  ctx.fillText('you were away?', 40, 222);
+  ctx.fillText(t('world.timelapse.line1'), 40, 180);
+  ctx.fillText(t('world.timelapse.line2'), 40, 222);
   ctx.fillStyle = replaying ? '#ff8fa3' : '#7CFFB2';
   ctx.font = `700 32px ${SANS}`;
-  ctx.fillText(replaying ? '▶ REPLAY · Esc for live' : `Press ${use} to replay the day`, 40, 306);
+  ctx.fillText(replaying ? t('world.timelapse.replaying') : t('world.timelapse.press', { key: use }), 40, 306);
 }
 
 export function TimeLapseScreen() {
   const replaying = useStore((s) => s.replaying);
   const use = useKeyName('interact');
-  const ref = useInteractable<THREE.Group>({ id: 'timelapse', label: 'Time-lapse: replay the office’s day', action: { kind: 'manager', tab: 'timelapse' } }, 4);
+  const ref = useInteractable<THREE.Group>({ id: 'timelapse', label: t('world.timelapse.label'), action: { kind: 'manager', tab: 'timelapse' } }, 4);
   const tex = useCanvasTexture(PX[0], PX[1], (ctx) => drawScreen(ctx, replaying, use), [replaying, use]);
   return (
     <group ref={ref} position={AT} rotation={[0, Math.PI, 0]}>

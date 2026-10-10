@@ -1,3 +1,4 @@
+import { t } from '../../../../shared/i18n';
 import { EMOTES, INTERP_MS, SEND_MS, wrapAngle } from '../../../../shared/presence';
 import type { AgentLook, EmoteId, VisitorHeld, VisitorPose } from '../../../../shared/types';
 
@@ -190,36 +191,36 @@ export function pingNoun(focus: PingFocus | null, nameOf: (agentId: string) => s
   switch (a.kind) {
     case 'kanban':
     case 'card':
-      return 'the whiteboard';
+      return t('world.ping.whiteboard');
     case 'terminal': {
       const name = a.agentId ? nameOf(a.agentId) : undefined;
-      return name ? `${name}'s desk` : 'this desk';
+      return name ? t('world.ping.desk', { name }) : t('world.ping.thisDesk');
     }
     case 'hire':
-      return 'an empty desk';
+      return t('world.ping.emptyDesk');
     case 'app':
-      return 'the app monitor';
+      return t('world.ping.app');
     case 'elevator':
-      return 'the elevator';
+      return t('world.ping.elevator');
     case 'manager':
-      return "the manager's desk";
+      return t('world.ping.manager');
     case 'coffee':
-      return 'the coffee machine';
+      return t('world.ping.coffee');
     case 'jukebox':
-      return 'the jukebox';
+      return t('world.ping.jukebox');
     case 'phone':
-      return focus.id === 'ceo-visit' ? 'the CEO' : focus.id.startsWith('candidate-') ? 'a candidate' : 'this';
+      return focus.id === 'ceo-visit' ? t('world.ping.ceo') : focus.id.startsWith('candidate-') ? t('world.ping.candidate') : t('world.ping.this');
     case 'pickup': {
       const toy = a.toyId ?? '';
-      if (toy.startsWith('blaster')) return 'a blaster';
-      if (toy.includes('mug')) return 'a mug';
-      if (toy === 'basketball') return 'the basketball';
-      return toy.endsWith('ball') ? `the ${toy.replace(/-ball$/, '')} ball` : 'this';
+      if (toy.startsWith('blaster')) return t('world.ping.blaster');
+      if (toy.includes('mug')) return t('world.ping.mug');
+      if (toy === 'basketball') return t('world.ping.basketball');
+      return toy.endsWith('ball') ? t(`world.ping.${toy.replace(/-ball$/, '')}Ball`) : t('world.ping.this');
     }
     case 'poke':
-      return a.toyId === 'gong' ? 'the gong' : a.toyId === 'roomba' ? 'the roomba' : 'this';
+      return a.toyId === 'gong' ? t('world.ping.gong') : a.toyId === 'roomba' ? t('world.ping.roomba') : t('world.ping.this');
     default:
-      return 'this';
+      return t('world.ping.this');
   }
 }
 

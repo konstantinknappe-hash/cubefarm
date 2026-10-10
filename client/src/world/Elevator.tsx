@@ -10,6 +10,7 @@ import { useCanvasTexture, useInteractable } from './interact';
 import { glow, toon } from './materials';
 import { bodies } from './people';
 import { dogNow } from './toys/dogState';
+import { t } from '../i18n';
 import { Box } from './Toon';
 
 const METAL = '#b9c2cf';
@@ -22,8 +23,8 @@ export function Elevator({ floorLabel, accent }: { floorLabel: string; accent: s
   const { doorHalf, cabinHalf, depth, doorHeight } = ELEVATOR;
   const zDoor = HALF_D + 0.15;
 
-  const frameRef = useInteractable<THREE.Group>({ id: 'elevator', label: 'Use the elevator', action: { kind: 'elevator' } }, 3.5);
-  const panelRef = useInteractable<THREE.Group>({ id: 'elevator-panel', label: 'Choose a floor', action: { kind: 'elevator' } }, 2.5);
+  const frameRef = useInteractable<THREE.Group>({ id: 'elevator', label: t('world.elevator.use'), action: { kind: 'elevator' } }, 3.5);
+  const panelRef = useInteractable<THREE.Group>({ id: 'elevator-panel', label: t('world.elevator.choose'), action: { kind: 'elevator' } }, 2.5);
 
   const indicator = useCanvasTexture(512, 128, (ctx) => drawSign(ctx, 512, 128, [{ text: floorLabel, size: 56, color: '#7CFFB2' }], '#15151f'), [floorLabel]);
 

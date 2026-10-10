@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useT } from '../i18n';
 import { useStore } from '../store';
 import { ROOF } from '../world/layout';
 import { Panel } from './Overlays';
@@ -19,15 +20,16 @@ export function ElevatorPanel() {
     return () => window.removeEventListener('keydown', onKey);
   }, [repos, goToFloor]);
 
+  const t = useT();
   const floors = [...repos].sort((a, b) => b.floor - a.floor);
   return (
-    <Panel title="🛗 Elevator">
+    <Panel title={t('ui.elevator.title')}>
       <div className="elevator">
         {/* the roof: always the top stop, however many floors there are */}
         <button className={`floor-btn ${floor === ROOF ? 'floor-btn-here' : ''}`} style={{ ['--accent' as string]: '#7cc6fe' }} onClick={() => goToFloor(ROOF)}>
           <span className="floor-btn-num">R</span>
-          <span className="floor-btn-name">Roof terrace</span>
-          <span className="floor-btn-meta">garden · deck chairs · telescope · barbecue</span>
+          <span className="floor-btn-name">{t('world.roof.terrace')}</span>
+          <span className="floor-btn-meta">{t('ui.elevator.roofMeta')}</span>
         </button>
         {floors.map((r) => {
           const team = Object.values(agents).filter((a) => a.repoId === r.id);
@@ -38,18 +40,18 @@ export function ElevatorPanel() {
               <span className="floor-btn-num">{r.floor}</span>
               <span className="floor-btn-name">{r.fullName}</span>
               <span className="floor-btn-meta">
-                {busy}/{team.length} busy · {r.issues.length} issues · {prs} PR{prs === 1 ? '' : 's'}
+                {t('ui.elevator.meta', { busy, team: team.length, issues: r.issues.length, prs })}
               </span>
             </button>
           );
         })}
         <button className={`floor-btn ${floor === 0 ? 'floor-btn-here' : ''}`} style={{ ['--accent' as string]: '#ff8a5b' }} onClick={() => goToFloor(0)}>
           <span className="floor-btn-num">G</span>
-          <span className="floor-btn-name">Lobby &amp; manager's office</span>
-          <span className="floor-btn-meta">connect repos · hire · file issues</span>
+          <span className="floor-btn-name">{t('world.lobby.ground')}</span>
+          <span className="floor-btn-meta">{t('ui.elevator.lobbyMeta')}</span>
         </button>
-        {repos.length === 0 && <p className="muted">No floors yet. Head to the manager's office to connect a GitHub repo or start a new project.</p>}
-        <p className="muted small">Tip: press a floor number (or G, or R for the roof) while this panel is open.</p>
+        {repos.length === 0 && <p className="muted">{t('ui.elevator.noFloors')}</p>}
+        <p className="muted small">{t('ui.elevator.tip')}</p>
       </div>
     </Panel>
   );

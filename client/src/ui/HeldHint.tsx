@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react';
+import { useT } from '../i18n';
 import { useStore } from '../store';
 import { CHARGE, chargePower } from '../world/toys/hands';
 import { BlasterHud } from './BlasterHud';
-import { decorName } from '../world/decor/actions';
+import { decorInSentence } from '../world/decor/actions';
 import { Key } from './Key';
 import { PongHud } from './PongHud';
 
@@ -31,6 +32,7 @@ function ChargeMeter({ at }: { at: number }) {
 
 /** What you can do with what's in your hands. */
 export function HeldHint() {
+  const t = useT();
   const held = useStore((s) => s.held);
   const chargeAt = useStore((s) => s.chargeAt);
   if (!held) return null;
@@ -38,14 +40,14 @@ export function HeldHint() {
   if (held.kind === 'sausage') {
     return (
       <div className="hud-hint hud-held">
-        🌭 {held.bites} {held.bites === 1 ? 'bite' : 'bites'} left{held.charred ? ' (a bit charred)' : ''} · <Key action="interact" /> eat · <Key action="drop" /> drop
+        🌭 {t('ui.held.bites', { count: held.bites })}{held.charred ? t('ui.held.charred') : ''} · <Key action="interact" /> {t('ui.held.eat')} · <Key action="drop" /> {t('ui.held.drop')}
       </div>
     );
   }
   if (held.kind === 'decor') {
     return (
       <div className="hud-hint hud-held">
-        📦 Carrying the {decorName(held.item).toLowerCase()} · <Key action="interact" /> on a glowing spot places it · <Key action="drop" /> puts it back
+        📦 {t('ui.held.carrying', { name: decorInSentence(held.item) })} · <Key action="interact" /> {t('ui.held.places')} · <Key action="drop" /> {t('ui.held.putsBack')}
       </div>
     );
   }
@@ -53,14 +55,14 @@ export function HeldHint() {
   if (held.kind === 'sticky') {
     return (
       <div className="hud-hint hud-held">
-        📌 {held.pr ? `PR #${held.number}` : `#${held.number}`} · {held.pr ? "take it to a free agent's desk to have them test it" : "take it to a free agent's desk"} and press <Key action="interact" /> · <Key action="drop" /> elsewhere puts it back
+        📌 {held.pr ? `PR #${held.number}` : `#${held.number}`} · {held.pr ? t('ui.held.stickyPr') : t('ui.held.sticky')} <Key action="interact" /> · <Key action="drop" /> {t('ui.held.elsewhere')}
       </div>
     );
   }
   if (held.kind === 'mug') {
     return (
       <div className="hud-hint hud-held">
-        ☕ {held.sips > 0 ? `${held.sips} ${held.sips === 1 ? 'sip' : 'sips'} left` : 'Empty mug'} · <Key action="drop" /> drop
+        ☕ {held.sips > 0 ? t('ui.held.sips', { count: held.sips }) : t('ui.held.emptyMug')} · <Key action="drop" /> {t('ui.held.drop')}
       </div>
     );
   }
@@ -68,7 +70,7 @@ export function HeldHint() {
     <>
       {chargeAt !== null && <ChargeMeter at={chargeAt} />}
       <div className="hud-hint hud-held">
-        <kbd>Click</kbd> / <Key action="throw" /> throw · hold to charge · <Key action="drop" /> drop
+        <kbd>{t('ui.held.click')}</kbd> / <Key action="throw" /> {t('ui.held.throw')} · {t('ui.held.charge')} · <Key action="drop" /> {t('ui.held.drop')}
       </div>
     </>
   );

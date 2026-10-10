@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type Ref } from 'react';
 import { api } from '../api';
 import { qaKey, useStore } from '../store';
 import type { PreviewStatus, PreviewView, PullInfo, QaView, RepoView } from '../../../shared/types';
-import { atPath, channelLabel, channelLed, channelPulls, comparePath, newPathSync, prAsPreview, QA_BADGE, qaShotUrl, relayPath, type Channel, type Side } from './channels';
+import { atPath, channelLabel, channelLed, channelPulls, comparePath, newPathSync, prAsPreview, qaBadge, qaShotUrl, relayPath, type Channel, type Side } from './channels';
 import { Markdown } from './Markdown';
 import { Panel } from './Panel';
 import { tuneChannel, useChannel, useWatch } from './theatre';
@@ -96,7 +96,7 @@ export function PreviewSettings({ repo, saveLabel, onSaved }: { repo: RepoView; 
         <input
           value={command}
           onChange={(e) => setCommand(e.target.value)}
-          placeholder={unconfigured ? 'e.g. python -m http.server {port}' : 'Auto-detected: npm run dev, else npm start, else npm run preview'}
+          placeholder={unconfigured ? t('ui.app.commandExample') : t('ui.app.autoDetected')}
           spellCheck={false}
         />
       </label>
@@ -240,7 +240,7 @@ function PreviewStage({
       <div className={`app-state app-state-left ${compact ? 'app-state-compact' : ''}`}>
         <h3>⚠️ {t('app.didntRun', { label })}</h3>
         <div className="term-error">{preview.error ?? t('app.appStopped')}</div>
-        <pre className="term app-log" aria-label="Last output">
+        <pre className="term app-log" aria-label={t('ui.app.lastOutput')}>
           {preview.logTail.length ? preview.logTail.join('\n') : t('app.noOutput')}
         </pre>
         <div className="row wrap">
@@ -259,7 +259,7 @@ function PreviewStage({
     return (
       <div className="app-state app-state-left">
         <h3>{t('app.unconfigTitle')}</h3>
-        <p className="muted">{preview.error ?? t('app.noPackageJson')} {t('help.locale') === 'de' ? 'Gib einen Befehl an, der die App auf dem Port der Etage bereitstellt.' : "Give it a command that serves the app on the floor's port."}</p>
+        <p className="muted">{preview.error ?? t('app.noPackageJson')} {t('ui.app.giveCommand')}</p>
         <PreviewSettings repo={repo} saveLabel={t('app.saveStart')} onSaved={onStart} />
       </div>
     );
@@ -324,14 +324,14 @@ const CHECK_ICON = { pass: '✅', fail: '❌', skip: '⏭️' } as const;
 function QaPanel({ repo, pull, qa }: { repo: RepoView; pull: PullInfo; qa?: QaView }) {
   const t = useT();
   const CHECKS_LABEL: Record<PullInfo['checks'], string> = {
-    passing: '✅ passing',
-    failing: '❌ failing',
-    pending: '⏳ running',
-    none: 'none',
+    passing: t('ui.app.checksPassing'),
+    failing: t('ui.app.checksFailing'),
+    pending: t('ui.app.checksRunning'),
+    none: t('ui.app.checksNone'),
   };
   const shots = qa?.shots ?? [];
   return (
-    <aside className="qa-side" aria-label={`PR #${pull.number}: checks and QA`}>
+    <aside className="qa-side" aria-label={t('ui.app.qaSide', { n: pull.number })}>
       <h4 className="qa-side-title">
         <a href={pull.url} target="_blank" rel="noreferrer">
           PR #{pull.number} ↗
@@ -365,7 +365,7 @@ function QaPanel({ repo, pull, qa }: { repo: RepoView; pull: PullInfo; qa?: QaVi
       {qa ? (
         <>
           <div className="qa-side-status">
-            <span className={`qa-badge qa-badge-${qa.status}`}>{QA_BADGE[qa.status]}</span>
+            <span className={`qa-badge qa-badge-${qa.status}`}>{qaBadge(qa)}</span>
             <span className="muted small">round {qa.round}</span>
             {qa.commentUrl && (
               <a className="small" href={qa.commentUrl} target="_blank" rel="noreferrer">
@@ -518,7 +518,7 @@ function CompareView({
           <input value={draft} onChange={(e) => setDraft(e.target.value)} spellCheck={false} aria-label={t('app.pathAria')} />
         </label>
         <button className="btn btn-small">{t('app.openOnBoth')}</button>
-        <label className="toggle small" title={t('help.locale') === 'de' ? 'Zeigt beide Seiten über das Büro, damit sie dem Scrollen und den Links der anderen Seite folgen können. Funktioniert für einfache Webseiten, die die Seite selbst scrollen.' : "Shows each side through the office so it can follow the other's scrolling and links. Works for plain web pages that scroll the page itself."}>
+        <label className="toggle small" title={t('ui.app.syncTip')}>
           <input
             type="checkbox"
             checked={sync}
@@ -630,7 +630,7 @@ export function AppViewer({ repoId, pr }: { repoId: string; pr?: number | null }
     >
       <div ref={toolbar}>
         <ChannelBar repo={repo} channel={channel} onPick={(n) => tuneChannel(repo.id, n)} />
-        <div className="app-toolbar" role="toolbar" aria-label="App controls">
+        <div className="app-toolbar" role="toolbar" aria-label={t('ui.app.controls')}>
           {active ? (
             <>
               <button className="btn btn-small" disabled={busy} onClick={() => void (channel == null ? startMain() : startPr(true))} title={channel == null ? t('app.restartTitle', { label }) : t('app.restartTitlePr', { label })}>
@@ -706,17 +706,8 @@ export function AppViewer({ repoId, pr }: { repoId: string; pr?: number | null }
       </div>
       {current.status === 'running' && (
         <p className="muted small app-foot">
-          {t('help.locale') === 'de' ? (
-            <>
-              Leer oder „Verbindung verweigert"? Die App könnte das Einbetten ablehnen: nutze <b>{t('app.openTab')}</b>. Tasten in der App bleiben in der App, <kbd>Esc</kbd> schließt dieses Panel also nur wenn der Fokus außerhalb liegt; <b>✕</b> immer.
-              {prView && ' Eine PR-Vorschau stoppt nach einer Weile ohne Zuschauer und wenn ihr PR gemergt oder geschlossen wird.'}
-            </>
-          ) : (
-            <>
-              Blank, or "refused to connect"? The app may block being framed: use <b>{t('app.openTab')}</b>. Keys typed in the app stay in the app, so <kbd>Esc</kbd> only closes this panel when focus is outside it; <b>✕</b> always does.
-              {prView && ' A PR preview stops after a while with nobody watching it, and when its PR merges or closes.'}
-            </>
-          )}
+          {t('ui.app.footBlank')} <b>{t('app.openTab')}</b>{t('ui.app.footKeys')} <kbd>Esc</kbd> {t('ui.app.footEsc')} <b>✕</b> {t('ui.app.footAlways')}
+          {prView && ` ${t('ui.app.footPr')}`}
         </p>
       )}
     </Panel>

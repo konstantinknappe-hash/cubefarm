@@ -27,7 +27,7 @@ export function ThemeSettings() {
         {t('themes.desc')}{' '}
         {now.id ? (
           <>
-            {t('themes.now')} <b>{`${THEME_INFO[now.id].emoji} ${THEME_INFO[now.id].name}`}</b> ({source}).
+            {t('themes.now')} <b>{`${THEME_INFO[now.id].emoji} ${t(`ui.theme.${now.id}.name`)}`}</b> ({source}).
           </>
         ) : (
           t('themes.noToday')
@@ -54,7 +54,7 @@ export function ThemeSettings() {
             <select value={forced ? themes.mode : 'halloween'} onChange={(e) => save({ mode: e.target.value as ThemeMode })} aria-label={t('themes.themeAria')}>
               {THEME_IDS.map((id) => (
                 <option key={id} value={id}>
-                  {`${THEME_INFO[id].emoji} ${THEME_INFO[id].name}`}
+                  {`${THEME_INFO[id].emoji} ${t(`ui.theme.${id}.name`)}`}
                 </option>
               ))}
             </select>
@@ -66,7 +66,7 @@ export function ThemeSettings() {
         <label key={id} className="toggle block">
           <input type="checkbox" checked={!themes.disabled.includes(id)} onChange={(e) => save({ disabled: e.target.checked ? themes.disabled.filter((x) => x !== id) : [...themes.disabled, id] })} />
           <span>
-            {`${THEME_INFO[id].emoji} ${THEME_INFO[id].name}`} <span className="muted small">({THEME_INFO[id].when})</span>
+            {`${THEME_INFO[id].emoji} ${t(`ui.theme.${id}.name`)}`} <span className="muted small">({t(`ui.theme.${id}.when`)})</span>
           </span>
         </label>
       ))}
@@ -95,7 +95,7 @@ export function ThemeSettings() {
         )}
       </div>
       <p className="muted small">
-        Preview any theme with <code>?theme=christmas</code> in the address bar (or <code>?date=2026-12-24</code> to pretend it's another day).
+        {t('ui.themes.preview1')} <code>?theme=christmas</code> {t('ui.themes.preview2')} <code>?date=2026-12-24</code>{t('ui.themes.preview3')}
       </p>
     </div>
   );

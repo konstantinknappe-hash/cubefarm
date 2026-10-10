@@ -1,6 +1,8 @@
 // Careers (#226): an agent's record as the ledger (server/ledger.ts) keeps it, and what the office reads from it: pass
 // rates, a rank, a "known for" line, the MVP of the week and the things that pile up on their desk. Pure.
 
+import { t } from './i18n/index.ts';
+
 /** One agent's career, kept compactly on their record. */
 export interface CareerView {
   /** When they joined the team (ms). */
@@ -55,24 +57,22 @@ export const mergesThisWeek = (c: CareerView, now: number) => c.week.filter((t) 
 /** A fun rank from their work: merges and QA reviews together. */
 export function rank(c: CareerView): string {
   const n = c.merged + c.reviews;
-  return n >= 40 ? 'Legend' : n >= 15 ? 'Veteran' : n >= 5 ? 'Regular' : 'Rookie';
+  return n >= 40 ? t('ui.career.legend') : n >= 15 ? t('ui.career.veteran') : n >= 5 ? t('ui.career.regular') : t('ui.career.rookie');
 }
-
-const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
 /** Mostly reviews other people's work: more QA reviews than merges, and a few of them. */
 const mostlyReviews = (c: CareerView) => c.reviews > c.merged && c.reviews >= 3;
 
 /** The career card's one-liner: what they're best known for, picked from the stats. */
 export function knownFor(c: CareerView): string {
-  if (mostlyReviews(c)) return `QA reviews: ${c.reviews} and counting`;
-  if (c.best >= 3) return `First-time QA passes: ${c.best} in a row`;
+  if (mostlyReviews(c)) return t('ui.career.reviews', { n: c.reviews });
+  if (c.best >= 3) return t('ui.career.streak', { n: c.best });
   const rate = passRate(c);
-  if (rate === 1 && c.qaPass >= 3) return `Never failed QA: ${plural(c.qaPass, 'round')} passed`;
-  if (c.merged >= 1 && avgFixRounds(c) === 0) return `Clean shipper: ${plural(c.merged, 'PR')} merged without a fix round`;
-  if (c.merged >= 1) return `Shipped ${plural(c.merged, 'PR')} so far`;
-  if (c.opened >= 1) return 'First PR in review, fingers crossed';
-  return 'Fresh on the team: first task coming up';
+  if (rate === 1 && c.qaPass >= 3) return t('ui.career.neverFailed', { count: c.qaPass });
+  if (c.merged >= 1 && avgFixRounds(c) === 0) return t('ui.career.clean', { count: c.merged });
+  if (c.merged >= 1) return t('ui.career.shipped', { count: c.merged });
+  if (c.opened >= 1) return t('ui.career.firstPr');
+  return t('ui.career.fresh');
 }
 
 /** The MVP of the week among `people`: most merges in the last 7 days (ties: most merged overall). Null without any. */

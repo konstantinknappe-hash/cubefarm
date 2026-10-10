@@ -1,5 +1,5 @@
 import { TranslatedLabel } from './TranslatedLabel';
-import { useT } from '../i18n';
+import { t as tr, useT } from '../i18n';
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../api';
 import { floorPrCounts, isBusy, pendingRequests, unreadMessages, useStore, type PhoneTab } from '../store';
@@ -293,8 +293,8 @@ function ReplayButton({ m }: { m: PhoneMessage }) {
       type="button"
       className={`bubble-play ${playing ? 'bubble-play-on' : ''}`}
       disabled={gone && !playing}
-      title={gone ? 'Audio no longer saved' : undefined}
-      aria-label={playing ? 'Stop this message' : 'Play this message'}
+      title={gone ? tr('ui.phone.noAudio') : undefined}
+      aria-label={playing ? tr('ui.phone.stopMsg') : tr('ui.phone.playMsg')}
       onClick={() => void import('./voiceMessages').then((v) => (playing ? v.stopSpeaking() : kind !== 'gone' && v.replayMessage(m, kind)))}
     >
       {playing ? '⏹' : '▶'}
@@ -399,7 +399,7 @@ export function Chat({ autoFocus = true }: { autoFocus?: boolean }) {
         </div>
         <HandsFreeToggle ceoName={ceo.name} />
       </div>
-      <div className="chat-log" ref={scroller} aria-label={`Messages with ${ceo.name}`} tabIndex={0}>
+      <div className="chat-log" ref={scroller} aria-label={tr('ui.phone.messagesWith', { name: ceo.name })} tabIndex={0}>
         {messages.length === 0 && (
           <p className="muted small phone-empty">
             {t('phone.sayHi').replace('{name}', ceo.name).replace('{name}', ceo.name)}
@@ -527,7 +527,7 @@ function Shortcuts() {
   const openOverlay = useStore((s) => s.openOverlay);
   const repoId = useStore((s) => s.repos.find((r) => r.floor === s.floor)?.id);
   return (
-    <nav className="phone-links" aria-label="Open a panel">
+    <nav className="phone-links" aria-label={tr('ui.phone.openPanel')}>
       <button className="btn btn-small" onClick={() => openOverlay({ kind: 'manager' })}>
         {t('phone.console')}
       </button>
@@ -694,7 +694,7 @@ export function Phone({ tab: initialTab, requestId }: { tab?: PhoneTab; requestI
           {tab === 'company' && <Company />}
           {tab === 'games' && <Games game={game} onGame={setGame} />}
         </div>
-        <nav className="phone-tabs" role="tablist" aria-label="Phone">
+        <nav className="phone-tabs" role="tablist" aria-label={tr('uiExtra.phone')}>
           {tabs.map(([k, icon, label, badge]) => (
             // Tapping Games again while in a game goes back to the list.
             <button
