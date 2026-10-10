@@ -438,7 +438,7 @@ export const ui = {
   'ui.action.left': 'Step left',
   'ui.action.right': 'Step right',
   'ui.action.run': 'Run (hold)',
-  'ui.action.jump': 'Jump (tap again on landing to bunny hop; strafe with A/D and the mouse in the air)',
+  'ui.action.jump': 'Jump (hold to bunny hop; in the air let go of W and strafe with A/D while turning the mouse the same way to gain speed)',
   'ui.action.interact': 'Use, pick up, sip',
   'ui.action.throw': 'Throw or fire (hold to charge)',
   'ui.action.drop': 'Drop',

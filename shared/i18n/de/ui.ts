@@ -439,7 +439,7 @@ export const ui = {
   'ui.action.left': 'Nach links',
   'ui.action.right': 'Nach rechts',
   'ui.action.run': 'Rennen (halten)',
-  'ui.action.jump': 'Springen (beim Landen erneut drücken für Bunnyhops; in der Luft mit A/D und Maus strafen)',
+  'ui.action.jump': 'Springen (gedrückt halten für Auto-Bunnyhop; in der Luft W loslassen und mit A/D plus Maus in dieselbe Richtung strafen, um schneller zu werden)',
   'ui.action.interact': 'Benutzen, aufheben, trinken',
   'ui.action.throw': 'Werfen oder schießen (halten zum Aufladen)',
   'ui.action.drop': 'Ablegen',

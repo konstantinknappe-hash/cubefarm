@@ -226,14 +226,15 @@ const pressKey = (key: 'Escape' | 'Enter') => window.dispatchEvent(new KeyboardE
 
 /** Right stick at full tilt turns this many radians a second (times the pad sensitivity). */
 const PAD_TURN = 2.6;
-// Jumping and bunny hopping, roughly CS-style: Quake air control (strafe with A/D while turning the mouse to gain a
-// little speed), a hop pressed right on landing keeps the speed, capped at MAX_HOP. No double jumps, no hold-to-hop.
+// Jumping and bunny hopping, a bit more arcade than CS: Quake/Source air acceleration (only the speed still missing
+// along the wished direction is added, so strafing with A/D while turning the mouse the same way builds speed), and
+// holding Space hops again on landing with no ground friction. No bonus for the hop itself; capped at MAX_HOP.
 const JUMP_SPEED = 4.6;
 const GRAVITY = 13;
-const AIR_CAP = 0.9;
-const AIR_ACCEL = 12;
-const MAX_HOP = 9;
-const HOP_BONUS = 1.04;
+const AIR_CAP = 1;
+const AIR_ACCEL = 15;
+const AIR_STEP = 1 / 120;
+const MAX_HOP = 13;
 const JUMP_BUFFER_MS = 120;
 const HOP_WINDOW_MS = 120;
 const LAND_SLIDE_MS = 250;
@@ -356,7 +357,7 @@ export function Player({ colliders, floor }: { colliders: Rect[]; floor: number 
         // − and + turn the jukebox down and up while you look at it.
         if (action === 'volumeDown' && s.focus?.action.kind === 'jukebox') jukeboxAction('vol-');
         if (action === 'volumeUp' && s.focus?.action.kind === 'jukebox') jukeboxAction('vol+');
-        if (action === 'jump' && !e.repeat) jump.current.press = performance.now(); // a held key never hops again
+        if (action === 'jump' && !e.repeat) jump.current.press = performance.now(); // holding it hops on (see useFrame)
         if (action === 'throw' && !e.repeat && !s.travel) startCharge();
         // G puts a sticky down where you aim (or back on the board), peels the one you aim at off, or drops what you hold
         if (action === 'drop' && !e.repeat && !placeSticky(s.focus, true) && !peelAimed(s.focus)) dropHeld();
@@ -555,13 +556,9 @@ export function Player({ colliders, floor }: { colliders: Rect[]; floor: number 
     const cos = Math.cos(yaw);
     const wx = tilt > 0 ? (-sin * fwd + cos * strafe) / len : 0;
     const wz = tilt > 0 ? (-cos * fwd - sin * strafe) / len : 0;
-    if (free && j.y <= 0 && tNow - j.press < JUMP_BUFFER_MS) {
-      const v = Math.hypot(j.vx, j.vz);
-      if (tNow - j.landed < HOP_WINDOW_MS && v > 0) {
-        const k = Math.min(MAX_HOP, Math.max(v * HOP_BONUS, speed * tilt)) / v; // a timed hop keeps its speed, and a bit more
-        j.vx *= k;
-        j.vz *= k;
-      } else {
+    if (free && j.y <= 0 && (anyHeld(b, 'jump', k) || tNow - j.press < JUMP_BUFFER_MS)) {
+      // a hop right off a landing keeps the speed it came down with (no friction); from standing it takes the walk's
+      if (tNow - j.landed >= HOP_WINDOW_MS) {
         j.vx = wx * speed * tilt;
         j.vz = wz * speed * tilt;
       }
@@ -570,10 +567,12 @@ export function Player({ colliders, floor }: { colliders: Rect[]; floor: number 
     }
     const airborne = free && (j.y > 0 || j.vy > 0);
     if (airborne) {
-      // air control: accelerate only up to AIR_CAP along the wished direction, so turning while strafing gains speed
-      const add = AIR_CAP - (j.vx * wx + j.vz * wz);
-      if (tilt > 0 && add > 0) {
-        const a = Math.min(add, AIR_ACCEL * speed * tilt * dt);
+      // air acceleration in fixed steps (the same gain at any frame rate): only up to AIR_CAP along the wished
+      // direction, measured by the speed already going that way, so turning while strafing gains speed
+      for (let left = tilt > 0 ? dt : 0; left > 1e-6; left -= AIR_STEP) {
+        const add = AIR_CAP - (j.vx * wx + j.vz * wz);
+        if (add <= 0) break;
+        const a = Math.min(add, AIR_ACCEL * speed * tilt * Math.min(AIR_STEP, left));
         j.vx += wx * a;
         j.vz += wz * a;
       }
