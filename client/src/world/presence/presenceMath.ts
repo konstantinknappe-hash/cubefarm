@@ -200,6 +200,8 @@ export function pingNoun(focus: PingFocus | null, nameOf: (agentId: string) => s
       return t('world.ping.emptyDesk');
     case 'app':
       return t('world.ping.app');
+    case 'trading':
+      return t('trading.ping');
     case 'elevator':
       return t('world.ping.elevator');
     case 'manager':
