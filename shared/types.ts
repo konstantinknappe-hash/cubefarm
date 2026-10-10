@@ -185,6 +185,33 @@ export interface CliView {
   version: string | null;
   /** Hooks report every tool call and enforce the guard rails; the others report only when a turn ends. */
   integrated: boolean;
+  /** The models this CLI offers here (shared/models.ts); null until the office has asked it. */
+  catalog?: ModelCatalog | null;
+  /** Models its provider refused in a session (rejectionKey → what it said); they don't start until picked again. */
+  rejected?: Record<string, string>;
+}
+
+/** One model a coding agent can run, as the CLI or SDK itself lists it. */
+export interface ModelOption {
+  id: string; // what goes to the CLI (`--model`)
+  label: string;
+  description: string;
+  /** Reasoning efforts the model takes; empty: it has no effort setting. */
+  efforts: EffortLevel[];
+  defaultEffort: EffortLevel | null;
+  /** The full model id an alias stands for (Claude Code: 'opus' → 'claude-opus-5-5'). */
+  resolved?: string;
+  /** Usable, but the CLI leaves it out of its own picker. */
+  hidden?: boolean;
+}
+
+/** A coding agent's models. source: asked the CLI/SDK ('cli'), the CLI's offline list ('bundled'), or the office's own list ('list'). */
+export interface ModelCatalog {
+  source: 'cli' | 'bundled' | 'list';
+  models: ModelOption[];
+  /** Why asking the CLI failed (the catalog is then a fallback, or empty). */
+  error: string | null;
+  fetchedAt: number;
 }
 
 /** Messages on an agent's terminal socket (/ws/term?agent=<id>), server to browser. */

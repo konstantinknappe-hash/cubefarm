@@ -5003,3 +5003,23 @@ html[data-high-contrast] :is(button, a, input, select, textarea, summary, [tabin
   outline-offset: 2px;
   box-shadow: 0 0 0 6px #ffe066;
 }
+
+/* Model pickers (ModelPicker.tsx): a model that can't run gets a ⚠ and, in setups, why. */
+.model-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.model-warn {
+  color: var(--bad);
+  font-weight: 700;
+  cursor: help;
+}
+.model-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 8px;
+  color: var(--bad);
+}

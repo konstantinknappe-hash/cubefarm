@@ -3,7 +3,8 @@ import { api } from '../api';
 import { isBusy, useStore, type Agent } from '../store';
 import type { AgentCli, AgentPromptView, CliView, EffortLevel } from '../../../shared/types';
 import { ACCENT_COLORS, BUILDS, FACIAL_HAIR, GLASSES, HAIR_COLORS, HAIR_STYLES, HEADWEAR, OUTFITS, SKIN_TONES, type AgentStyle, type HairStyle, type Outfit } from '../../../shared/looks';
-import { CLAUDE_MODELS, effectiveModel, modelSuggestions } from '../../../shared/models';
+import { CLAUDE_MODELS, effectiveModel, effortsFor, fitEffort } from '../../../shared/models';
+import { EffortOptions, ModelNotice, ModelOptions, useModelProblem, useModels } from './ModelPicker';
 import { TALL_HAIR, appearanceFor, randomStyle } from '../world/appearance';
 import { LookPreview } from '../world/LookPreview';
 import { workerCli } from './floorRows';
@@ -11,8 +12,6 @@ import { useT } from '../i18n';
 
 // One agent's setup (name, look, coding agent, model, effort), edited in place: the Team tab's row cells and the
 // ⚙️ Setup section of their panel share these. Every change is a PATCH; the `agent` event updates all views.
-
-export const EFFORTS: EffortLevel[] = ['low', 'medium', 'high', 'xhigh', 'max'];
 
 export const cliName = (clis: CliView[], id: AgentCli) => clis.find((c) => c.id === id)?.label ?? id;
 
@@ -76,47 +75,72 @@ export function CliSelect({ agent, id, style }: FieldProps) {
   );
 }
 
-export function ModelInput({ agent, id, className = 'inline', style }: FieldProps) {
+/** The model they run: the CEO's own, else a worker's own or their coding agent's default. */
+function modelOf(agent: Agent, cli: AgentCli, settings: Parameters<typeof effectiveModel>[2]) {
+  return agent.role === 'ceo' ? agent.model.trim() || CLAUDE_MODELS[0] : effectiveModel(agent.model, cli, settings, CLAUDE_MODELS[0]);
+}
+
+/** Their model, picked from what their coding agent lists ('' = the default), with a ⚠ when it can't run. */
+export function ModelInput({ agent, id, style }: FieldProps) {
   const t = useT();
   const settings = useStore((s) => s.settings);
-  const listId = useId();
+  const clis = useStore((s) => s.clis);
   const cli = workerCli(agent, settings);
+  const fallback = agent.role === 'ceo' ? CLAUDE_MODELS[0] : effectiveModel('', cli, settings, CLAUDE_MODELS[0]);
+  const { problem, text } = useModelProblem(cli, modelOf(agent, cli, settings));
   return (
-    <>
-      <input
+    <span className="model-pick">
+      <select
         id={id}
-        key={`m-${agent.model}-${cli}`}
-        className={className}
+        value={agent.model}
         style={style}
-        list={listId}
-        defaultValue={agent.model}
-        placeholder={(agent.role === 'ceo' ? CLAUDE_MODELS[0] : effectiveModel('', cli, settings, CLAUDE_MODELS[0])) || t('agent.modelDefault')}
-        title={agent.role === 'ceo' ? t('agent.modelTitleCeo') : t('agent.modelTitle')}
+        title={text || (agent.role === 'ceo' ? t('agent.modelTitleCeo') : t('agent.modelTitle'))}
         aria-label={id ? undefined : t('uiExtra.model')}
-        onBlur={(e) => e.target.value !== agent.model && void save(agent.id, { model: e.target.value })}
-      />
-      <datalist id={listId}>
-        {modelSuggestions(cli).map((m) => (
-          <option key={m} value={m} />
-        ))}
-      </datalist>
-    </>
+        aria-invalid={problem ? true : undefined}
+        onChange={(e) => void save(agent.id, { model: e.target.value })}
+      >
+        <option value="">{t('models.defaultOption', { model: fallback || t('models.cliDefault', { cli: cliName(clis, cli) }) })}</option>
+        <ModelOptions cli={cli} current={agent.model} />
+      </select>
+      {problem && (
+        <span className="model-warn" title={text} aria-hidden>
+          ⚠
+        </span>
+      )}
+    </span>
   );
 }
 
+/** Their reasoning effort: only what their model takes ('' = the default, as their model will run it). */
 export function EffortSelect({ agent, id, style }: FieldProps) {
   const t = useT();
-  const defaultEffort = useStore((s) => s.settings.defaultEffort);
+  const settings = useStore((s) => s.settings);
+  const cli = workerCli(agent, settings);
+  const model = modelOf(agent, cli, settings);
+  const { catalog } = useModels(cli);
+  const supported = effortsFor(cli, model, catalog);
+  const fitted = fitEffort(settings.defaultEffort, supported);
   return (
-    <select id={id} value={agent.effort} title={agent.role === 'ceo' ? t('agent.effortTitleCeo') : t('agent.effortTitle')} aria-label={id ? undefined : t('uiExtra.effort')} style={style} onChange={(e) => void save(agent.id, { effort: e.target.value as EffortLevel | '' })}>
-      {(agent.role !== 'ceo' || !agent.effort) && <option value="">{t('agent.defaultEffort').replace('{effort}', defaultEffort)}</option>}
-      {EFFORTS.map((x) => (
-        <option key={x} value={x}>
-          {x}
-        </option>
-      ))}
+    <select
+      id={id}
+      value={agent.effort}
+      title={supported.length ? (agent.role === 'ceo' ? t('agent.effortTitleCeo') : t('agent.effortTitle')) : t('models.noEffort')}
+      aria-label={id ? undefined : t('uiExtra.effort')}
+      style={style}
+      disabled={!supported.length && !agent.effort}
+      onChange={(e) => void save(agent.id, { effort: e.target.value as EffortLevel | '' })}
+    >
+      {(agent.role !== 'ceo' || !agent.effort) && <option value="">{t('agent.defaultEffort').replace('{effort}', fitted || t('models.noEffort'))}</option>}
+      <EffortOptions cli={cli} model={model} current={agent.effort} />
     </select>
   );
+}
+
+/** Their model can't run: why, below their setup. */
+export function AgentModelNotice({ agent }: { agent: Agent }) {
+  const settings = useStore((s) => s.settings);
+  const cli = workerCli(agent, settings);
+  return <ModelNotice cli={cli} model={modelOf(agent, cli, settings)} />;
 }
 
 export function LookSelect({ agent, id }: FieldProps) {
@@ -318,13 +342,14 @@ export function AgentSetup({ agent }: { agent: Agent }) {
         )}
         <label className="field" htmlFor={`${id}-model`}>
           <span>{t('uiExtra.model')}</span>
-          <ModelInput agent={agent} id={`${id}-model`} className="" />
+          <ModelInput agent={agent} id={`${id}-model`} />
         </label>
         <label className="field" htmlFor={`${id}-effort`}>
           <span>{t('uiExtra.effort')}</span>
           <EffortSelect agent={agent} id={`${id}-effort`} />
         </label>
       </div>
+      <AgentModelNotice agent={agent} />
       <LookEditor agent={agent} />
       <PromptPreview agent={agent} />
       <p className="muted small">{t('agent.saveTip')}</p>

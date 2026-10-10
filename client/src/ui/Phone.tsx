@@ -15,7 +15,8 @@ import { Key } from './Key';
 import { Games, type GameId } from './games/Games';
 import { HolidayStrip } from './HolidayStrip';
 import { replayKind } from './voiceQueue';
-import { CLAUDE_MODELS, effectiveModel, modelSuggestions } from '../../../shared/models';
+import { CLAUDE_MODELS, effectiveModel, effortsFor, fitEffort } from '../../../shared/models';
+import { EffortOptions, ModelNotice, ModelOptions, useModels } from './ModelPicker';
 
 // The manager's phone: text the CEO, decide on team changes, see the whole company at a glance
 // without walking anywhere, and play a game while the team works. Press P anywhere in the office.
@@ -39,9 +40,6 @@ function Avatar({ name, color, size = 34 }: { name: string; color: string; size?
 }
 
 // ---------- team changes ----------
-
-/** Every reasoning effort, lowest first ('' = the office default). */
-const EFFORTS: EffortLevel[] = ['low', 'medium', 'high', 'xhigh', 'max'];
 
 /** A coding agent's name, as the office lists it. */
 export const cliLabel = (clis: CliView[], id: AgentCli) => clis.find((c) => c.id === id)?.label ?? id;
@@ -77,7 +75,11 @@ export function HireSetupFields({ value, onChange, disabled }: { value: HireSetu
   const id = useId();
   const sdk = settings.runtime !== 'terminal';
   const cli = hireCli(value.cli, settings);
-  const set = (patch: Partial<HireSetup>) => onChange({ ...value, ...patch });
+  const model = effectiveModel(value.model, cli, settings, CLAUDE_MODELS[0]);
+  const supported = effortsFor(cli, model, useModels(cli).catalog);
+  const fallback = effectiveModel('', cli, settings, CLAUDE_MODELS[0]);
+  // A model picked for one coding agent means nothing to another: switching agents goes back to the default.
+  const set = (patch: Partial<HireSetup>) => onChange({ ...value, ...(patch.cli !== undefined && patch.cli !== value.cli ? { model: '', effort: '' } : {}), ...patch });
   return (
     <div className="hire-setup">
       <label className="field" htmlFor={`${id}-name`}>
@@ -106,32 +108,19 @@ export function HireSetupFields({ value, onChange, disabled }: { value: HireSetu
       </label>
       <label className="field" htmlFor={`${id}-model`}>
         <span><TranslatedLabel id="model" /></span>
-        <input
-          id={`${id}-model`}
-          list={`${id}-models`}
-          value={value.model}
-          disabled={disabled}
-          placeholder={effectiveModel('', cli, settings, CLAUDE_MODELS[0]) || t('resume.agentDefault')}
-          title={t('resume.emptyDefault')}
-          onChange={(e) => set({ model: e.target.value })}
-        />
-        <datalist id={`${id}-models`}>
-          {modelSuggestions(cli).map((m) => (
-            <option key={m} value={m} />
-          ))}
-        </datalist>
+        <select id={`${id}-model`} value={value.model} disabled={disabled} title={t('resume.emptyDefault')} onChange={(e) => set({ model: e.target.value })}>
+          <option value="">{t('models.defaultOption', { model: fallback || t('resume.agentDefault') })}</option>
+          <ModelOptions cli={cli} current={value.model} />
+        </select>
       </label>
       <label className="field" htmlFor={`${id}-effort`}>
         <span><TranslatedLabel id="effort" /></span>
-        <select id={`${id}-effort`} value={value.effort} disabled={disabled} onChange={(e) => set({ effort: e.target.value as EffortLevel | '' })}>
-          <option value="">{t('resume.defaultEffort').replace('{effort}', settings.defaultEffort)}</option>
-          {EFFORTS.map((x) => (
-            <option key={x} value={x}>
-              {x}
-            </option>
-          ))}
+        <select id={`${id}-effort`} value={value.effort} disabled={disabled || (!supported.length && !value.effort)} onChange={(e) => set({ effort: e.target.value as EffortLevel | '' })}>
+          <option value="">{t('resume.defaultEffort').replace('{effort}', fitEffort(settings.defaultEffort, supported) || t('models.noEffort'))}</option>
+          <EffortOptions cli={cli} model={model} current={value.effort} />
         </select>
       </label>
+      <ModelNotice cli={cli} model={model} />
     </div>
   );
 }

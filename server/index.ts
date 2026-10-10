@@ -186,6 +186,9 @@ app.get('/api/agents/:id/screen', (req, res) => {
 });
 
 app.patch('/api/settings', route((req) => swarm.updateSettings(req.body ?? {})));
+// The coding agents' model lists, asked again; a model their provider refused, tried again as it is.
+app.post('/api/models/refresh', route(() => swarm.refreshModels()));
+app.post('/api/models/retry', route((req) => swarm.retryModel(String(req.body?.cli ?? ''), String(req.body?.model ?? ''))));
 
 // Phone messages read aloud (docs/voice.md). The key goes in and never comes back out.
 const parse = <T>(schema: z.ZodType<T>, value: unknown): T => {

@@ -6,8 +6,9 @@ import { api } from '../api';
 import { PreviewPill, PreviewSettings } from './AppViewer';
 import { agentsOnRepo, pendingRequests, useStore, type ManagerTab } from '../store';
 import { CEO_ID, DEFAULT_MAX_AGENTS, FLOOR_SEATS, type AgentCli, type EffortLevel, type OfficeUpdateView, type RepoView } from '../../../shared/types';
-import { CLAUDE_MODELS, modelSuggestions } from '../../../shared/models';
-import { CliOptions, CliSelect, cliName, EFFORTS, EffortSelect, LookEditor, LookSelect, ModelInput, NameInput, PromptPreview } from './AgentSettings';
+import { CLAUDE_MODELS, effectiveModel, effortsFor, fitEffort } from '../../../shared/models';
+import { CatalogNote, EffortOptions, ModelNotice, ModelOptions, useModels } from './ModelPicker';
+import { CliOptions, CliSelect, cliName, EffortSelect, LookEditor, LookSelect, ModelInput, NameInput, PromptPreview } from './AgentSettings';
 import { canPostpone, canUpdateNow, drainDeadline, officeUpdateText } from '../officeUpdate';
 import { confirmDialog } from './Confirm';
 import { IssueForm } from './KanbanView';
@@ -393,7 +394,11 @@ function AddAgent({ repo, size }: { repo: RepoView; size: number }) {
   const terminal = settings.runtime === 'terminal';
   const cli = terminal ? draft.cli || settings.defaultCli : 'claude';
   const full = size >= settings.maxAgents;
-  const edit = (p: Partial<NewAgent>) => setDraft({ ...draft, ...p });
+  const model = effectiveModel(draft.model, cli, settings, CLAUDE_MODELS[0]);
+  const supported = effortsFor(cli, model, useModels(cli).catalog);
+  const fallback = effectiveModel('', cli, settings, CLAUDE_MODELS[0]);
+  // A model picked for one coding agent means nothing to another: switching agents goes back to the default.
+  const edit = (p: Partial<NewAgent>) => setDraft({ ...draft, ...(p.cli !== undefined && p.cli !== draft.cli ? { model: '', effort: '' } : {}), ...p });
   const add = () => {
     setBusy(true);
     const { name, ...setup } = draft;
@@ -410,19 +415,13 @@ function AddAgent({ repo, size }: { repo: RepoView; size: number }) {
           <CliOptions clis={clis} />
         </select>
       )}
-      <input value={draft.model} onChange={(e) => edit({ model: e.target.value })} list={`new-agent-models-${repo.floor}`} placeholder={t("team.defaultModel")} aria-label={t("team.newModel")} style={{ maxWidth: 150 }} />
-      <datalist id={`new-agent-models-${repo.floor}`}>
-        {modelSuggestions(cli).map((m) => (
-          <option key={m} value={m} />
-        ))}
-      </datalist>
-      <select value={draft.effort} onChange={(e) => edit({ effort: e.target.value as EffortLevel | '' })} aria-label={t("team.newEffort")} style={{ width: 'auto' }}>
-        <option value="">{t("team.defaultEffort")} ({settings.defaultEffort})</option>
-        {EFFORTS.map((x) => (
-          <option key={x} value={x}>
-            {x}
-          </option>
-        ))}
+      <select value={draft.model} onChange={(e) => edit({ model: e.target.value })} aria-label={t("team.newModel")} style={{ maxWidth: 190 }}>
+        <option value="">{t("team.defaultModel")} ({fallback || t('models.cliDefault', { cli: cliName(clis, cli) })})</option>
+        <ModelOptions cli={cli} current={draft.model} />
+      </select>
+      <select value={draft.effort} onChange={(e) => edit({ effort: e.target.value as EffortLevel | '' })} aria-label={t("team.newEffort")} style={{ width: 'auto' }} disabled={!supported.length && !draft.effort}>
+        <option value="">{t("team.defaultEffort")} ({fitEffort(settings.defaultEffort, supported) || t('models.noEffort')})</option>
+        <EffortOptions cli={cli} model={model} current={draft.effort} />
       </select>
       <span title={full ? t("team.floorFull").replace("{floor}", String(repo.floor)).replace("{max}", String(settings.maxAgents)) : undefined}>
         <button className="btn btn-small btn-good" disabled={busy || full} onClick={add}>
@@ -641,27 +640,17 @@ function SettingsTab() {
         )}
         <label className="field">
           <span>{t('settings.defaultModel')}{terminal ? `${t('settings.modelFor')}${cliName(clis, settings.defaultCli)}` : ''}</span>
-          <input
-            key={`${settings.defaultCli}:${settings.defaultModel}`}
-            list={defaultCli === 'claude' ? 'models-s' : undefined}
-            defaultValue={settings.defaultModel}
-            placeholder={t('settings.modelPlaceholder')}
-            onBlur={(e) => e.target.value !== settings.defaultModel && set({ defaultModel: e.target.value })}
-          />
-          <datalist id="models-s">
-            {CLAUDE_MODELS.map((m) => (
-              <option key={m} value={m} />
-            ))}
-          </datalist>
+          <select value={settings.defaultModel} onChange={(e) => set({ defaultModel: e.target.value })}>
+            {defaultCli !== 'claude' && <option value="">{t('settings.modelPlaceholder')}</option>}
+            <ModelOptions cli={defaultCli} current={settings.defaultModel} />
+          </select>
         </label>
+        <ModelNotice cli={defaultCli} model={effectiveModel('', defaultCli, settings, CLAUDE_MODELS[0])} />
+        <CatalogNote cli={defaultCli} />
         <label className="field">
           <span>{t('settings.defaultEffort')}</span>
           <select value={settings.defaultEffort} onChange={(e) => set({ defaultEffort: e.target.value as EffortLevel })}>
-            {EFFORTS.map((x) => (
-              <option key={x} value={x}>
-                {x}
-              </option>
-            ))}
+            <EffortOptions cli={defaultCli} model={effectiveModel('', defaultCli, settings, CLAUDE_MODELS[0])} current={settings.defaultEffort} />
           </select>
         </label>
         <p className="muted small">

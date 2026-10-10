@@ -6,7 +6,8 @@ import type { Backend } from './backend.ts';
 import type { PreviewBackend } from './previewRunner.ts';
 import { describeOfficeTool, type LogEntry, type SessionCallbacks, type SessionHandle, type SessionOptions } from './agentRunner.ts';
 import { CLIS } from './clis.ts';
-import { FLOOR_SEATS, type GhRepoSummary, type IssueInfo, type PullInfo } from '../shared/types.ts';
+import { FLOOR_SEATS, type AgentCli, type GhRepoSummary, type IssueInfo, type ModelCatalog, type PullInfo } from '../shared/types.ts';
+import { claudeFallbackCatalog, EFFORT_LEVELS } from '../shared/models.ts';
 import type { LocalFolder } from './workspace.ts';
 import { HOME_DIR, type DemoScale } from './config.ts';
 import { DAY_MS, emptyHistory, HOUR_MS, prune, startOfDay, type OpsHistory } from './metrics.ts';
@@ -586,6 +587,25 @@ async function fakeTrim(stillIdle: () => boolean) {
   return { freed: Math.round((300 + Math.random() * 600) * 2 ** 20), removed: ['node_modules', 'dist'], skipped: [] };
 }
 
+// ---------- model catalogs ----------
+
+/**
+ * The demo's model lists: Claude Code's from the office's own list; Codex's and OpenCode's as `codex debug models`
+ * (codex-cli 0.153.4) and `opencode models` (1.2.15) listed them on 2026-10-10.
+ */
+function demoModels(cli: AgentCli): ModelCatalog {
+  const fetchedAt = Date.now();
+  if (cli === 'claude') return { ...claudeFallbackCatalog(null, fetchedAt), source: 'cli' };
+  if (cli === 'opencode') return { source: 'cli', models: [{ id: 'opencode/big-pickle', label: 'opencode/big-pickle', description: '', efforts: [], defaultEffort: null }], error: null, fetchedAt };
+  const codex = (id: string, label: string, efforts = EFFORT_LEVELS) => ({ id, label, description: '', efforts, defaultEffort: 'medium' as const });
+  return {
+    source: 'cli',
+    models: [codex('gpt-6-astra', 'GPT-6-Astra'), codex('gpt-5.6-sol', 'GPT-5.6-Sol'), codex('gpt-5.6-terra', 'GPT-5.6-Terra'), codex('gpt-5.6-luna', 'GPT-5.6-Luna'), { ...codex('gpt-5.5', 'GPT-5.5', ['low', 'medium', 'high', 'xhigh']), hidden: true }],
+    error: null,
+    fetchedAt,
+  };
+}
+
 /** The demo's fake world; `scale` (--floors / --agents) makes it the big company instead of the usual two floors. */
 export function createDemoBackend(scale: DemoScale | null = null): Backend {
   if (scale) seedBigCompany(scale.floors);
@@ -820,6 +840,7 @@ export function createDemoBackend(scale: DemoScale | null = null): Backend {
     releaseClis: async () => undefined,
     detectClis: async () =>
       CLIS.map((c) => ({ id: c.id, label: c.label, installed: true, version: 'demo', integrated: c.integrated })),
+    listModels: async (cli) => demoModels(cli),
     previews: demoPreviews,
     office: demoOffice,
     voice: demoVoice,
