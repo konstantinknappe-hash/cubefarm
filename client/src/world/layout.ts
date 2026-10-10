@@ -208,6 +208,12 @@ export const BOARD = { w: 12, h: 3.0, y: 0.45, z: -HALF_D + 0.06 };
 // sticks out from the wall.
 export const APP_SCREEN = { x: -13.7, y: 2.25, w: 3.2, h: 1.8, bezel: 0.09, depth: 0.12 };
 
+// The trading wallboard (TradingWall.tsx): on the trading floor it takes the "ship it" sign's place on the north wall,
+// east of the whiteboard. It fits between the whiteboard's plant (x 7.1, up to 1.55 m) and the w-north-e decoration
+// slot (from x 12.2), under the string lights' run (3.5 m). x and y are the middle of the picture, h includes the
+// ticker strip at its bottom; depth is how far the case sticks out from the wall.
+export const TRADING_WALL = { x: 9.8, y: 2.2, w: 4.3, h: 2.14, ticker: 0.118, bezel: 0.07, depth: 0.1 };
+
 // The foam blaster rack stands against the south wall: on office floors west of the floor sign near the couch,
 // in the lobby in the south-west corner (clear of the basketball hoop further east). d is how far it sticks out.
 export const BLASTER_RACK = { officeX: -10, lobbyX: -12.9, w: 1.3, d: 0.3, h: 1.85 };

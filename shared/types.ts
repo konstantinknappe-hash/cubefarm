@@ -4,6 +4,7 @@ import type { ProgressView, RewardView } from './progress.ts';
 
 import type { WeatherSettings, WeatherView, WorldEventSettings } from './outside.ts';
 import type { ThemeSettings } from './themes.ts';
+import type { TradingView } from './trading.ts';
 import type { AgentStyle } from './looks.ts';
 
 export type AgentStatus =
@@ -608,6 +609,7 @@ export interface WorldSnapshot {
   voiceKeyHint: string; // its last 4 characters, '' when none
   voiceCache: VoiceCacheView;
   weather: WeatherView; // the real local weather's place and latest reading (Settings → Weather)
+  trading?: TradingView; // the MoneyPrint paper account on the trading wallboard (docs/trading-wallboard.md)
   ticker?: TickerItem[]; // the floors' recent ticker lines, oldest first
   notifyChannels: NotifyChannelsView;
   progress: ProgressView; // coins, decorations and achievements (#210)
@@ -651,6 +653,8 @@ export type ServerEvent =
   | { type: 'voiceKey'; voiceKeySet: boolean; voiceKeyHint: string }
   | { type: 'voiceCache'; voiceCache: VoiceCacheView }
   | { type: 'weather'; weather: WeatherView }
+  /** The trading wallboard's latest read; `history` only when it changed (it's the big part). */
+  | { type: 'trading'; trading: Omit<TradingView, 'history'>; history?: TradingView['history'] }
   | { type: 'ticker'; item: TickerItem }
   | { type: 'notifyChannels'; notifyChannels: NotifyChannelsView }
   | { type: 'notify'; note: NoteView }

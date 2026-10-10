@@ -109,6 +109,9 @@ Server (`server/`, Node + Express 5 + ws, run by tsx in development; esbuild bun
   apps' webhooks (secrets in `secrets.json`, push keys and devices in `push.json`), behind `Backend.notify`; `notify.ts`
   is its pure part (formatting, the per-event rate limit, webhook checks), `webPush.ts` VAPID and RFC 8291 encryption,
   `shared/notify.ts` the settings. `pwa.ts`: the installable app's service worker, served at `/sw.js`.
+- `trading.ts`: the trading wallboard's feed (docs/trading-wallboard.md): reads MoneyPrint's read-only endpoint (GET
+  only, server-side, cached), samples equity history, falls back to the marked mock (`tradingMock.ts`); `tradingSource.ts`
+  parses its answers into `shared/trading.ts`, the contract.
 - `journal.ts`: the time-lapse journal (`<SWARM_HOME>/journal/<day>/`): records what `Swarm.broadcast` sends, a file
   per 10-minute keyframe, pruning, and the reads behind `/api/journal/*`. The rules (what's kept, secrets, seeking,
   marks) are in `shared/journal.ts`; `journalSample.ts` is the demo's made-up day.
@@ -159,6 +162,8 @@ Client (`client/`, Vite root; React 19, R3F, drei, zustand):
   `PhotoScene.tsx` (its own camera; frozen, the frame loop stops and it draws on change), `post.ts` (filters and depth
   of field on the finished picture), `recorder.ts` / `instantReplay.ts` (MediaRecorder; `webmRing.ts` keeps the last 15 s),
   `PhotoPanel.tsx`, and pure `flight.ts`, `shots.ts`, `filters.ts`.
+- The trading wallboard: `src/world/TradingWall.tsx` (the wall on the trading floor, `tradingDraw.ts` paints it,
+  `tradingChart.ts` the chart's pure geometry) and `src/ui/TradingPanel.tsx` (the same numbers up close).
 - `src/store.ts`: the zustand store; `apply(ServerEvent)` folds websocket events into UI state.
 - `src/api.ts`: REST calls; errors become toasts.
 - `src/net.ts`: the websocket connection with reconnect; it sends the tab's watch (`src/watch.ts`) as it changes.

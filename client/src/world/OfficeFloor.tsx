@@ -29,6 +29,7 @@ import { OfficeRituals } from './Rituals';
 import { PongTable } from './PongTable';
 import { Shell } from './Shell';
 import { Toys } from './toys';
+import { TradingWall } from './TradingWall';
 
 export function WallSign({
   position,
@@ -72,6 +73,7 @@ export const OfficeFloor = memo(function OfficeFloor({ repo }: { repo: RepoView 
   const { alarm, ref: signRef } = useFloorAlarm(repo.id);
   const name = repo.fullName.split('/')[1] ?? repo.fullName;
   const rugColor = shade(repo.color, 0.24);
+  const tradingFloor = useStore((s) => s.trading.floor);
 
   return (
     <group>
@@ -170,20 +172,25 @@ export const OfficeFloor = memo(function OfficeFloor({ repo }: { repo: RepoView 
       <WaterCooler position={[HALF_W - 0.5, 0, -9.5]} />
       <Jukebox x={JUKEBOX.officeX} floor={repo.floor} />
       <WallClock position={[-10, 2.75, -HALF_D + 0.05]} />
-      <WallSign
-        position={[10, 2.2, -HALF_D + 0.03]}
-        rotationY={0}
-        size={[2.2, 1.4]}
-        px={[512, 326]}
-        draw={(ctx) =>
-          drawSign(ctx, 512, 326, [
-            { text: '🚀', size: 90 },
-            { text: t('world.floor.shipIt'), size: 64 },
-            { text: t('world.floor.smallPrs'), size: 26, weight: 500 },
-          ], '#3a86ff')
-        }
-        deps={[]}
-      />
+      {/* The trading floor's "ship it" sign gives way to the trading wallboard (docs/trading-wallboard.md). */}
+      {repo.floor === tradingFloor ? (
+        <TradingWall />
+      ) : (
+        <WallSign
+          position={[10, 2.2, -HALF_D + 0.03]}
+          rotationY={0}
+          size={[2.2, 1.4]}
+          px={[512, 326]}
+          draw={(ctx) =>
+            drawSign(ctx, 512, 326, [
+              { text: '🚀', size: 90 },
+              { text: t('world.floor.shipIt'), size: 64 },
+              { text: t('world.floor.smallPrs'), size: 26, weight: 500 },
+            ], '#3a86ff')
+          }
+          deps={[]}
+        />
+      )}
     </group>
   );
 });
