@@ -14,17 +14,18 @@ import { closeOverlay, Panel } from './Panel';
 import { loadScreenshot } from '../screenshot';
 import { toolVerb } from '../world/draw';
 import { followAgent } from '../world/camera/rig';
-
-const STATUS_LABEL: Record<string, string> = {
-  idle: 'free',
-  preparing: 'setting up',
-  working: 'working',
-  done: 'done',
-  error: 'needs help',
-  stopped: 'stopped',
-};
+import { useT } from '../i18n';
 
 export function StatusPill({ status }: { status: string }) {
+  const t = useT();
+  const STATUS_LABEL: Record<string, string> = {
+    idle: t('terminal.status.idle'),
+    preparing: t('terminal.status.preparing'),
+    working: t('terminal.status.working'),
+    done: t('terminal.status.done'),
+    error: t('terminal.status.error'),
+    stopped: t('terminal.status.stopped'),
+  };
   return <span className={`status status-${status}`}>{STATUS_LABEL[status] ?? status}</span>;
 }
 
@@ -35,6 +36,7 @@ function elapsed(from: number | null, to: number | null) {
 }
 
 export function TerminalView({ agentId }: { agentId: string }) {
+  const t = useT();
   const agent = useStore((s) => s.agents[agentId]);
   const log = useStore((s) => s.logs[agentId]) ?? [];
   const shotAt = useStore((s) => s.screens[agentId]);
@@ -57,15 +59,16 @@ export function TerminalView({ agentId }: { agentId: string }) {
   const shotTime = agent?.hasScreenshot ? (shotAt ?? agent.screenshotAt) : null;
 
   useEffect(() => {
-    const t = setInterval(() => tick((n) => n + 1), 1000);
-    return () => clearInterval(t);
+    const timer = setInterval(() => tick((n) => n + 1), 1000);
+    return () => clearInterval(timer);
   }, []);
   useEffect(
     () =>
       loadScreenshot(agentId, shotTime, (img) => {
-        img.alt = 'Latest browser screenshot from the agent';
+        img.alt = t('terminal.screenshot');
         setShot({ agentId, img });
       }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [agentId, shotTime],
   );
   useEffect(() => {
@@ -85,7 +88,7 @@ export function TerminalView({ agentId }: { agentId: string }) {
   if (!agent || !repo) {
     return (
       <Panel title="Terminal">
-        <p className="muted">That agent has left the building.</p>
+        <p className="muted">{t('terminal.gone')}</p>
       </Panel>
     );
   }
@@ -105,12 +108,18 @@ export function TerminalView({ agentId }: { agentId: string }) {
   const issueUrl = agent.issueNumber ? `https://github.com/${repo.fullName}/issues/${agent.issueNumber}` : null;
   const canMessage = working || (agent.task !== 'qa' && !!agent.branch && agent.status !== 'idle');
   const qaRec = agent.prNumber ? qaRecords[`${repo.id}#${agent.prNumber}`] : undefined;
-  const send = (t: string) => {
-    const body = t.trim();
+  const send = (msg: string) => {
+    const body = msg.trim();
     if (!body) return;
     setText('');
     void run(() => api.message(agent.id, body));
   };
+
+  const placeholder = working
+    ? t('terminal.tell', { name: agent.name, inTerminal: agent.terminal ? t('terminal.inTerminal') : '' })
+    : canMessage
+      ? t('terminal.ask', { name: agent.name })
+      : t('terminal.give', { name: agent.name });
 
   return (
     <Panel
@@ -122,28 +131,28 @@ export function TerminalView({ agentId }: { agentId: string }) {
             {agent.name[0]}
           </span>
           <span>{agent.name}</span>
-          <span className="chip" title="Their coding agent">
+          <span className="chip" title={t('terminal.theirAgent')}>
             ⌨️ {agentLabel(agent, settings, clis)}
           </span>
           <StatusPill status={agent.status} />
           {working && agent.currentTool && <span className="muted small">{toolVerb(agent.currentTool)}…</span>}
           <span className="spacer" />
-          <button className="btn btn-small" title={`Trail ${agent.name} with the camera wherever they go (a movement key or Esc gives you the controls back)`} onClick={() => followAgent(agent.id)}>
-            🎥 Follow
+          <button className="btn btn-small" title={t('terminal.followTitle', { name: agent.name })} onClick={() => followAgent(agent.id)}>
+            {t('terminal.follow')}
           </button>
           {agent.career && (
-            <button className={`btn btn-small setup-toggle ${showCareer ? 'setup-toggle-on' : ''}`} aria-expanded={showCareer} title={`${agent.name}'s career on the team`} onClick={() => setShowCareer((v) => !v)}>
-              🏅 Career
+            <button className={`btn btn-small setup-toggle ${showCareer ? 'setup-toggle-on' : ''}`} aria-expanded={showCareer} title={t('terminal.careerTitle', { name: agent.name })} onClick={() => setShowCareer((v) => !v)}>
+              {t('terminal.career')}
             </button>
           )}
           <button
             className={`btn btn-small setup-toggle ${showSetup ? 'setup-toggle-on' : ''}`}
             aria-expanded={showSetup}
             aria-controls="agent-setup"
-            title={`${agent.name}'s name, look, coding agent, model and effort`}
+            title={t('terminal.setupTitle', { name: agent.name })}
             onClick={() => setShowSetup((v) => !v)}
           >
-            ⚙️ Setup
+            {t('terminal.setup')}
           </button>
         </div>
       }
@@ -151,18 +160,18 @@ export function TerminalView({ agentId }: { agentId: string }) {
       <div className="term-meta">
         {agent.task === 'qa' && agent.status !== 'idle' ? (
           <a href={agent.prUrl ?? '#'} target="_blank" rel="noreferrer">
-            Testing PR #{agent.prNumber}: {agent.issueTitle}
+            {t('terminal.testingPr', { n: String(agent.prNumber), title: agent.issueTitle ?? '' })}
           </a>
         ) : agent.task === 'fix' && agent.status !== 'idle' ? (
           <a href={agent.prUrl ?? '#'} target="_blank" rel="noreferrer">
-            Fixing PR #{agent.prNumber} after QA: {agent.issueTitle}
+            {t('terminal.fixingPr', { n: String(agent.prNumber), title: agent.issueTitle ?? '' })}
           </a>
         ) : agent.issueNumber && agent.status !== 'idle' ? (
           <a href={issueUrl!} target="_blank" rel="noreferrer">
-            Issue #{agent.issueNumber}: {agent.issueTitle}
+            {t('terminal.issue', { n: String(agent.issueNumber), title: agent.issueTitle ?? '' })}
           </a>
         ) : (
-          <span className="muted">Nothing assigned</span>
+          <span className="muted">{t('terminal.nothing')}</span>
         )}
         {agent.prUrl && agent.task === 'issue' && (
           <a href={agent.prUrl} target="_blank" rel="noreferrer" className="chip chip-good">
@@ -177,13 +186,13 @@ export function TerminalView({ agentId }: { agentId: string }) {
         )}
         {qaRec?.commentUrl && (
           <a href={qaRec.commentUrl} target="_blank" rel="noreferrer">
-            QA report ↗
+            {t('terminal.qaReport')}
           </a>
         )}
         {agent.branch && <code>{agent.branch}</code>}
         <span className="muted">
-          {(agent.role === 'ceo' ? agent.model : effectiveModel(agent.model, cli, settings, 'claude-opus-5-5')) || 'default model'} ·{' '}
-          {agent.effort || settings.defaultEffort} effort
+          {(agent.role === 'ceo' ? agent.model : effectiveModel(agent.model, cli, settings, 'claude-opus-5-5')) || t('terminal.defaultModel')} ·{' '}
+          {agent.effort || settings.defaultEffort} {t('terminal.effort')}
         </span>
         {agent.startedAt && <span className="muted">⏱ {elapsed(agent.startedAt, working ? null : agent.endedAt)}</span>}
         {agent.turns > 0 && <span className="muted">{agent.turns} turns</span>}
@@ -209,20 +218,24 @@ export function TerminalView({ agentId }: { agentId: string }) {
               stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
             }}
           >
-            {log.length === 0 && <div className="term-line term-system">(no output yet)</div>}
+            {log.length === 0 && <div className="term-line term-system">{t('terminal.noOutput')}</div>}
             {log.map((l) => (
               <div key={l.id} className={`term-line term-${l.kind}`}>
                 {l.text || ' '}
               </div>
             ))}
-            {working && <div className="term-line term-spin">✻ {agent.status === 'preparing' ? (agent.currentTool ?? 'Setting up worktree') : toolVerb(agent.currentTool) || 'Thinking'}… ({elapsed(agent.startedAt, null)})</div>}
+            {working && (
+              <div className="term-line term-spin">
+                ✻ {agent.status === 'preparing' ? (agent.currentTool ?? t('terminal.setupWorktree')) : toolVerb(agent.currentTool) || t('terminal.thinking')}… ({elapsed(agent.startedAt, null)})
+              </div>
+            )}
           </div>
         )}
         {agent.hasScreenshot && (
           <div className="browser">
             <div className="browser-bar">🔒 {agent.browserUrl ?? 'about:blank'}</div>
             <div className="browser-view" ref={shotView} />
-            <div className="muted small">Latest Playwright screenshot{agent.screenshotAt ? ` · ${new Date(agent.screenshotAt).toLocaleTimeString()}` : ''}</div>
+            <div className="muted small">{t('terminal.screenshot')}{agent.screenshotAt ? ` · ${new Date(agent.screenshotAt).toLocaleTimeString()}` : ''}</div>
           </div>
         )}
       </div>
@@ -238,37 +251,31 @@ export function TerminalView({ agentId }: { agentId: string }) {
           value={text}
           onChange={setText}
           aria-label={`Message ${agent.name}`}
-          title="Enter sends · Shift+Enter adds a new line"
-          placeholder={
-            working
-              ? `Tell ${agent.name} something while they work${agent.terminal ? ' (typed into their terminal)' : ''}…`
-              : canMessage
-                ? `Ask ${agent.name} for a follow-up (resumes their session)…`
-                : `Give ${agent.name} an issue or a PR to test to get them started`
-          }
+          title={t('terminal.enterSends')}
+          placeholder={placeholder}
           disabled={!canMessage}
           autoFocus={!agent.terminal}
         />
         <MicButton kind="agent" value={text} onChange={setText} onSend={send} disabled={!canMessage} />
         <button className="btn" disabled={busy || !canMessage || !text.trim()}>
-          Send
+          {t('terminal.send')}
         </button>
       </form>
 
       <div className="term-actions">
         {working ? (
           <button className="btn btn-bad" disabled={busy} onClick={() => run(() => api.stop(agent.id))}>
-            ■ Stop
+            {t('terminal.stop')}
           </button>
         ) : (
           <>
-            <select value={pick} onChange={(e) => setPick(e.target.value)} aria-label="Work to give them">
-              <option value="">{choices.length ? 'Pick an issue to build or a PR to test…' : 'Nothing to pick up'}</option>
+            <select value={pick} onChange={(e) => setPick(e.target.value)} aria-label={t('terminal.workAria')}>
+              <option value="">{choices.length ? t('terminal.pick') : t('terminal.pickNone')}</option>
               {(['issue', 'qa'] as const).map((kind) => {
                 const group = choices.filter((c) => c.kind === kind);
                 return (
                   group.length > 0 && (
-                    <optgroup key={kind} label={kind === 'qa' ? 'Pull requests to test' : 'Issues to build'}>
+                    <optgroup key={kind} label={kind === 'qa' ? t('terminal.prsToTest') : t('terminal.issuesToBuild')}>
                       {group.map((c) => (
                         <option key={c.key} value={c.key}>
                           {kind === 'qa' ? 'PR ' : ''}#{c.number} {c.title}
@@ -291,11 +298,11 @@ export function TerminalView({ agentId }: { agentId: string }) {
                 })
               }
             >
-              {chosen?.kind === 'qa' ? `🔍 Test PR #${chosen.number}` : '▶ Start issue'}
+              {chosen?.kind === 'qa' ? t('terminal.testPr', { n: String(chosen.number) }) : t('terminal.startIssue')}
             </button>
             {agent.status !== 'idle' && (
               <button className="btn" disabled={busy} onClick={() => run(() => api.reset(agent.id))}>
-                ↺ Clear desk
+                {t('terminal.clearDesk')}
               </button>
             )}
           </>
@@ -309,9 +316,9 @@ export function TerminalView({ agentId }: { agentId: string }) {
               const ok = await confirmDialog({
                 tone: 'danger',
                 icon: '👋',
-                title: `Let ${agent.name} go?`,
-                body: 'Their worktree is removed. Branches they pushed stay on GitHub.',
-                confirm: `Let ${agent.name} go`,
+                title: t('terminal.letGoTitle', { name: agent.name }),
+                body: t('terminal.letGoBody'),
+                confirm: t('terminal.letGoConfirm', { name: agent.name }),
               });
               if (!ok) return;
               await api.fireAgent(agent.id);
@@ -319,7 +326,7 @@ export function TerminalView({ agentId }: { agentId: string }) {
             });
           }}
         >
-          Let go
+          {t('terminal.letGo')}
         </button>
       </div>
     </Panel>

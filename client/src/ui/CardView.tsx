@@ -7,20 +7,15 @@ import type { Col } from '../world/stickies';
 import { Key } from './Key';
 import { Markdown } from './Markdown';
 import { Panel } from './Panel';
+import { useT } from '../i18n';
 
 // One whiteboard card up close (E on a sticky): the issue and the first lines of its body, who has it and since when,
 // what it waits for, and for a PR its QA round, QA's latest report and checks, and CI. It reads the office's state as
 // it stands (and follows the card as it moves); nothing here asks the server for more.
 
-const COLUMN: Record<Col, string> = { backlog: '📋 Backlog', progress: '🔨 In progress', qa: '🔍 In QA', ready: '✅ Ready to merge', merged: '🎉 Merged' };
 const QA_ICON = { pass: '✓', fail: '✗', skip: '–' } as const;
 
-const clock = (t: number) => new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-const since = (t: number | null | undefined) => (t && Number.isFinite(t) ? `since ${clock(t)} (${elapsedLabel(Date.now() - t)})` : '');
-const ago = (iso: string | null | undefined) => {
-  const t = iso ? Date.parse(iso) : NaN;
-  return Number.isFinite(t) ? `${elapsedLabel(Date.now() - t)} ago` : '';
-};
+const clock = (ts: number) => new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
 function Who({ agent, children }: { agent?: Agent; children: React.ReactNode }) {
   return (
@@ -32,6 +27,7 @@ function Who({ agent, children }: { agent?: Agent; children: React.ReactNode }) 
 }
 
 export function CardView({ repoId, cardKey, number, pr }: { repoId: string; cardKey: string; number: number; pr: boolean }) {
+  const t = useT();
   const repo = useStore((s) => s.repos.find((r) => r.id === repoId));
   const allAgents = useStore((s) => s.agents);
   const qaRecords = useStore((s) => s.qa);
@@ -39,10 +35,25 @@ export function CardView({ repoId, cardKey, number, pr }: { repoId: string; card
   const cols = useMemo(() => (repo ? kanbanFor(repo, agents, qaRecords) : null), [repo, agents, qaRecords]);
   const at = cols ? locateCard(cols, cardKey, number, pr) : null;
 
+  const COLUMN: Record<Col, string> = {
+    backlog: t('card.col.backlog'),
+    progress: t('card.col.progress'),
+    qa: t('card.col.qa'),
+    ready: t('card.col.ready'),
+    merged: t('card.col.merged'),
+  };
+
+  const sinceStr = (ts: number | null | undefined) =>
+    ts && Number.isFinite(ts) ? t('card.since', { time: clock(ts), elapsed: elapsedLabel(Date.now() - ts) }) : '';
+  const agoStr = (iso: string | null | undefined) => {
+    const ts = iso ? Date.parse(iso) : NaN;
+    return Number.isFinite(ts) ? t('card.ago', { elapsed: elapsedLabel(Date.now() - ts) }) : '';
+  };
+
   if (!repo || !at) {
     return (
       <Panel title={`📌 ${cardLabel({ number, pr })}`} className="cardview">
-        <p className="muted">That card isn't on the board any more.</p>
+        <p className="muted">{t('card.gone')}</p>
       </Panel>
     );
   }
@@ -78,11 +89,11 @@ export function CardView({ repoId, cardKey, number, pr }: { repoId: string; card
         ))}
       </div>
 
-      <WhoHasIt card={card} col={col} filed={issue?.createdAt} opened={pull?.createdAt} mergedAt={pull?.mergedAt} />
+      <WhoHasIt card={card} col={col} filed={issue?.createdAt} opened={pull?.createdAt} mergedAt={pull?.mergedAt} sinceStr={sinceStr} agoStr={agoStr} t={t} />
 
       {pull && issue && (
         <h4 className="cardview-h">
-          Closes #{issue.number}: {issue.title}
+          {t('card.closes', { n: String(issue.number), title: issue.title })}
         </h4>
       )}
       {excerpt?.text ? (
@@ -91,57 +102,71 @@ export function CardView({ repoId, cardKey, number, pr }: { repoId: string; card
           {excerpt.more && <div className="muted small">…</div>}
         </div>
       ) : (
-        !pull && <p className="muted small">The issue has no description.</p>
+        !pull && <p className="muted small">{t('card.noDesc')}</p>
       )}
 
-      {card.prNumber && <PrDetails card={card} pull={pull} />}
+      {card.prNumber && <PrDetails card={card} pull={pull} t={t} />}
 
       <div className="cardview-foot">
         {url && (
           <a href={url} target="_blank" rel="noreferrer">
-            Open {cardLabel(card)} on GitHub ↗
+            {t('card.openGitHub', { label: cardLabel(card) })}
           </a>
         )}
         {card.qa?.commentUrl && (
           <a href={card.qa.commentUrl} target="_blank" rel="noreferrer">
-            QA report ↗
+            {t('card.qaReport')}
           </a>
         )}
         <span className="spacer" />
         <span className="muted small">
           {canPeel(col, card) && (
             <>
-              <Key action="drop" /> on the sticky takes it to a free agent's desk ·{' '}
+              <Key action="drop" /> {t('card.dropHint')} ·{' '}
             </>
           )}
-          <kbd>Esc</kbd> closes
+          <kbd>Esc</kbd> {t('card.esc')}
         </span>
       </div>
     </Panel>
   );
 }
 
-function WhoHasIt({ card, col, filed, opened, mergedAt }: { card: KanbanCard; col: Col; filed?: string; opened?: string; mergedAt?: string | null }) {
+type TFn = ReturnType<typeof useT>;
+
+function WhoHasIt({ card, col, filed, opened, mergedAt, sinceStr, agoStr, t }: { card: KanbanCard; col: Col; filed?: string; opened?: string; mergedAt?: string | null; sinceStr: (ts: number | null | undefined) => string; agoStr: (iso: string | null | undefined) => string; t: TFn }) {
   const a = card.agent;
-  if (col === 'backlog') return <Who>Nobody has it yet{filed ? ` · filed ${ago(filed)}` : ''}</Who>;
-  if (col === 'progress') return <Who agent={a}>{a ? `${a.name} has it ${since(a.startedAt)}` : 'Someone has it'}</Who>;
-  if (col === 'merged') return <Who agent={a}>{`Merged${mergedAt ? ` ${ago(mergedAt)}` : ''}${a ? ` · written by ${a.name}` : ''}`}</Who>;
-  if (card.qa?.status === 'testing') {
-    return <Who agent={a}>{`🔍 ${a?.name ?? 'QA'} is testing it · round ${card.qa.round} ${since(card.qa.updatedAt)}`}</Who>;
+  if (col === 'backlog') return <Who>{t('card.nobody')}{filed ? ` · ${t('card.filed', { ago: agoStr(filed) })}` : ''}</Who>;
+  if (col === 'progress') return <Who agent={a}>{a ? t('card.hasIt', { name: a.name, since: sinceStr(a.startedAt) }) : t('card.someone')}</Who>;
+  if (col === 'merged') {
+    const parts = [mergedAt ? t('card.mergedAgo', { ago: agoStr(mergedAt) }) : t('card.merged')];
+    if (a) parts.push(t('card.writtenBy', { name: a.name }));
+    return <Who agent={a}>{parts.join(' · ')}</Who>;
   }
-  if (card.qa?.status === 'fixing') return <Who agent={a}>{`🔧 ${a?.name ?? 'An agent'} is fixing it ${since(card.qa.updatedAt)}`}</Who>;
-  return <Who agent={a}>{`${a ? `${a.name} wrote it` : 'Opened outside the office'}${opened ? ` · opened ${ago(opened)}` : ''}`}</Who>;
+  if (card.qa?.status === 'testing') {
+    return <Who agent={a}>{t('card.testing', { name: a?.name ?? 'QA', round: String(card.qa.round), since: sinceStr(card.qa.updatedAt) })}</Who>;
+  }
+  if (card.qa?.status === 'fixing') return <Who agent={a}>{t('card.fixing', { name: a?.name ?? 'An agent', since: sinceStr(card.qa.updatedAt) })}</Who>;
+  const parts = [a ? t('card.wrote', { name: a.name }) : t('card.openedOutside')];
+  if (opened) parts.push(t('card.opened', { ago: agoStr(opened) }));
+  return <Who agent={a}>{parts.join(' · ')}</Who>;
 }
 
-function PrDetails({ card, pull }: { card: KanbanCard; pull?: { checks: string; failedChecks: { name: string; url: string | null }[]; pendingChecks: string[]; mergeable: string; isDraft: boolean } }) {
+function PrDetails({ card, pull, t }: { card: KanbanCard; pull?: { checks: string; failedChecks: { name: string; url: string | null }[]; pendingChecks: string[]; mergeable: string; isDraft: boolean }; t: TFn }) {
+  const CHECKS_LABEL: Record<string, string> = {
+    passing: t('card.allPass'),
+    failing: t('card.checksFailing'),
+    pending: t('card.checksRunning'),
+    none: t('card.noChecks'),
+  };
   const q = card.qa;
   return (
     <div className="cardview-pr">
       <div className="cardview-section">
         <h4 className="cardview-h">🔍 QA{q ? ` · round ${q.round}` : ''}</h4>
-        {!q && <p className="muted small">Not sent to QA yet.</p>}
+        {!q && <p className="muted small">{t('card.notSentQa')}</p>}
         {q?.summary && <Markdown text={q.summary} className="cardview-summary" />}
-        {q && !q.summary && <p className="muted small">No report yet{q.status === 'testing' ? ': the test is running' : ''}.</p>}
+        {q && !q.summary && <p className="muted small">{q.status === 'testing' ? t('card.noReportTesting') : t('card.noReport')}</p>}
         {q && q.checks.length > 0 && (
           <ul className="cardview-checks">
             {q.checks.map((c, i) => (
@@ -157,9 +182,9 @@ function PrDetails({ card, pull }: { card: KanbanCard; pull?: { checks: string; 
         <div className="cardview-section">
           <h4 className="cardview-h">⚙️ CI</h4>
           <div className="small">
-            {pull.checks === 'passing' ? '✓ All checks pass' : pull.checks === 'failing' ? '✗ Checks failing' : pull.checks === 'pending' ? '… Checks running' : 'No checks'}
-            {pull.mergeable === 'CONFLICTING' && <span className="cardview-bad-text"> · conflicts with the base branch</span>}
-            {pull.isDraft && <span className="muted"> · draft</span>}
+            {CHECKS_LABEL[pull.checks] ?? pull.checks}
+            {pull.mergeable === 'CONFLICTING' && <span className="cardview-bad-text"> · {t('card.conflicts')}</span>}
+            {pull.isDraft && <span className="muted"> · {t('card.draft')}</span>}
           </div>
           {pull.failedChecks.length > 0 && (
             <ul className="cardview-checks">
@@ -177,7 +202,7 @@ function PrDetails({ card, pull }: { card: KanbanCard; pull?: { checks: string; 
               ))}
             </ul>
           )}
-          {pull.pendingChecks.length > 0 && <div className="muted small">Running: {pull.pendingChecks.join(', ')}</div>}
+          {pull.pendingChecks.length > 0 && <div className="muted small">{t('card.running', { list: pull.pendingChecks.join(', ') })}</div>}
         </div>
       )}
     </div>

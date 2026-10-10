@@ -5,6 +5,7 @@ import { currentPresence, replayDay, seekReplay, setReplaySpeed, startReplay, st
 import { SPEEDS, sinceLastHere, timelineAt } from '../replayClock';
 import { dayKey, type JournalDayView, type JournalMark } from '../../../shared/journal';
 import { isConfirmOpen } from './Confirm';
+import { useT } from '../i18n';
 import './timelapse.css';
 
 // The time-lapse's controls: the manager's console tab (pick a day or "since I was last here", and a speed) and,
@@ -13,14 +14,6 @@ import './timelapse.css';
 const hhmm = (t: number) => new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 const dayLabel = (t: number) => new Date(t).toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' });
 const MARK_ICON: Record<JournalMark['kind'], string> = { merge: '🎉', 'needs-human': '🔴', issue: '🆕' };
-const SPEED_NOTE: Record<number, string> = { 30: 'an hour in 2 minutes', 120: 'an hour in 30 seconds', 600: 'an hour in 6 seconds' };
-
-function ago(ms: number) {
-  const min = Math.round(ms / 60_000);
-  if (min < 60) return `${min} min ago`;
-  const h = Math.floor(min / 60);
-  return h < 24 ? `${h} h ${min % 60 ? `${min % 60} min ` : ''}ago` : `${Math.floor(h / 24)} day${h >= 48 ? 's' : ''} ago`;
-}
 
 function size(bytes: number) {
   return bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
@@ -42,21 +35,22 @@ function Marks({ marks, from, to }: { marks: JournalMark[]; from: number; to: nu
 }
 
 function DayRow({ day, speed }: { day: JournalDayView; speed: number }) {
+  const t = useT();
   const today = day.day === dayKey(Date.now());
   return (
     <div className="card tl-day">
       <div className="row">
         <div className="grow">
-          <b>{today ? 'Today' : dayLabel(day.from)}</b>{' '}
+          <b>{today ? t('timelapse.today') : dayLabel(day.from)}</b>{' '}
           <span className="muted small">
             {hhmm(day.from)}–{hhmm(day.to)} · {size(day.bytes)}
           </span>
           <div className="small">
-            🎉 {count(day.marks, 'merge')} merged · 🔴 {count(day.marks, 'needs-human')} needed you · 🆕 {count(day.marks, 'issue')} new issues
+            {t('timelapse.merged', { n: String(count(day.marks, 'merge')) })} · {t('timelapse.needed', { n: String(count(day.marks, 'needs-human')) })} · {t('timelapse.issues', { n: String(count(day.marks, 'issue')) })}
           </div>
         </div>
         <button className="btn btn-small btn-good" onClick={() => void replayDay(day, speed)}>
-          ▶ Replay
+          {t('timelapse.replay')}
         </button>
       </div>
       <div className="tl-track tl-track-mini" aria-hidden>
@@ -68,6 +62,7 @@ function DayRow({ day, speed }: { day: JournalDayView; speed: number }) {
 
 /** The manager's console tab. */
 export function TimeLapseTab() {
+  const t = useT();
   const demo = useStore((s) => s.demo);
   const [days, setDays] = useState<JournalDayView[] | null>(null);
   const [speed, setSpeed] = useState(useReplay.getState().speed);
@@ -84,6 +79,21 @@ export function TimeLapseTab() {
     setSpeed(s);
     setReplaySpeed(s);
   };
+
+  const SPEED_NOTE: Record<number, string> = {
+    30: t('timelapse.speedNote.30'),
+    120: t('timelapse.speedNote.120'),
+    600: t('timelapse.speedNote.600'),
+  };
+
+  const ago = (ms: number) => {
+    const min = Math.round(ms / 60_000);
+    if (min < 60) return t('timelapse.minAgo', { min: String(min) });
+    const h = Math.floor(min / 60);
+    if (h < 24) return min % 60 ? t('timelapse.hmAgo', { h: String(h), min: String(min % 60) }) : t('timelapse.hAgo', { h: String(h) });
+    return t('timelapse.daysAgo', { count: Math.floor(h / 24) });
+  };
+
   const recorded = days?.length ? { from: days[0].from, to: days[days.length - 1].to } : null;
   const away = sinceLastHere(currentPresence(), recorded);
   const sample = () => {
@@ -97,47 +107,56 @@ export function TimeLapseTab() {
   return (
     <div className="tab-grid">
       <div>
-        <h3 className="section">📼 Time-lapse</h3>
-        <p className="muted small">Watch the office's day again, right here in the 3D office: people at work and on their errands, stickies moving on the whiteboard, every merge's gong and confetti.</p>
+        <h3 className="section">{t('timelapse.title')}</h3>
+        <p className="muted small">{t('timelapse.desc')}</p>
         <div className="card tl-since">
           <div className="row">
             <div className="grow">
-              <b>Since I was last here</b>
+              <b>{t('timelapse.sinceTitle')}</b>
               <div className="small muted">
                 {away
-                  ? `You were away from ${hhmm(away.from)} to ${hhmm(away.to)} (${ago(Date.now() - away.from)}).`
-                  : 'Nothing to catch up on yet: once you have been away for a while, what happened meanwhile shows up here.'}
+                  ? t('timelapse.sinceAway', { from: hhmm(away.from), to: hhmm(away.to), ago: ago(Date.now() - away.from) })
+                  : t('timelapse.sinceNothing')}
               </div>
             </div>
-            <button className="btn btn-good" disabled={!away} onClick={() => away && void startReplay({ ...away, label: 'since you were last here', speed, marks: days ? days.flatMap((d) => d.marks).filter((m) => m.t >= away.from && m.t <= away.to) : undefined })}>
-              ▶ Catch up
+            <button className="btn btn-good" disabled={!away} onClick={() => away && void startReplay({ ...away, label: t('timelapse.sinceTitle').toLowerCase(), speed, marks: days ? days.flatMap((d) => d.marks).filter((m) => m.t >= away.from && m.t <= away.to) : undefined })}>
+              {t('timelapse.catchUp')}
             </button>
           </div>
         </div>
-        {days === null && <p className="muted">Loading the journal…</p>}
-        {days?.length === 0 && <p className="muted">Nothing recorded yet. The office keeps a journal from now on.</p>}
+        {days === null && <p className="muted">{t('timelapse.loading')}</p>}
+        {days?.length === 0 && <p className="muted">{t('timelapse.nothing')}</p>}
         {[...(days ?? [])].reverse().map((d) => (
           <DayRow key={d.day} day={d} speed={speed} />
         ))}
       </div>
       <div className="card">
-        <h3>Speed</h3>
-        <div className="tl-speeds" role="radiogroup" aria-label="Replay speed">
+        <h3>{t('timelapse.speed')}</h3>
+        <div className="tl-speeds" role="radiogroup" aria-label={t('timelapse.speedAria')}>
           {SPEEDS.map((s) => (
             <label key={s} className="toggle">
               <input type="radio" name="tl-speed" checked={speed === s} onChange={() => pick(s)} /> <b>{s}×</b> <span className="muted small">{SPEED_NOTE[s]}</span>
             </label>
           ))}
         </div>
-        <h3>While it plays</h3>
+        <h3>{t('timelapse.while')}</h3>
         <p className="small">
-          The office shows the recorded moment instead of the live one, down to the sky and the clocks. Assigning, messaging and merging are off. Drag along the timeline to jump: 🎉 merges, 🔴 PRs that needed you, 🆕 new issues.{' '}
-          <kbd>Esc</kbd> frees the mouse, and <kbd>Esc</kbd> again goes straight back to the live office.
+          {t('help.locale') === 'de' ? (
+            <>
+              Das Büro zeigt den aufgezeichneten Moment statt des Live-Zustands, bis hin zum Himmel und den Uhren. Zuweisen, Nachrichten und Mergen sind deaktiviert. Entlang der Timeline ziehen zum Springen: 🎉 Merges, 🔴 PRs die dich brauchten, 🆕 neue Aufgaben.{' '}
+              <kbd>Esc</kbd> gibt die Maus frei, und <kbd>Esc</kbd> nochmal geht direkt zum Live-Büro zurück.
+            </>
+          ) : (
+            <>
+              The office shows the recorded moment instead of the live one, down to the sky and the clocks. Assigning, messaging and merging are off. Drag along the timeline to jump: 🎉 merges, 🔴 PRs that needed you, 🆕 new issues.{' '}
+              <kbd>Esc</kbd> frees the mouse, and <kbd>Esc</kbd> again goes straight back to the live office.
+            </>
+          )}
         </p>
-        <p className="muted small">The journal keeps 7 days (at most about 200 MB) in the office's folder. Terminal output, settings and keys are never written to it.</p>
+        <p className="muted small">{t('timelapse.journalNote')}</p>
         {demo && (
           <button className="btn btn-small" disabled={making} onClick={sample} title="Writes a made-up working day on these floors as yesterday's journal">
-            🧪 {making ? 'Making…' : 'Make a sample day (yesterday)'}
+            🧪 {making ? t('timelapse.making') : t('timelapse.sample')}
           </button>
         )}
       </div>
@@ -147,6 +166,7 @@ export function TimeLapseTab() {
 
 /** The timeline while it plays: marks, the playhead, and click or drag to jump. */
 function Scrubber() {
+  const t = useT();
   const { from, to, time, marks } = useReplay();
   const track = useRef<HTMLDivElement>(null);
   const [drag, setDrag] = useState<number | null>(null);
@@ -161,7 +181,7 @@ function Scrubber() {
       className="tl-track tl-scrub"
       role="slider"
       tabIndex={0}
-      aria-label="Replay timeline"
+      aria-label={t('timelapse.timelineAria')}
       aria-valuemin={from}
       aria-valuemax={to}
       aria-valuenow={Math.round(shown)}
@@ -193,6 +213,7 @@ function Scrubber() {
 
 /** While the time-lapse plays: the badge, the frame and the control bar. Esc (mouse free, no panel open) stops it. */
 export function ReplayBar() {
+  const t = useT();
   const replaying = useStore((s) => s.replaying);
   const v = useReplay();
   // Pocket mode has no 3D office to replay in: leaving the office (switching to it) goes back to live.
@@ -224,31 +245,31 @@ export function ReplayBar() {
     <div className="replay">
       <div className="replay-frame" aria-hidden />
       <div className="replay-badge" role="status" aria-live="polite">
-        ▶ REPLAY · {hhmm(v.time)}
+        ▶ {t('timelapse.badge')} · {hhmm(v.time)}
         <span className="replay-sub">
           {dayLabel(v.time)} · {v.speed}×{v.label ? ` · ${v.label}` : ''}
         </span>
       </div>
       <div className="replay-bar">
-        <button className="btn btn-small replay-play" onClick={toggleReplay} disabled={loading} aria-label={v.phase === 'playing' ? 'Pause' : 'Play'} title={v.phase === 'ended' ? 'Play it again' : 'Play / pause'}>
+        <button className="btn btn-small replay-play" onClick={toggleReplay} disabled={loading} aria-label={v.phase === 'playing' ? t('timelapse.pause') : t('timelapse.play')} title={v.phase === 'ended' ? t('timelapse.playAgain') : `${t('timelapse.play')} / ${t('timelapse.pause')}`}>
           {v.phase === 'playing' ? '⏸' : v.phase === 'ended' ? '↺' : '▶'}
         </button>
         <span className="replay-time small">{hhmm(v.from)}</span>
         <Scrubber />
         <span className="replay-time small">{hhmm(v.to)}</span>
-        <div className="replay-speeds" role="group" aria-label="Speed">
+        <div className="replay-speeds" role="group" aria-label={t('timelapse.speed')}>
           {SPEEDS.map((s) => (
             <button key={s} className={`btn btn-small ${v.speed === s ? 'btn-good' : 'btn-ghost'}`} aria-pressed={v.speed === s} onClick={() => setReplaySpeed(s)}>
               {s}×
             </button>
           ))}
         </div>
-        <button className="btn btn-small" onClick={stopReplay} title="Back to the live office">
-          ⏹ Live <kbd>Esc</kbd>
+        <button className="btn btn-small" onClick={stopReplay} title={t('timelapse.backLive')}>
+          {t('timelapse.live')} <kbd>Esc</kbd>
         </button>
         {(loading || v.phase === 'error' || v.phase === 'ended') && (
           <div className={`replay-note small ${v.phase === 'error' ? 'replay-note-bad' : ''}`}>
-            {loading ? 'Loading the journal…' : v.phase === 'error' ? `Couldn't load the journal: ${v.error}` : 'That was the whole stretch. ↺ plays it again, Esc goes back to live.'}
+            {loading ? t('timelapse.loadingNote') : v.phase === 'error' ? t('timelapse.error', { error: v.error ?? '' }) : t('timelapse.ended')}
           </div>
         )}
       </div>
