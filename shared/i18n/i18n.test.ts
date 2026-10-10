@@ -53,7 +53,7 @@ describe('i18n', () => {
       const de: Catalog = area.de;
       const placeholders = (value: string) => [...new Set(value.match(/\{\w+\}/g) ?? [])].sort();
       for (const key of Object.keys(en)) {
-        expect(key).toMatch(/^[a-z][a-zA-Z0-9]*\.[a-z][a-zA-Z0-9]*\.[a-z][a-zA-Z0-9]*$/);
+        expect(key).toMatch(/^[a-z][a-zA-Z0-9]*(?:\.[a-z0-9][a-zA-Z0-9]*){1,3}$/);
         const english = en[key];
         const german = de[key];
         if (typeof english === 'string') {

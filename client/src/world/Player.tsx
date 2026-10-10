@@ -82,6 +82,17 @@ export function runFocusAction(focus: Focus, via: 'key' | 'click' = 'key') {
     takeBlaster(focus.action.toyId, focus.id.startsWith('toy:rack:'));
     return;
   }
+  if (focus.action.kind === 'pickup' && focus.action.toyId.startsWith('cigarette-pack')) {
+    s.setHeld({
+      kind: 'cigarette',
+      id: 'cigarette',
+      lit: false,
+      puffs: 6,
+      puffAt: 0,
+    });
+    s.pushToast('info', '🚬 Kippe genommen. E zum Anzünden.');
+    return;
+  }
   if (focus.action.kind === 'pickup' && isMugId(focus.action.toyId)) {
     takeMug(focus.action.toyId);
     return;
@@ -162,6 +173,27 @@ export function runFocusAction(focus: Focus, via: 'key' | 'click' = 'key') {
  * With coffee in hand it takes a sip instead, except at the coffee machine. */
 function interact() {
   const s = useStore.getState();
+  if (s.held?.kind === 'cigarette') {
+    const cigarette = s.held;
+
+    if (!cigarette.lit) {
+      s.setHeld({ ...cigarette, lit: true });
+      s.pushToast('info', '🔥 Kippe brennt. E zum Ziehen, G zum Weglegen.');
+    } else if (performance.now() - cigarette.puffAt < 2500) {
+      return;
+    } else if (cigarette.puffs <= 1) {
+      s.setHeld(null);
+      s.pushToast('info', '🚬 Kippe aufgeraucht.');
+    } else {
+      s.setHeld({
+        ...cigarette,
+        puffs: cigarette.puffs - 1,
+        puffAt: performance.now(),
+      });
+    }
+    return;
+  }
+
   const act = eAction(s.held, s.focus?.action.kind ?? null);
   if (act === 'sip') sipCoffee();
   else if (act === 'empty') s.pushToast('info', "☕ It's empty: refill it at the machine");

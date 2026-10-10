@@ -1,3 +1,4 @@
+import { useT } from '../i18n';
 import { useMemo } from 'react';
 import { AgentCard } from './AgentCard';
 import { floorPrCounts, repoOnFloor, usePhoneBadge, useStore } from '../store';
@@ -25,12 +26,13 @@ import { togglePhoto, usePhotoGate } from '../photo/gate';
 
 /** While the office is on its way to updating itself (or restarting to do it); opens the console's Office row. */
 function OfficeUpdateChip() {
-  const text = useStore((s) => (s.restarting ? '⟳ Office restarting…' : officeUpdateChip(s.officeUpdate)));
+  const t = useT();
+  const text = useStore((s) => (s.restarting ? t("hud.officeRestarting") : officeUpdateChip(s.officeUpdate)));
   const overlay = useStore((s) => s.overlay);
   const openOverlay = useStore((s) => s.openOverlay);
   if (!text || overlay?.kind === 'manager') return null;
   return (
-    <button className="office-chip" onClick={() => openOverlay({ kind: 'manager', tab: 'floors' })} title="The office is updating itself. Open the manager's console">
+    <button className="office-chip" onClick={() => openOverlay({ kind: 'manager', tab: 'floors' })} title={t("hud.officeTip")}>
       {text}
     </button>
   );
@@ -38,6 +40,7 @@ function OfficeUpdateChip() {
 
 /** While Claude's usage holds new work back (pacing or paused); opens Mission control at the usage meter. */
 function UsageChip() {
+  const t = useT();
   const usage = useStore((s) => s.usage);
   const sessions = useStore((s) => s.settings.pacingSessions);
   const overlay = useStore((s) => s.overlay);
@@ -45,7 +48,7 @@ function UsageChip() {
   const text = usageChip(usage, sessions, Date.now());
   if (!text || overlay?.kind === 'manager') return null;
   return (
-    <button className={`office-chip usage-chip usage-chip-${usage.state}`} onClick={() => openOverlay({ kind: 'manager', tab: 'ops', card: 'usage' })} title="Claude's usage is holding new work back. Open Mission control">
+    <button className={`office-chip usage-chip usage-chip-${usage.state}`} onClick={() => openOverlay({ kind: 'manager', tab: 'ops', card: 'usage' })} title={t("hud.usageTip")}>
       {text}
     </button>
   );
@@ -53,19 +56,21 @@ function UsageChip() {
 
 /** The office doctor's findings (server/watchdog.ts); opens them in Mission control. */
 function DoctorChip() {
+  const t = useT();
   const count = useStore((s) => s.doctor.length);
   const overlay = useStore((s) => s.overlay);
   const openOverlay = useStore((s) => s.openOverlay);
   if (!count || overlay?.kind === 'manager') return null;
   return (
-    <button className="office-chip doctor-chip" onClick={() => openOverlay({ kind: 'manager', tab: 'ops', card: 'doctor' })} title="The office doctor found something stuck. Open Mission control">
-      🩺 {count} to check
+    <button className="office-chip doctor-chip" onClick={() => openOverlay({ kind: 'manager', tab: 'ops', card: 'doctor' })} title={t("hud.doctorTip")}>
+      🩺 {t("hud.toCheck").replace("{count}", String(count))}
     </button>
   );
 }
 
 /** The phone in your pocket: always one key (or click) away, with a badge when the CEO is waiting on you. */
 function PhoneButton() {
+  const t = useT();
   const badge = usePhoneBadge();
   const started = useStore((s) => s.started);
   const overlay = useStore((s) => s.overlay);
@@ -75,11 +80,11 @@ function PhoneButton() {
   if (!started || overlay?.kind === 'phone') return null;
   const busy = ceo?.status === 'working';
   return (
-    <button className={`phone-btn ${badge ? 'phone-btn-ring' : ''}`} onClick={() => openOverlay({ kind: 'phone' })} title={`Your phone (${key})`}>
+    <button className={`phone-btn ${badge ? 'phone-btn-ring' : ''}`} onClick={() => openOverlay({ kind: 'phone' })} title={t("hud.phoneTip").replace("{key}", key)}>
       <span className="phone-btn-icon">📱</span>
       {badge > 0 && <span className="badge phone-btn-badge">{badge}</span>}
       <span className="phone-btn-label">
-        <Key action="phone" /> {badge ? `${badge} waiting` : busy ? `${ceo.name} is working` : 'Phone'}
+        <Key action="phone" /> {badge ? t("hud.waiting").replace("{count}", String(badge)) : busy ? t("hud.ceoWorking").replace("{name}", ceo.name) : t("hud.phone")}
       </span>
     </button>
   );
@@ -87,32 +92,35 @@ function PhoneButton() {
 
 /** Photo mode (K by default); a red dot while instant replay keeps the last 15 s (I saves them). */
 function PhotoButton() {
+  const t = useT();
   const started = useStore((s) => s.started);
   const replay = usePhotoGate((s) => s.replay);
   const photoKey = useKeyName('photo');
   const replayKey = useKeyName('saveReplay');
   if (!started) return null;
   return (
-    <button className="pill pill-photo" onClick={togglePhoto} title={replay ? `Photo mode (${photoKey}). Instant replay is on: ${replayKey} saves the last 15 s` : `Photo mode (${photoKey}): freeze the office, frame a shot, record a clip`}>
+    <button className="pill pill-photo" onClick={togglePhoto} title={replay ? t('hud.photoReplay').replace('{key}', photoKey).replace('{replay}', replayKey) : t('hud.photoMode').replace('{key}', photoKey)}>
       📷 <kbd>{photoKey}</kbd>
-      {replay && <span className="pill-photo-rec" aria-label="Instant replay on" />}
+      {replay && <span className="pill-photo-rec" aria-label={t("hud.replayOn")} />}
     </button>
   );
 }
 
 /** On the phone icon while a message is read aloud (ui/voiceMessages.ts); a click stops it. */
 function VoiceIndicator() {
+  const t = useT();
   const speaking = useStore((s) => s.voiceSpeaking);
   const started = useStore((s) => s.started);
   if (!started || speaking === null) return null;
   return (
-    <button className="voice-speaking" onClick={() => void import('./voiceMessages').then((v) => v.stopSpeaking())} title="Reading a message aloud. Click to stop" aria-label="Stop reading the message aloud">
+    <button className="voice-speaking" onClick={() => void import('./voiceMessages').then((v) => v.stopSpeaking())} title={t("hud.voiceTip")} aria-label={t("hud.voiceStop")}>
       🔊
     </button>
   );
 }
 
 export function HUD() {
+  const t = useT();
   const floor = useStore((s) => s.floor);
   const repos = useStore((s) => s.repos);
   const agents = useStore((s) => s.agents);
@@ -154,13 +162,18 @@ export function HUD() {
       <div className="hud-floor" style={{ ['--accent' as string]: roof ? '#7cc6fe' : (repo?.color ?? '#ff8a5b') }}>
         <div className="floor-num">{roof ? 'R' : repo ? repo.floor : 'G'}</div>
         <div>
-          <div className="floor-name">{roof ? `${settings.companyName || 'cubefarm'} · Roof terrace` : repo ? repo.fullName : `${settings.companyName || 'cubefarm'} · Lobby`}</div>
+          <div className="floor-name">{roof ? `${settings.companyName || 'cubefarm'} · ${t('hud.roof')}` : repo ? repo.fullName : `${settings.companyName || 'cubefarm'} · ${t('hud.lobby')}`}</div>
           <div className="floor-sub">
             {roof
-              ? 'deck chairs, the barbecue and the telescope'
+              ? t("hud.roofInfo")
               : repo && prs
-                ? `${floorAgents.length} agents · ${floorAgents.filter((a) => a.status === 'working' || a.status === 'preparing').length} working · ${prs.inQa} in QA · ${prs.ready} ready to merge${prs.needsYou ? ` · ${prs.needsYou} need${prs.needsYou === 1 ? 's' : ''} you` : ''}`
-                : `${repos.length} floor${repos.length === 1 ? '' : 's'} connected`}
+                ? t("hud.floorInfo")
+                  .replace("{agents}", String(floorAgents.length))
+                  .replace("{working}", String(floorAgents.filter((a) => a.status === 'working' || a.status === 'preparing').length))
+                  .replace("{qa}", String(prs.inQa))
+                  .replace("{ready}", String(prs.ready))
+                  + (prs.needsYou ? t("hud.needsYou").replace("{count}", String(prs.needsYou)) : "")
+                : t("hud.connectedFloors").replace("{count}", String(repos.length))}
           </div>
         </div>
         <OverviewButton />
@@ -168,9 +181,9 @@ export function HUD() {
 
       <div className="hud-status">
         {demo && <span className="pill pill-demo">DEMO</span>}
-        <span className={`pill ${replaying ? 'pill-replay' : connected ? 'pill-ok' : restarting ? 'pill-demo' : 'pill-bad'}`}>{replaying ? '▶ replay' : connected ? '● live' : restarting ? '○ restarting' : '○ reconnecting'}</span>
+        <span className={`pill ${replaying ? 'pill-replay' : connected ? 'pill-ok' : restarting ? 'pill-demo' : 'pill-bad'}`}>{replaying ? t("hud.replay") : connected ? t("hud.live") : restarting ? t("hud.restarting") : t("hud.reconnecting")}</span>
         <span className="pill">
-          ⚙️ {settings.sessionLimit ? `${running}/${settings.sessionLimit}` : running} sessions
+          ⚙️ {settings.sessionLimit ? `${running}/${settings.sessionLimit}` : running} {t("hud.sessions")}
         </span>
         <CoinChip />
         {user && <span className="pill">🐙 {user}</span>}
@@ -197,32 +210,32 @@ export function HUD() {
       {started && !overlay && onFoot && (focus || sip) && (
         <div className="hud-hint">
           <Key action="interact" /> {!held && <>/ <kbd>Click</kbd> </>}
-          {sip ? (held?.kind === 'sausage' ? 'Take a bite' : 'Sip coffee') : (dropLabel ?? focus?.label)}
+          {sip ? (held?.kind === 'sausage' ? t("hud.bite") : t("hud.coffee")) : (dropLabel ?? focus?.label)}
           {!held && focus?.action.kind === 'card' && focus.action.peel && (
             <>
               {' '}
-              · <Key action="drop" /> / hold <kbd>Click</kbd> take it
+              · <Key action="drop" /> / {t('hud.hold')} <kbd>Click</kbd> {t('hud.takeIt')}
             </>
           )}
           {!sip && focus?.action.kind === 'jukebox' && (
             <>
               {' '}
-              · <Key action="volumeDown" /> <Key action="volumeUp" /> / <kbd>Scroll</kbd> volume
+              · <Key action="volumeDown" /> <Key action="volumeUp" /> / <kbd>Scroll</kbd> {t('hud.volume')}
             </>
           )}
         </div>
       )}
       {started && !overlay && !travel && onFoot && <HeldHint />}
-      {started && !overlay && !locked && !travel && onFoot && <div className="hud-resume">Click to look around</div>}
+      {started && !overlay && !locked && !travel && onFoot && <div className="hud-resume">{t("hud.lookAround")}</div>}
       {started && !(settings.setupDone && settings.tutorialStep >= 0) && (
         <div className="hud-help">
-          <MoveKeys joined /> move · <Key action="run" /> run · <Key action="interact" /> / <kbd>Click</kbd> interact · <Key action="phone" /> phone · <Key action="emote" /> emote · <Key action="ping" /> ping · <Key action="photo" /> photo ·{' '}
-          <Key action="overview" /> overview · <Key action="workers" /> workers · <Key action="mute" /> mute · <Key action="help" /> help · <kbd>Esc</kbd> free mouse
+          <MoveKeys joined /> {t('hud.move')} · <Key action="run" /> {t('hud.run')} · <Key action="interact" /> / <kbd>Click</kbd> {t('hud.interact')} · <Key action="phone" /> {t('hud.phone')} · <Key action="emote" /> {t('hud.emote')} · <Key action="ping" /> {t('hud.ping')} · <Key action="photo" /> {t('hud.photo')} ·{' '}
+          <Key action="overview" /> {t('hud.overview')} · <Key action="workers" /> {t('hud.workers')} · <Key action="mute" /> {t('hud.mute')} · <Key action="help" /> {t('hud.help')} · <kbd>Esc</kbd> {t('hud.freeMouse')}
         </div>
       )}
 
       <div className={`fade ${travel?.phase === 'closing' ? 'fade-in' : ''}`}>
-        {travel && <div className="fade-label">{travel.to === 0 ? 'Lobby' : travel.to === ROOF ? 'Roof' : `Floor ${travel.to}`}</div>}
+        {travel && <div className="fade-label">{travel.to === 0 ? t("hud.lobby") : travel.to === ROOF ? t("hud.roof") : `${t("hud.floor")} ${travel.to}`}</div>}
       </div>
 
       <CameraHud />

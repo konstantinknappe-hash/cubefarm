@@ -7,6 +7,7 @@ import { Key } from './Key';
 import { resetA11y, setA11y, useA11y } from './a11y';
 import { DEFAULT_A11Y, LIMITS, reducesMotion, showsShapes, type A11yPrefs, type ReduceMotion } from './a11yPrefs';
 import { KIND_ICON, KIND_WORD, kindStrong, PALETTE_LABELS, PALETTES, STATUS_KINDS, type Palette } from './statusLook';
+import { useT } from '../i18n';
 
 function Toggle({ k, children, hint, disabled }: { k: 'captions' | 'statusShapes' | 'headBob' | 'cameraShake' | 'centerDot' | 'readableFont' | 'highContrast'; children: ReactNode; hint?: string; disabled?: boolean }) {
   const on = useA11y((s) => s.prefs[k]);
@@ -28,6 +29,7 @@ function Toggle({ k, children, hint, disabled }: { k: 'captions' | 'statusShapes
 }
 
 function Slider({ k, label, unit, describe }: { k: 'captionSize' | 'captionBg' | 'fov' | 'uiScale'; label: string; unit: string; describe?: (v: number) => string }) {
+  const t = useT();
   const v = useA11y((s) => s.prefs[k]);
   const { min, max, step } = LIMITS[k];
   return (
@@ -39,8 +41,8 @@ function Slider({ k, label, unit, describe }: { k: 'captionSize' | 'captionBg' |
         {unit}
       </b>
       {v !== DEFAULT_A11Y[k] && (
-        <button type="button" className="btn btn-ghost btn-small" onClick={() => setA11y({ [k]: DEFAULT_A11Y[k] })} aria-label={`Reset ${label.toLowerCase()}`}>
-          Reset
+        <button type="button" className="btn btn-ghost btn-small" onClick={() => setA11y({ [k]: DEFAULT_A11Y[k] })} aria-label={t('access.resetAria').replace('{label}', label.toLowerCase())}>
+          {t('access.reset')}
         </button>
       )}
     </label>
@@ -49,8 +51,9 @@ function Slider({ k, label, unit, describe }: { k: 'captionSize' | 'captionBg' |
 
 /** Each kind of status as it looks now: its colour and shape, and its name. */
 function Swatches({ palette, shapes }: { palette: Palette; shapes: boolean }) {
+  const t = useT();
   return (
-    <ul className="status-swatches" aria-label="How statuses look">
+    <ul className="status-swatches" aria-label={t('access.howStatus')}>
       {STATUS_KINDS.map((k) => (
         <li key={k} className={`status-kind status-kind-${k}`} style={{ ['--kind' as string]: kindStrong(k, palette) }}>
           {shapes && <span aria-hidden>{KIND_ICON[k]}</span>} {KIND_WORD[k]}
@@ -60,24 +63,28 @@ function Swatches({ palette, shapes }: { palette: Palette; shapes: boolean }) {
   );
 }
 
-const MOTION_LABELS: Record<ReduceMotion, string> = { system: 'Follow my system setting', on: 'Always reduce motion', off: 'Full motion' };
-
 export function AccessibilitySettings({ pocket = false }: { pocket?: boolean }) {
+  const t = useT();
   const prefs = useA11y((s) => s.prefs);
   const systemReduced = useA11y((s) => s.systemReduced);
   const openOverlay = useStore((s) => s.openOverlay);
   const name = useId();
   const shapes = showsShapes(prefs);
   const set = (p: Partial<A11yPrefs>) => setA11y(p);
+  const motionLabels: Record<ReduceMotion, string> = {
+    system: t('access.motion.system'),
+    on: t('access.motion.on'),
+    off: t('access.motion.off'),
+  };
   return (
     <>
       <section className="card a11y-card" aria-labelledby={`${name}-cap`}>
-        <h3 id={`${name}-cap`}>💬 Captions</h3>
-        <Toggle k="captions" hint="The CEO's messages written out as they're read aloud, and short captions for important sounds (the gong, a merge cheer, alarms, the jukebox) with an arrow towards where they came from.">
-          Show captions
+        <h3 id={`${name}-cap`}>{t('access.captions')}</h3>
+        <Toggle k="captions" hint={t('access.captionHint')}>
+          {t('access.showCaptions')}
         </Toggle>
-        <Slider k="captionSize" label="Caption size" unit="%" />
-        <Slider k="captionBg" label="Caption background" unit="%" />
+        <Slider k="captionSize" label={t('access.captionSize')} unit="%" />
+        <Slider k="captionBg" label={t('access.captionBg')} unit="%" />
         <div className="captions captions-preview" aria-hidden style={{ ['--caption-scale' as string]: prefs.captionSize / 100, ['--caption-bg' as string]: prefs.captionBg / 100 }}>
           <div className="caption">[gong] ↗</div>
           <div className="caption caption-speech">
@@ -87,71 +94,77 @@ export function AccessibilitySettings({ pocket = false }: { pocket?: boolean }) 
       </section>
 
       <section className="card a11y-card" aria-labelledby={`${name}-col`}>
-        <h3 id={`${name}-col`}>🎨 Colour and status</h3>
+        <h3 id={`${name}-col`}>{t('access.colorStatus')}</h3>
         <fieldset className="a11y-fieldset">
-          <legend>Status colours</legend>
+          <legend>{t('access.statusColors')}</legend>
           {PALETTES.map((p) => (
             <label key={p} className="toggle block">
               <input type="radio" name={`${name}-palette`} checked={prefs.palette === p} onChange={() => set({ palette: p })} /> {PALETTE_LABELS[p]}
             </label>
           ))}
         </fieldset>
-        <Toggle k="statusShapes" disabled={prefs.palette !== 'standard'} hint={prefs.palette !== 'standard' ? 'Always on with a colour-blind palette.' : 'On name tags, the whiteboard, Kanban cards, status pills and toasts.'}>
-          Shapes beside status colours (✓ ✕ ! ⏳)
+        <Toggle k="statusShapes" disabled={prefs.palette !== 'standard'} hint={prefs.palette !== 'standard' ? t('access.shapesAlwaysOn') : t('access.shapesHint')}>
+          {t('access.shapesLabel')}
         </Toggle>
         <Swatches palette={prefs.palette} shapes={shapes} />
       </section>
 
       {!pocket && (
         <section className="card a11y-card" aria-labelledby={`${name}-mot`}>
-          <h3 id={`${name}-mot`}>🌀 Motion</h3>
-          <Slider k="fov" label="Field of view" unit="°" describe={(v) => (v < 72 ? 'narrower' : v > 72 ? 'wider' : 'normal')} />
-          <Toggle k="headBob">Head bob while walking</Toggle>
-          <Toggle k="cameraShake" hint="The view tipping back when you sip a coffee, and any screen shake.">
-            Camera sway and shake
+          <h3 id={`${name}-mot`}>{t('access.motion')}</h3>
+          <Slider k="fov" label={t('access.fov')} unit="°" describe={(v) => (v < 72 ? t('access.fovNarrower') : v > 72 ? t('access.fovWider') : t('access.fovNormal'))} />
+          <Toggle k="headBob">{t('access.headBob')}</Toggle>
+          <Toggle k="cameraShake" hint={t('access.cameraShakeHint')}>
+            {t('access.cameraShake')}
           </Toggle>
           <fieldset className="a11y-fieldset">
-            <legend>Reduce motion</legend>
-            {(Object.keys(MOTION_LABELS) as ReduceMotion[]).map((m) => (
+            <legend>{t('access.reduceMotion')}</legend>
+            {(Object.keys(motionLabels) as ReduceMotion[]).map((m) => (
               <label key={m} className="toggle block">
-                <input type="radio" name={`${name}-motion`} checked={prefs.reduceMotion === m} onChange={() => set({ reduceMotion: m })} /> {MOTION_LABELS[m]}
-                {m === 'system' && <span className="muted small">(your system {systemReduced ? 'asks for less motion' : "doesn't ask for less motion"})</span>}
+                <input type="radio" name={`${name}-motion`} checked={prefs.reduceMotion === m} onChange={() => set({ reduceMotion: m })} /> {motionLabels[m]}
+                {m === 'system' && <span className="muted small">({t('help.locale') === 'de' ? 'dein System' : 'your system'} {t(systemReduced ? 'access.motion.systemOn' : 'access.motion.systemOff')})</span>}
               </label>
             ))}
             <p className="muted small">
-              Reduced motion: confetti bursts become a glow, the elevator doors cut to a fade, and panels, toasts and badges appear without moving.{' '}
-              {reducesMotion(prefs.reduceMotion, systemReduced) ? 'On now.' : 'Off now.'}
+              {t('access.motion.reduced')}{' '}
+              {t(reducesMotion(prefs.reduceMotion, systemReduced) ? 'access.motion.onNow' : 'access.motion.offNow')}
             </p>
           </fieldset>
-          <Toggle k="centerDot" hint="A dot fixed in the middle of the view, which helps some people with motion sickness.">
-            Centre dot
+          <Toggle k="centerDot" hint={t('access.centerDotHint')}>
+            {t('access.centerDot')}
           </Toggle>
         </section>
       )}
 
       <section className="card a11y-card" aria-labelledby={`${name}-read`}>
-        <h3 id={`${name}-read`}>🔎 Size and readability</h3>
-        <Slider k="uiScale" label="UI scale" unit="%" />
-        <p className="muted small">The HUD, the phone, the console and every panel, from 80% to 150%.</p>
-        <Toggle k="readableFont" hint="Verdana, with wider letter, word and line spacing, as dyslexia style guides recommend.">
-          Dyslexia-friendly font
+        <h3 id={`${name}-read`}>{t('access.size')}</h3>
+        <Slider k="uiScale" label={t('access.uiScale')} unit="%" />
+        <p className="muted small">{t('access.uiScaleHint')}</p>
+        <Toggle k="readableFont" hint={t('access.readableFontHint')}>
+          {t('access.readableFont')}
         </Toggle>
-        <Toggle k="highContrast" hint="Plain white panels, darker grey text, heavier borders and focus rings.">
-          High-contrast panels
+        <Toggle k="highContrast" hint={t('access.highContrastHint')}>
+          {t('access.highContrast')}
         </Toggle>
       </section>
 
       {!pocket && (
         <section className="card a11y-card" aria-labelledby={`${name}-kb`}>
-          <h3 id={`${name}-kb`}>⌨️ Keyboard and screen readers</h3>
-          <p className="small">
-            <Key action="phone" /> opens your phone from anywhere: its <b>Company</b> tab opens the console, this floor's Kanban, the floor list, help and these settings. <Key action="help" /> opens help. In any panel,{' '}
-            <kbd>Tab</kbd> and <kbd>Shift</kbd>+<kbd>Tab</kbd> move between controls, <kbd>Enter</kbd> or <kbd>Space</kbd> uses one and <kbd>Esc</kbd> closes it; focus goes back where it was.
-            Screen readers hear the CEO's messages and alarms as they happen.
-          </p>
+          <h3 id={`${name}-kb`}>{t('access.keyboard')}</h3>
+          {t('help.locale') === 'de' ? (
+            <p className="small">
+              <Key action="phone" /> öffnet dein Telefon überall: der Tab <b>Unternehmen</b> öffnet die Konsole, Kanban dieser Etage, die Etagenliste, Hilfe und diese Einstellungen. <Key action="help" /> öffnet die Hilfe. In jedem Bereich bewegen <kbd>Tab</kbd> und <kbd>Shift</kbd>+<kbd>Tab</kbd> zwischen Steuerelementen, <kbd>Enter</kbd> oder <kbd>Space</kbd> verwendet eines und <kbd>Esc</kbd> schließt es; der Fokus kehrt zurück. Bildschirmleser hören CEO-Nachrichten und Alarme live.
+            </p>
+          ) : (
+            <p className="small">
+              <Key action="phone" /> opens your phone from anywhere: its <b>Company</b> tab opens the console, this floor's Kanban, the floor list, help and these settings. <Key action="help" /> opens help. In any panel,{' '}
+              <kbd>Tab</kbd> and <kbd>Shift</kbd>+<kbd>Tab</kbd> move between controls, <kbd>Enter</kbd> or <kbd>Space</kbd> uses one and <kbd>Esc</kbd> closes it; focus goes back where it was.
+              Screen readers hear the CEO's messages and alarms as they happen.
+            </p>
+          )}
           <div className="row wrap">
             <button className="btn btn-small" onClick={() => openOverlay({ kind: 'floorList' })}>
-              👥 List view of this floor
+              {t('access.floorListBtn')}
             </button>
           </div>
         </section>
@@ -159,7 +172,7 @@ export function AccessibilitySettings({ pocket = false }: { pocket?: boolean }) 
 
       <div className="row">
         <button className="btn btn-ghost btn-small" onClick={resetA11y}>
-          Reset accessibility settings
+          {t('access.reset')}
         </button>
       </div>
     </>

@@ -8,7 +8,9 @@ import { Billboards } from './Billboards';
 import { DeckChairs } from './DeckChairs';
 import { Garden } from './Garden';
 import { Grill } from './Grill';
+import { CigarettePack } from './CigarettePack';
 import { HeldSausage } from './HeldSausage';
+import { HeldCigarette } from './HeldCigarette';
 import { RoofDeck } from './RoofDeck';
 import { roofReport, runRoofOp, useRoofReport } from './roofOps';
 import { RoofPeople } from './RoofPeople';
@@ -38,10 +40,12 @@ export default function Roof({ top }: { top: number }) {
       <StringLights />
       <DeckChairs />
       <Grill />
+      <CigarettePack />
       <Telescope />
       <Billboards top={top} />
       <RoofPeople />
       <HeldSausage />
+      <HeldCigarette />
       <OutsideSounds kind="roof" />
     </group>
   );

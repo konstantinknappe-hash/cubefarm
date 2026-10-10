@@ -15,20 +15,9 @@ import { keyName } from './controls';
 import { Key } from './Key';
 import { browserVoices, searchVoices, voiceLabels, type BrowserVoice } from './voicePicker';
 import { playClip, speakLine, stopVoice } from './voicePlayback';
+import { t, useT } from '../i18n';
 
 const DOCS = 'https://github.com/leonvanzyl/cubefarm/blob/main/docs/voice.md';
-
-const PROVIDERS: [VoiceProvider, string, string][] = [
-  ['off', 'Off', ''],
-  ['browser', 'Browser voice', 'free, built in'],
-  ['elevenlabs', 'ElevenLabs', 'natural voices, with your own key'],
-];
-
-const LISTENERS: [ListenProvider, string, string][] = [
-  ['off', 'Off', 'no 🎙️'],
-  ['browser', 'Browser', 'free, built in'],
-  ['elevenlabs', 'ElevenLabs Speech to Text', 'with your own key'],
-];
 
 type Save = (patch: Partial<Voice>) => void;
 
@@ -36,7 +25,7 @@ type Save = (patch: Partial<Voice>) => void;
 type Playing = string | null;
 
 function hintMuted() {
-  if (getAudioPrefs().muted) useStore.getState().pushToast('info', `🔇 Sound is off: press ${keyName('mute')} to hear it`);
+  if (getAudioPrefs().muted) useStore.getState().pushToast('info', t('voice.mutedHint').replace('{key}', keyName('mute')));
 }
 
 /** The browser's voices, which arrive asynchronously; null where the browser can't speak. */
@@ -54,6 +43,7 @@ function useBrowserVoices(): BrowserVoice[] | null {
 }
 
 function ElevenLabsKey() {
+  const t = useT();
   const keySet = useStore((s) => s.voiceKeySet);
   const hint = useStore((s) => s.voiceKeyHint);
   const [editing, setEditing] = useState(false);
@@ -78,23 +68,23 @@ function ElevenLabsKey() {
     return (
       <div className="row wrap">
         <span className="grow">
-          🔑 Key saved <code>••••{hint}</code>
+          {t('voice.keySaved').replace('{hint}', hint ?? '')}
         </span>
         <button className="btn btn-small" onClick={() => setEditing(true)}>
-          Replace
+          {t('voice.replace')}
         </button>
         <button
           className="btn btn-small btn-ghost"
           disabled={busy}
           onClick={() =>
-            void confirmDialog({ tone: 'danger', title: 'Remove the ElevenLabs key?', body: 'It is deleted from this PC. Messages are not read aloud by ElevenLabs until you add a key again.', confirm: 'Remove' }).then(
+            void confirmDialog({ tone: 'danger', title: t('voice.removeTitle'), body: t('voice.removeBody'), confirm: t('voice.removeConfirm') }).then(
               (ok) => {
                 if (ok) void save('');
               },
             )
           }
         >
-          Remove
+          {t('voice.remove')}
         </button>
       </div>
     );
@@ -106,14 +96,14 @@ function ElevenLabsKey() {
       }}
     >
       <label className="field">
-        <span>ElevenLabs API key</span>
+        <span>{t('voice.apiKey')}</span>
         <input
           type="password"
           value={key}
           onChange={(e) => setKey(e.target.value)}
           autoComplete="off"
           spellCheck={false}
-          placeholder={keySet ? 'Paste the new key' : 'Paste your key'}
+          placeholder={keySet ? t('voice.pasteNew') : t('voice.pasteYour')}
           aria-invalid={!!error}
           aria-describedby={error ? errorId : undefined}
         />
@@ -125,7 +115,7 @@ function ElevenLabsKey() {
       )}
       <div className="row">
         <button className="btn btn-small btn-good" disabled={busy || !key.trim()}>
-          {busy ? 'Checking…' : 'Save key'}
+          {busy ? t('voice.checking') : t('voice.saveKey')}
         </button>
         {editing && (
           <button
@@ -137,7 +127,7 @@ function ElevenLabsKey() {
               setError('');
             }}
           >
-            Cancel
+            {t('voice.cancel')}
           </button>
         )}
       </div>
@@ -146,6 +136,7 @@ function ElevenLabsKey() {
 }
 
 function VoiceRow({ v, chosen, playing, onChoose, onPreview }: { v: VoiceOption; chosen: boolean; playing: boolean; onChoose: () => void; onPreview: () => void }) {
+  const t = useT();
   const labels = voiceLabels(v);
   return (
     <div className={`voice-row ${chosen ? 'voice-row-on' : ''}`}>
@@ -160,17 +151,18 @@ function VoiceRow({ v, chosen, playing, onChoose, onPreview }: { v: VoiceOption;
       <button
         type="button"
         className="btn btn-small btn-ghost"
-        aria-label={playing ? `Stop the preview of ${v.name}` : `Preview ${v.name}`}
-        title={v.previewUrl ? undefined : 'Says the test line in this voice'}
+        aria-label={playing ? t('voice.stopPreviewAria').replace('{name}', v.name) : t('voice.previewAria').replace('{name}', v.name)}
+        title={v.previewUrl ? undefined : t('voice.testFirst')}
         onClick={onPreview}
       >
-        {playing ? '■ Stop' : '▶ Preview'}
+        {playing ? t('voice.stopBtn') : t('voice.previewBtn')}
       </button>
     </div>
   );
 }
 
 function ElevenLabsVoices({ voice, save, playing, setPlaying }: { voice: Voice; save: Save; playing: Playing; setPlaying: (p: Playing) => void }) {
+  const t = useT();
   const hint = useStore((s) => s.voiceKeyHint);
   const [list, setList] = useState<VoiceOption[] | null>(null);
   const [failed, setFailed] = useState(false);
@@ -208,8 +200,8 @@ function ElevenLabsVoices({ voice, save, playing, setPlaying }: { voice: Voice; 
       setPlaying(null);
     }
   };
-  if (failed) return <p className="muted small">Couldn't load the voices.</p>;
-  if (!list) return <p className="muted small">Loading the voices…</p>;
+  if (failed) return <p className="muted small">{t('voice.loadFailed')}</p>;
+  if (!list) return <p className="muted small">{t('voice.loading')}</p>;
   const { recommended, others } = searchVoices(list, query);
   const row = (v: VoiceOption) => (
     <VoiceRow key={v.id} v={v} chosen={voice.voiceId === v.id} playing={playing === v.id} onChoose={() => save({ voiceId: v.id, voiceName: v.name })} onPreview={() => void preview(v)} />
@@ -218,30 +210,31 @@ function ElevenLabsVoices({ voice, save, playing, setPlaying }: { voice: Voice; 
     <>
       <label className="field">
         <span>
-          Voice{voice.voiceName && <span className="muted"> · {voice.voiceName}</span>}
+          {t('voice.voiceLabel')}{voice.voiceName && <span className="muted"> · {voice.voiceName}</span>}
         </span>
-        <input type="search" aria-label="Search voices" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by name, accent, age…" />
+        <input type="search" aria-label={t('voice.searchAria')} value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('voice.voiceSearch')} />
       </label>
-      <div ref={listRef} className="voice-list" role="radiogroup" aria-label="ElevenLabs voices">
-        {recommended.length > 0 && <div className="voice-group">⭐ Recommended</div>}
+      <div ref={listRef} className="voice-list" role="radiogroup" aria-label={t('voice.listAria')}>
+        {recommended.length > 0 && <div className="voice-group">{t('voice.recommended')}</div>}
         {recommended.map(row)}
-        {others.length > 0 && <div className="voice-group">All voices</div>}
+        {others.length > 0 && <div className="voice-group">{t('voice.allVoices')}</div>}
         {others.map(row)}
-        {recommended.length + others.length === 0 && <div className="muted small">No voice matches “{query}”.</div>}
+        {recommended.length + others.length === 0 && <div className="muted small">{t('voice.noMatch').replace('{query}', query)}</div>}
       </div>
     </>
   );
 }
 
 function BrowserVoices({ voice, save }: { voice: Voice; save: Save }) {
+  const t = useT();
   const voices = useBrowserVoices();
-  if (!voices) return <p className="muted small">This browser can't speak. Try Chrome or Edge, or pick ElevenLabs.</p>;
+  if (!voices) return <p className="muted small">{t('voice.browserCantSpeak')}</p>;
   const chosen = voices.some((v) => v.name === voice.voiceName) ? voice.voiceName : '';
   return (
     <label className="field">
-      <span>Browser voice</span>
+      <span>{t('voice.browser')}</span>
       <select value={chosen} onChange={(e) => save({ voiceName: e.target.value })}>
-        <option value="">The browser's default</option>
+        <option value="">{t('voice.browserDefault')}</option>
         {voices.map((v) => (
           <option key={v.name} value={v.name}>
             {v.name}
@@ -249,13 +242,14 @@ function BrowserVoices({ voice, save }: { voice: Voice; save: Save }) {
           </option>
         ))}
       </select>
-      {voices.length === 0 && <span className="muted small">The browser hasn't listed its voices yet; its default voice is used.</span>}
+      {voices.length === 0 && <span className="muted small">{t('voice.browserNoVoices')}</span>}
     </label>
   );
 }
 
 /** How long ElevenLabs clips are kept for the phone's ▶, how much is saved now, and a way to clear it. */
 function SavedClips({ voice, save }: { voice: Voice; save: Save }) {
+  const t = useT();
   const cache = useStore((s) => s.voiceCache);
   const [days, setDays] = useState(String(voice.keepDays));
   const [busy, setBusy] = useState(false);
@@ -268,9 +262,9 @@ function SavedClips({ voice, save }: { voice: Voice; save: Save }) {
   const clear = async () => {
     const ok = await confirmDialog({
       tone: 'danger',
-      title: 'Clear saved clips?',
-      body: "Messages read by ElevenLabs can't be replayed from the phone after this. New messages are saved again as they arrive.",
-      confirm: 'Clear',
+      title: t('voice.clearTitle'),
+      body: t('voice.clearBody'),
+      confirm: t('voice.clearConfirm'),
     });
     if (!ok) return;
     setBusy(true);
@@ -280,7 +274,7 @@ function SavedClips({ voice, save }: { voice: Voice; save: Save }) {
   return (
     <div className="voice-clips">
       <label className="field">
-        <span>Keep voice clips for</span>
+        <span>{t('voice.keepClips')}</span>
         <span className="row">
           <input
             type="number"
@@ -293,7 +287,7 @@ function SavedClips({ voice, save }: { voice: Voice; save: Save }) {
             onKeyDown={(e) => e.key === 'Enter' && commit()}
             style={{ width: '5em' }}
           />
-          <span>days</span>
+          <span>{t('voice.days')}</span>
         </span>
       </label>
       <div className="row wrap">
@@ -302,7 +296,7 @@ function SavedClips({ voice, save }: { voice: Voice; save: Save }) {
           <span className="muted"> · the newest 20 CEO messages always keep theirs, so ▶ on the phone replays them for free</span>
         </span>
         <button className="btn btn-small btn-ghost" disabled={busy || cache.clips === 0} onClick={() => void clear()}>
-          Clear saved clips
+          {t('voice.clearClips')}
         </button>
       </div>
     </div>
@@ -310,6 +304,7 @@ function SavedClips({ voice, save }: { voice: Voice; save: Save }) {
 }
 
 export function VoiceSettings() {
+  const t = useT();
   const voice = useStore((s) => s.settings.voice);
   const keySet = useStore((s) => s.voiceKeySet);
   const cache = useStore((s) => s.voiceCache);
@@ -319,13 +314,18 @@ export function VoiceSettings() {
   const save: Save = (patch) => void api.updateSettings({ voice: { ...voice, ...patch } }).catch(() => undefined);
   const eleven = voice.provider === 'elevenlabs';
   const canTest = voice.provider === 'browser' || (eleven && keySet && !!voice.voiceId);
+  const providers: [VoiceProvider, string, string][] = [
+    ['off', t('voice.off'), ''],
+    ['browser', t('voice.browser'), t('voice.browserNote')],
+    ['elevenlabs', t('voice.elevenlabs'), t('voice.elevenNote')],
+  ];
   const test = async () => {
     if (playing === 'test') return stopVoice();
     hintMuted();
     setPlaying('test');
     try {
       const ok = eleven ? await playClip(await api.voiceSample(voice.voiceId)) : await speakLine(SAMPLE_LINE, voice.voiceName);
-      if (!ok) useStore.getState().pushToast('error', eleven ? "Couldn't play the test" : "The browser couldn't speak the test line");
+      if (!ok) useStore.getState().pushToast('error', eleven ? t('voice.cantPlayTest') : t('voice.browserCantTest'));
     } catch {
       // api already toasted the error
     } finally {
@@ -334,13 +334,13 @@ export function VoiceSettings() {
   };
   return (
     <div className="card">
-      <h3>🔊 Voice</h3>
-      <p className="muted small">Hear the CEO's messages read aloud the moment they arrive, without opening the phone.</p>
+      <h3>{t('voice.title')}</h3>
+      <p className="muted small">{t('voice.desc')}</p>
       <div role="radiogroup" aria-labelledby={`${radioName}-label`}>
         <div id={`${radioName}-label`} className="field">
-          Speak messages
+          {t('voice.speak')}
         </div>
-        {PROVIDERS.map(([p, label, note]) => (
+        {providers.map(([p, label, note]) => (
           <label key={p} className="toggle block">
             <input type="radio" name={radioName} checked={voice.provider === p} onChange={() => save({ provider: p })} />
             <span>
@@ -352,17 +352,31 @@ export function VoiceSettings() {
       </div>
       {eleven && (
         <>
-          <p className="muted small">
-            Get a key at{' '}
-            <a href="https://elevenlabs.io" target="_blank" rel="noreferrer">
-              elevenlabs.io
-            </a>{' '}
-            (Developers → API Keys). It stays on this PC and is never shown again. Costs and voice tips are in{' '}
-            <a href={DOCS} target="_blank" rel="noreferrer">
-              docs/voice.md
-            </a>
-            .
-          </p>
+          {t('help.locale') === 'de' ? (
+            <p className="muted small">
+              Einen Schlüssel gibt es auf{' '}
+              <a href="https://elevenlabs.io" target="_blank" rel="noreferrer">
+                elevenlabs.io
+              </a>{' '}
+              (Developers → API Keys). Er bleibt auf diesem PC und wird nie wieder angezeigt. Kosten und Tipps zu Stimmen stehen in{' '}
+              <a href={DOCS} target="_blank" rel="noreferrer">
+                docs/voice.md
+              </a>
+              .
+            </p>
+          ) : (
+            <p className="muted small">
+              Get a key at{' '}
+              <a href="https://elevenlabs.io" target="_blank" rel="noreferrer">
+                elevenlabs.io
+              </a>{' '}
+              (Developers → API Keys). It stays on this PC and is never shown again. Costs and voice tips are in{' '}
+              <a href={DOCS} target="_blank" rel="noreferrer">
+                docs/voice.md
+              </a>
+              .
+            </p>
+          )}
           <ElevenLabsKey />
           {keySet && <ElevenLabsVoices voice={voice} save={save} playing={playing} setPlaying={setPlaying} />}
         </>
@@ -371,13 +385,13 @@ export function VoiceSettings() {
       {voice.provider !== 'off' && (
         <>
           <label className="toggle">
-            <input type="checkbox" checked={voice.speakOffice} onChange={(e) => save({ speakOffice: e.target.checked })} /> Also speak office alerts
+            <input type="checkbox" checked={voice.speakOffice} onChange={(e) => save({ speakOffice: e.target.checked })} /> {t('voice.speakAlerts')}
           </label>
           <div className="row">
-            <button className="btn btn-small" disabled={!canTest} onClick={() => void test()} title={canTest ? undefined : 'Save a key and pick a voice first'}>
-              {playing === 'test' ? '■ Stop' : '🔈 Test'}
+            <button className="btn btn-small" disabled={!canTest} onClick={() => void test()} title={canTest ? undefined : t('voice.testFirst')}>
+              {playing === 'test' ? t('voice.stop') : t('voice.test')}
             </button>
-            <span className="muted small">Previews and tests play at your volume; M mutes them.</span>
+            <span className="muted small">{t('voice.testNote')}</span>
           </div>
         </>
       )}
@@ -389,6 +403,7 @@ export function VoiceSettings() {
 
 /** Talking instead of typing: who turns speech into text, sending when you stop talking, and the hands-free phone. */
 function Listening({ keyShown }: { keyShown: boolean }) {
+  const t = useT();
   const listen = useStore((s) => s.settings.listen);
   const keySet = useStore((s) => s.voiceKeySet);
   const voiceOn = useStore((s) => s.settings.voice.provider !== 'off');
@@ -397,17 +412,28 @@ function Listening({ keyShown }: { keyShown: boolean }) {
   if (!listen) return null;
   const save = (patch: Partial<ListenSettings>) => void api.updateSettings({ listen: { ...listen, ...patch } }).catch(() => undefined);
   const why = listen.provider === 'off' ? '' : cantListen(listen.provider, micCaps(), keySet || listen.provider !== 'elevenlabs');
+  const listeners: [ListenProvider, string, string][] = [
+    ['off', t('voice.listen.off'), t('voice.listen.offNote')],
+    ['browser', t('voice.listen.browser'), t('voice.listen.browserNote')],
+    ['elevenlabs', t('voice.listen.elevenlabs'), t('voice.listen.elevenNote')],
+  ];
   return (
     <div className="listen-settings">
-      <h4>🎙️ Talk instead of type</h4>
-      <p className="muted small">
-        Hold the 🎙️ next to Send (or hold <Key action="talk" /> in the message box) and speak: your words fill the box, to edit before you send. A quick tap listens until you stop talking. <kbd>Esc</kbd> stops listening.
-      </p>
+      <h4>{t('voice.listen')}</h4>
+      {t('help.locale') === 'de' ? (
+        <p className="muted small">
+          Das 🎙️ neben Senden halten (oder <Key action="talk" /> im Nachrichtenfeld halten) und sprechen: Wörter füllen das Feld, zum Bearbeiten vor dem Senden. Ein kurzes Tippen hört zu, bis du aufhörst zu sprechen. <kbd>Esc</kbd> beendet das Zuhören.
+        </p>
+      ) : (
+        <p className="muted small">
+          Hold the 🎙️ next to Send (or hold <Key action="talk" /> in the message box) and speak: your words fill the box, to edit before you send. A quick tap listens until you stop talking. <kbd>Esc</kbd> stops listening.
+        </p>
+      )}
       <div role="radiogroup" aria-labelledby={`${radioName}-label`}>
         <div id={`${radioName}-label`} className="field">
-          Turn speech into text with
+          {t('voice.speechToText')}
         </div>
-        {LISTENERS.map(([p, label, note]) => (
+        {listeners.map(([p, label, note]) => (
           <label key={p} className="toggle block">
             <input type="radio" name={radioName} checked={listen.provider === p} onChange={() => save({ provider: p })} />
             <span>
@@ -419,21 +445,17 @@ function Listening({ keyShown }: { keyShown: boolean }) {
       {why && <p className="term-error small">{why}</p>}
       {listen.provider === 'elevenlabs' && (
         <>
-          <p className="muted small">
-            What you say is recorded in this browser (60 seconds at most) and sent through the office to ElevenLabs, which charges by the length of the audio. A restricted key needs the{' '}
-            <b>Speech to Text</b> permission.
-          </p>
+          <p className="muted small">{t('voice.elevenInfo')}</p>
           {!keyShown && <ElevenLabsKey />}
         </>
       )}
       {listen.provider !== 'off' && (
         <>
           <label className="toggle">
-            <input type="checkbox" checked={listen.autoSend} onChange={(e) => save({ autoSend: e.target.checked })} /> Send automatically when I stop talking
+            <input type="checkbox" checked={listen.autoSend} onChange={(e) => save({ autoSend: e.target.checked })} /> {t('voice.autoSend')}
           </label>
-          <label className="toggle" title={voiceOn ? undefined : `Needs ${ceoName}'s voice: pick one under Speak messages`}>
-            <input type="checkbox" checked={listen.handsFree} disabled={!voiceOn && !listen.handsFree} onChange={(e) => void setHandsFree(e.target.checked, ceoName)} /> Hands-free on the phone: after{' '}
-            {ceoName}'s spoken reply, listen for up to 8 s and send what I say{!voiceOn && <span className="muted"> (needs Speak messages above)</span>}
+          <label className="toggle" title={voiceOn ? undefined : t('voice.handsFreeTitle').replace('{ceo}', ceoName)}>
+            <input type="checkbox" checked={listen.handsFree} disabled={!voiceOn && !listen.handsFree} onChange={(e) => void setHandsFree(e.target.checked, ceoName)} /> {t('voice.handsFree').replace('{ceo}', ceoName)}{!voiceOn && <span className="muted"> {t('voice.handsFreeNeeds')}</span>}
           </label>
         </>
       )}

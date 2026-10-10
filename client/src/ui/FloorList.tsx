@@ -6,21 +6,23 @@ import { agentsOnRepo, floorPrCounts, useStore } from '../store';
 import { CEO_ID } from '../../../shared/types';
 import { floorRows, type FloorRow } from './floorRows';
 import { Panel } from './Panel';
+import { useT } from '../i18n';
 
 function People({ rows, caption }: { rows: FloorRow[]; caption: string }) {
+  const t = useT();
   const openOverlay = useStore((s) => s.openOverlay);
-  if (!rows.length) return <p className="muted">Nobody works here yet.</p>;
+  if (!rows.length) return <p className="muted">{t('floorlist.nobody')}</p>;
   return (
     <table className="floor-table">
       <caption className="sr-only">{caption}</caption>
       <thead>
         <tr>
-          <th scope="col">Name</th>
-          <th scope="col">Agent</th>
-          <th scope="col">Status</th>
-          <th scope="col">Doing</th>
+          <th scope="col">{t('floorlist.name')}</th>
+          <th scope="col">{t('floorlist.agent')}</th>
+          <th scope="col">{t('floorlist.status')}</th>
+          <th scope="col">{t('floorlist.doing')}</th>
           <th scope="col">
-            <span className="sr-only">Actions</span>
+            <span className="sr-only">{t('floorlist.actions')}</span>
           </th>
         </tr>
       </thead>
@@ -36,8 +38,8 @@ function People({ rows, caption }: { rows: FloorRow[]; caption: string }) {
             </td>
             <td>{r.doing}</td>
             <td>
-              <button className="btn btn-small" onClick={() => openOverlay({ kind: 'terminal', agentId: r.id })} aria-label={`Open ${r.name}'s terminal`}>
-                Terminal
+              <button className="btn btn-small" onClick={() => openOverlay({ kind: 'terminal', agentId: r.id })} aria-label={t('floorlist.terminalAria').replace('{name}', r.name)}>
+                {t('floorlist.terminal')}
               </button>
             </td>
           </tr>
@@ -48,6 +50,7 @@ function People({ rows, caption }: { rows: FloorRow[]; caption: string }) {
 }
 
 export function FloorList() {
+  const t = useT();
   const floor = useStore((s) => s.floor);
   const repos = useStore((s) => s.repos);
   const agents = useStore((s) => s.agents);
@@ -66,15 +69,15 @@ export function FloorList() {
   const busy = rows.filter((r) => r.kind === 'busy' || r.kind === 'waiting').length;
 
   return (
-    <Panel title={repo ? `👥 Floor ${repo.floor}: ${repo.fullName}` : '👥 Lobby'} className="floor-list">
+    <Panel title={repo ? t('floorlist.title.floor').replace('{floor}', String(repo.floor)).replace('{repo}', repo.fullName) : t('floorlist.title.lobby')} className="floor-list">
       <div className="row wrap">
         <label className="field-inline">
-          <span>Floor</span>
+          <span>{t('floorlist.floor')}</span>
           <select value={shown} onChange={(e) => setShown(Number(e.target.value))}>
-            <option value={0}>Lobby</option>
+            <option value={0}>{t('floorlist.lobby')}</option>
             {repos.map((r) => (
               <option key={r.id} value={r.floor}>
-                {r.floor} · {r.fullName}
+                {t('floorlist.goFloor').replace('{floor}', String(r.floor)).replace('{repo}', r.fullName)}
               </option>
             ))}
           </select>
@@ -82,30 +85,30 @@ export function FloorList() {
         <span className="spacer" />
         {shown !== floor && (
           <button className="btn btn-small" onClick={() => goToFloor(shown)}>
-            🛗 Go there
+            {t('floorlist.goThere')}
           </button>
         )}
         {repo && (
           <>
             <button className="btn btn-small" onClick={() => openOverlay({ kind: 'kanban', repoId: repo.id })}>
-              📋 Kanban
+              {t('floorlist.kanban')}
             </button>
             <button className="btn btn-small" onClick={() => openOverlay({ kind: 'app', repoId: repo.id })}>
-              🖥️ App
+              {t('floorlist.app')}
             </button>
           </>
         )}
       </div>
       {repo && counts && (
         <p className="floor-summary">
-          {rows.length} {rows.length === 1 ? 'person' : 'people'}, {busy} busy · {repo.issues.length} open issue{repo.issues.length === 1 ? '' : 's'} · {counts.inQa} in QA · {counts.ready} ready to merge
-          {counts.needsYou ? ` · ${counts.needsYou} need${counts.needsYou === 1 ? 's' : ''} you` : ''}
+          {t('floorlist.people', { count: rows.length })}, {busy} busy · {t('floorlist.openIssues', { count: repo.issues.length })} · {t('floorlist.inQa').replace('{n}', String(counts.inQa))} · {t('floorlist.readyToMerge').replace('{n}', String(counts.ready))}
+          {counts.needsYou ? ' ' + t('floorlist.needsYou', { count: counts.needsYou }) : ''}
         </p>
       )}
-      <People rows={rows} caption={repo ? `Who is on floor ${repo.floor}` : 'Who is in the lobby'} />
+      <People rows={rows} caption={repo ? t('floorlist.caption.floor').replace('{floor}', String(repo.floor)) : t('floorlist.caption.lobby')} />
       {!repo && repos.length > 0 && (
         <>
-          <h3>Floors</h3>
+          <h3>{t('floorlist.floors')}</h3>
           <ul className="floor-floors">
             {repos.map((r) => {
               const team = agentsOnRepo(agents, r.id);
@@ -113,10 +116,10 @@ export function FloorList() {
               return (
                 <li key={r.id}>
                   <button className="linkish" onClick={() => setShown(r.floor)}>
-                    Floor {r.floor}: {r.fullName}
+                    {t('floorlist.goFloor').replace('{floor}', String(r.floor)).replace('{repo}', r.fullName)}
                   </button>{' '}
                   <span className="muted">
-                    · {team.length} people, {working} working
+                    · {t('floorlist.teamDetail').replace('{count}', String(team.length)).replace('{working}', String(working))}
                   </span>
                 </li>
               );

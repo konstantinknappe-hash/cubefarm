@@ -8,33 +8,23 @@ import type { NotifyChannel, NotifySettings as Notify, NotifyWebhook } from '../
 import { confirmDialog } from './Confirm';
 import { showTestNote } from '../notifications';
 import { currentPush, disablePush, enablePush, pushSupport } from '../pwa';
+import { useT } from '../i18n';
 
 const DOCS = 'https://github.com/leonvanzyl/cubefarm/blob/main/docs/pocket.md';
 
 type Field = { key: string; label: string; placeholder: string; secret: boolean; optional?: boolean };
 
-const WEBHOOKS: { id: NotifyWebhook; label: string; help: string; fields: Field[] }[] = [
-  {
-    id: 'ntfy',
-    label: 'ntfy',
-    help: 'Pick a long, hard-to-guess topic and subscribe to it in the ntfy app. Anyone who knows the topic can read it.',
-    fields: [
-      { key: 'url', label: 'Topic URL', placeholder: 'https://ntfy.sh/my-office-7f3k9q', secret: true },
-      { key: 'token', label: 'Access token (optional)', placeholder: 'tk_…', secret: true, optional: true },
-    ],
-  },
-];
-
 type Save = (patch: Partial<Notify>) => void;
 
 /** A Test button's answer, shown beside it. */
 function useTest(channel: NotifyChannel) {
+  const t = useT();
   const [state, setState] = useState<{ busy: boolean; result: string | null; ok: boolean }>({ busy: false, result: null, ok: false });
   const run = async () => {
     setState({ busy: true, result: null, ok: false });
     try {
       await api.testNotify(channel);
-      setState({ busy: false, result: '✓ Sent', ok: true });
+      setState({ busy: false, result: t('notify.sent'), ok: true });
     } catch (err) {
       setState({ busy: false, result: err instanceof Error ? err.message : String(err), ok: false });
     }
@@ -51,7 +41,8 @@ function TestResult({ result, ok }: { result: string | null; ok: boolean }) {
   );
 }
 
-function WebhookRow({ hook, notify, save }: { hook: (typeof WEBHOOKS)[number]; notify: Notify; save: Save }) {
+function WebhookRow({ hook, notify, save }: { hook: { id: NotifyWebhook; label: string; help: string; fields: Field[] }; notify: Notify; save: Save }) {
+  const t = useT();
   const view = useStore((s) => s.notifyChannels.webhooks[hook.id]);
   const [editing, setEditing] = useState(false);
   const [values, setValues] = useState<Record<string, string>>({});
@@ -79,31 +70,31 @@ function WebhookRow({ hook, notify, save }: { hook: (typeof WEBHOOKS)[number]; n
         <b className="grow">{hook.label}</b>
         {view.set && (
           <label className="toggle small">
-            <input type="checkbox" checked={on} onChange={(e) => save({ channels: { ...notify.channels, [hook.id]: e.target.checked } })} /> On
+            <input type="checkbox" checked={on} onChange={(e) => save({ channels: { ...notify.channels, [hook.id]: e.target.checked } })} /> {t('notify.on')}
           </label>
         )}
       </div>
       {view.set && !editing ? (
         <div className="row wrap">
           <span className="grow small">
-            🔑 Saved <code>{view.hint}</code>
+            {t('notify.saved')} <code>{view.hint}</code>
           </span>
           <button className="btn btn-small" disabled={test.busy} onClick={() => void test.run()}>
-            {test.busy ? 'Sending…' : 'Test'}
+            {test.busy ? t('notify.sending') : t('notify.testBtn')}
           </button>
           <button className="btn btn-small btn-ghost" onClick={() => setEditing(true)}>
-            Replace
+            {t('notify.replace')}
           </button>
           <button
             className="btn btn-small btn-ghost"
             disabled={busy}
             onClick={() =>
-              void confirmDialog({ tone: 'danger', title: `Remove the ${hook.label} settings?`, body: 'They are deleted from the office. Nothing more is sent there until you add them again.', confirm: 'Remove' }).then((ok) => {
+              void confirmDialog({ tone: 'danger', title: t('notify.removeTitle').replace('{hook}', hook.label), body: t('notify.removeBody'), confirm: t('notify.removeConfirm') }).then((ok) => {
                 if (ok) void store({});
               })
             }
           >
-            Remove
+            {t('notify.remove')}
           </button>
           <TestResult result={test.result} ok={test.ok} />
         </div>
@@ -138,7 +129,7 @@ function WebhookRow({ hook, notify, save }: { hook: (typeof WEBHOOKS)[number]; n
           )}
           <div className="row">
             <button className="btn btn-small btn-good" disabled={busy || hook.fields.some((f) => !f.optional && !values[f.key]?.trim())}>
-              {busy ? 'Saving…' : 'Save'}
+              {busy ? t('notify.saving') : t('notify.save')}
             </button>
             {editing && (
               <button
@@ -150,7 +141,7 @@ function WebhookRow({ hook, notify, save }: { hook: (typeof WEBHOOKS)[number]; n
                   setError('');
                 }}
               >
-                Cancel
+                {t('notify.cancel')}
               </button>
             )}
           </div>
@@ -164,6 +155,7 @@ const permissionNow = (): NotificationPermission | 'unsupported' => (typeof Noti
 
 /** Desktop notifications and Web Push, for the device this page is open on. */
 function ThisDevice({ notify, save }: { notify: Notify; save: Save }) {
+  const t = useT();
   const devices = useStore((s) => s.notifyChannels.pushDevices);
   const [permission, setPermission] = useState(permissionNow);
   const [here, setHere] = useState<boolean | null>(null);
@@ -193,58 +185,58 @@ function ThisDevice({ notify, save }: { notify: Notify; save: Save }) {
     <>
       <div className="notify-hook">
         <div className="row wrap">
-          <b className="grow">Desktop notifications</b>
+          <b className="grow">{t('notify.desktop')}</b>
           <label className="toggle small">
-            <input type="checkbox" checked={notify.channels.desktop} onChange={(e) => save({ channels: { ...notify.channels, desktop: e.target.checked } })} /> On
+            <input type="checkbox" checked={notify.channels.desktop} onChange={(e) => save({ channels: { ...notify.channels, desktop: e.target.checked } })} /> {t('notify.on')}
           </label>
         </div>
-        <p className="muted small">From any browser with the office open in a background tab.</p>
+        <p className="muted small">{t('notify.desktopDesc')}</p>
         <div className="row wrap">
-          {permission === 'granted' && <span className="small grow">✓ Allowed in this browser</span>}
-          {permission === 'denied' && <span className="small grow term-error">Blocked in this browser: allow notifications for this site in its settings.</span>}
-          {permission === 'unsupported' && <span className="small grow muted">This browser can't show notifications.</span>}
+          {permission === 'granted' && <span className="small grow">{t('notify.allowed')}</span>}
+          {permission === 'denied' && <span className="small grow term-error">{t('notify.denied')}</span>}
+          {permission === 'unsupported' && <span className="small grow muted">{t('notify.unsupported')}</span>}
           {permission === 'default' && (
             <button className="btn btn-small btn-good" onClick={() => void allow()}>
-              Allow in this browser
+              {t('notify.allowBtn')}
             </button>
           )}
           {permission === 'granted' && (
             <button className="btn btn-small" onClick={() => void showTestNote()}>
-              Test
+              {t('notify.testBtn')}
             </button>
           )}
         </div>
       </div>
       <div className="notify-hook">
         <div className="row wrap">
-          <b className="grow">Push to my devices</b>
+          <b className="grow">{t('notify.push')}</b>
           <label className="toggle small">
-            <input type="checkbox" checked={notify.channels.push} onChange={(e) => save({ channels: { ...notify.channels, push: e.target.checked } })} /> On
+            <input type="checkbox" checked={notify.channels.push} onChange={(e) => save({ channels: { ...notify.channels, push: e.target.checked } })} /> {t('notify.on')}
           </label>
         </div>
         <p className="muted small">
-          Reaches a phone or PC even with the office closed. {devices ? `${devices} device${devices === 1 ? '' : 's'} signed up.` : 'No devices signed up yet.'}
+          {t('notify.pushDesc')} {devices ? t('notify.pushDevices', { count: devices }) : t('notify.pushNone')}
         </p>
         {support === 'insecure' && (
           <p className="small term-error">
-            Push needs HTTPS (or localhost on the office's own PC). Open the office through an HTTPS address such as Tailscale Serve: see <a href={DOCS}>docs/pocket.md</a>.
+            {t('notify.pushInsecure')} <a href={DOCS}>docs/pocket.md</a>.
           </p>
         )}
-        {support === 'unsupported' && <p className="small muted">This browser has no Web Push. On an iPhone, add the office to the home screen first, then turn push on from there.</p>}
-        {support === 'dev' && <p className="small muted">Push works in a built office (npm run build), not under the dev server.</p>}
+        {support === 'unsupported' && <p className="small muted">{t('notify.pushUnsupported')}</p>}
+        {support === 'dev' && <p className="small muted">{t('notify.pushDev')}</p>}
         {support === 'ok' && (
           <div className="row wrap">
             {here ? (
               <button className="btn btn-small btn-ghost" disabled={busy} onClick={() => void togglePush(false)}>
-                Stop push to this device
+                {t('notify.pushStop')}
               </button>
             ) : (
               <button className="btn btn-small btn-good" disabled={busy || here === null} onClick={() => void togglePush(true)}>
-                {busy ? 'Signing up…' : 'Push to this device'}
+                {busy ? t('notify.pushSigning') : t('notify.pushStart')}
               </button>
             )}
             <button className="btn btn-small" disabled={pushTest.busy || !devices} onClick={() => void pushTest.run()}>
-              Send test
+              {t('notify.sendTest')}
             </button>
             <TestResult result={pushTest.result} ok={pushTest.ok} />
           </div>
@@ -260,15 +252,29 @@ function ThisDevice({ notify, save }: { notify: Notify; save: Save }) {
 }
 
 export function NotifySettings() {
+  const t = useT();
   const notify = useStore((s) => s.settings.notify);
   const [url, setUrl] = useState(notify.officeUrl);
   useEffect(() => setUrl(notify.officeUrl), [notify.officeUrl]);
   const save: Save = (patch) => void api.updateSettings({ notify: { ...notify, ...patch } }).catch(() => undefined);
+
+  const webhooks: { id: NotifyWebhook; label: string; help: string; fields: Field[] }[] = [
+    {
+      id: 'ntfy',
+      label: 'ntfy',
+      help: t('notify.ntfy.help'),
+      fields: [
+        { key: 'url', label: t('notify.ntfy.urlLabel'), placeholder: 'https://ntfy.sh/my-office-7f3k9q', secret: true },
+        { key: 'token', label: t('notify.ntfy.tokenLabel'), placeholder: 'tk_…', secret: true, optional: true },
+      ],
+    },
+  ];
+
   return (
     <div className="card notify-settings">
-      <h3>🔔 Notifications</h3>
-      <p className="muted small">What the office tells you when you're not looking. At most one of each kind a minute; a burst arrives as one summary.</p>
-      <div className="notify-events" role="group" aria-label="Tell me when">
+      <h3>{t('notify.title')}</h3>
+      <p className="muted small">{t('notify.desc')}</p>
+      <div className="notify-events" role="group" aria-label={t('notify.tellMeWhen')}>
         {NOTIFY_EVENTS.map((e) => (
           <label key={e.id} className="toggle block">
             <input type="checkbox" checked={notify.events[e.id]} onChange={(ev) => save({ events: { ...notify.events, [e.id]: ev.target.checked } })} />
@@ -277,7 +283,7 @@ export function NotifySettings() {
         ))}
       </div>
       <label className="field">
-        <span>Office address for links (optional)</span>
+        <span>{t('notify.officeUrl')}</span>
         <input
           type="url"
           value={url}
@@ -287,14 +293,14 @@ export function NotifySettings() {
           inputMode="url"
         />
       </label>
-      <h4 className="notify-h">This device</h4>
+      <h4 className="notify-h">{t('notify.thisDevice')}</h4>
       <ThisDevice notify={notify} save={save} />
-      <h4 className="notify-h">Phone app</h4>
-      {WEBHOOKS.map((h) => (
+      <h4 className="notify-h">{t('notify.phoneApp')}</h4>
+      {webhooks.map((h) => (
         <WebhookRow key={h.id} hook={h} notify={notify} save={save} />
       ))}
       <p className="muted small">
-        The topic and token stay on the office's PC and are never shown again. Setup for each, and how to reach the office from your phone safely: <a href={DOCS}>docs/pocket.md</a>.
+        {t('notify.docsNote')} <a href={DOCS}>docs/pocket.md</a>.
       </p>
     </div>
   );

@@ -13,6 +13,8 @@ import { ErrandDirector } from './ErrandDirector';
 import { useCanvasTexture, useInteractable } from './interact';
 import { Jukebox } from './Jukebox';
 import { MissionControl } from './MissionControl';
+import { CigarettePack } from './roof/CigarettePack';
+import { HeldCigarette } from './roof/HeldCigarette';
 import { CEO_DESK, CEO_ROOM, COFFEE_CORNER, HALF_D, HALF_W, JUKEBOX, LOBBY_RUG, MANAGER_DESK, MANAGER_ROOM, RECEPTION } from './layout';
 import { glow, shade } from './materials';
 import { WallSign } from './OfficeFloor';
@@ -319,6 +321,8 @@ export function Lobby() {
         deps={[boss]}
       />
       <ManagerComputer />
+      <CigarettePack location="manager" />
+      <HeldCigarette />
       <Bookshelf position={[-HALF_W + 0.4, 0, -8]} rotationY={Math.PI / 2} />
       <Plant position={[m.maxX - 0.6, 0, m.minZ + 0.6]} scale={1.1} pot="#3a86ff" />
       <Plant position={[m.minX + 0.6, 0, m.maxZ - 0.6]} scale={0.9} />

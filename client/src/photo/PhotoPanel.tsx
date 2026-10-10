@@ -1,3 +1,4 @@
+import { TranslatedLabel } from '../ui/TranslatedLabel';
 // Photo mode's panel (lazy, shown instead of the HUD): freeze, camera, depth of field, filters, overlays, time of
 // day, shots, clips, instant replay and the gallery, plus the overlay preview drawn over the 3D view.
 import { useEffect, useRef, useState } from 'react';
@@ -168,14 +169,14 @@ export default function PhotoPanel() {
           </section>
 
           <section className="photo-section">
-            <h4>Camera</h4>
+            <h4><TranslatedLabel id="camera" /></h4>
             <label className="photo-row">
-              <span>Zoom</span>
+              <span><TranslatedLabel id="zoom" /></span>
               <input type="range" min={FOV_MIN} max={FOV_MAX} step={1} value={Math.round(fov)} onChange={(e) => ((cam.fov = Number(e.target.value)), requestFrame())} aria-label="Field of view" />
               <b>{Math.round(fov)}°</b>
             </label>
             <label className="photo-row">
-              <span>Roll</span>
+              <span><TranslatedLabel id="roll" /></span>
               <input
                 type="range"
                 min={-45}
@@ -193,12 +194,12 @@ export default function PhotoPanel() {
             {s.dof && (
               <>
                 <label className="photo-row">
-                  <span>Focus</span>
+                  <span><TranslatedLabel id="focus" /></span>
                   <input type="range" min={0.3} max={40} step={0.1} value={s.focus} onChange={(e) => update({ focus: Number(e.target.value) })} aria-label="Focus distance" />
                   <b>{s.focus.toFixed(1)} m</b>
                 </label>
                 <label className="photo-row">
-                  <span>Blur</span>
+                  <span><TranslatedLabel id="blur" /></span>
                   <input type="range" min={0} max={1} step={0.05} value={s.blur} onChange={(e) => update({ blur: Number(e.target.value) })} aria-label="Blur strength" />
                   <b>{Math.round(s.blur * 100)}%</b>
                 </label>
@@ -210,7 +211,7 @@ export default function PhotoPanel() {
           </section>
 
           <section className="photo-section">
-            <h4>Filter</h4>
+            <h4><TranslatedLabel id="filter" /></h4>
             <div className="photo-chips" role="radiogroup" aria-label="Filter">
               {FILTERS.map((f) => (
                 <button key={f} role="radio" aria-checked={s.filter === f} className={`photo-chip ${s.filter === f ? 'on' : ''}`} onClick={() => update({ filter: f })}>
@@ -253,7 +254,7 @@ export default function PhotoPanel() {
           </section>
 
           <section className="photo-section">
-            <h4>Shot</h4>
+            <h4><TranslatedLabel id="shot" /></h4>
             <div className="photo-chips" role="radiogroup" aria-label="Shot size">
               {SCALES.map((k) => (
                 <button key={k} role="radio" aria-checked={s.scale === k} className={`photo-chip ${s.scale === k ? 'on' : ''}`} onClick={() => update({ scale: k })}>
@@ -271,7 +272,7 @@ export default function PhotoPanel() {
           </section>
 
           <section className="photo-section">
-            <h4>Clip</h4>
+            <h4><TranslatedLabel id="clip" /></h4>
             <div className="photo-chips">
               {CLIP_SECONDS.map((n) => (
                 <button key={n} className={`photo-chip ${s.clipSeconds === n ? 'on' : ''}`} aria-pressed={s.clipSeconds === n} onClick={() => update({ clipSeconds: n })}>
@@ -285,11 +286,11 @@ export default function PhotoPanel() {
               ))}
             </div>
             <label className="photo-row">
-              <span>Camera</span>
+              <span><TranslatedLabel id="camera" /></span>
               <select value={s.orbit} onChange={(e) => update({ orbit: e.target.value as OrbitTarget })} aria-label="Cinematic orbit">
                 <option value="free">Free (fly it yourself)</option>
-                {floor !== 0 && <option value="gong">Orbit the gong</option>}
-                {floor !== 0 && <option value="board">Orbit the whiteboard</option>}
+                {floor !== 0 && <option value="gong"><TranslatedLabel id="orbitGong" /></option>}
+                {floor !== 0 && <option value="board"><TranslatedLabel id="orbitBoard" /></option>}
                 {people.map((a) => (
                   <option key={a.id} value={`person:${a.id}`}>
                     Orbit {a.name}
@@ -304,7 +305,7 @@ export default function PhotoPanel() {
           </section>
 
           <section className="photo-section">
-            <h4>Instant replay</h4>
+            <h4><TranslatedLabel id="replay" /></h4>
             <label className="toggle">
               <input type="checkbox" checked={replay} onChange={(e) => setReplay(e.target.checked)} /> Keep the last 15 s, any time
             </label>

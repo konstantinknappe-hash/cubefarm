@@ -72,6 +72,7 @@ export interface Focus {
 /** What the player is carrying. Other items (a blaster, say) join the union with their own kind. */
 export type Held =
   | { kind: 'ball'; id: string }
+  | { kind: 'cigarette'; id: string; lit: boolean; puffs: number; puffAt: number }
   /** A foam blaster: darts left in the magazine, and performance.now() when a reload started (null when not reloading). */
   | { kind: 'blaster'; id: string; ammo: number; reloadAt: number | null }
   /** A coffee mug: sips of coffee left, 0 (empty) to 3 (full). */

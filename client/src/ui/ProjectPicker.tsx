@@ -1,8 +1,10 @@
+import { TranslatedLabel } from './TranslatedLabel';
 import { useEffect, useMemo, useState } from 'react';
 import { api, type FloorOptions } from '../api';
 import { useStore } from '../store';
 import type { GhRepoSummary, ProjectFolderView, RepoView } from '../../../shared/types';
 import { confirmDialog } from './Confirm';
+import { useT } from '../i18n';
 
 // Add a project to the office: one of your own folders, a GitHub repo, or something brand new.
 // Used by the setup wizard and by the Floors tab of the manager's console.
@@ -20,6 +22,7 @@ async function attempt<T>(fn: () => Promise<T>): Promise<T | undefined> {
 const sep = (p: string) => (p.includes('\\') ? '\\' : '/');
 
 function FolderMode({ floor, onDone }: { floor: FloorOptions; onDone: (r: RepoView) => void }) {
+  const t = useT();
   const projectsDir = useStore((s) => s.settings.projectsDir);
   const [dir, setDir] = useState(projectsDir);
   const [root, setRoot] = useState('');
@@ -50,14 +53,14 @@ function FolderMode({ floor, onDone }: { floor: FloorOptions; onDone: (r: RepoVi
   const publish = async (f: ProjectFolderView) => {
     const ok = await confirmDialog({
       icon: '🐙',
-      title: `Put ${f.name} on GitHub?`,
+      title: t('picker.publishTitle').replace('{name}', f.name),
       body: (
         <>
-          This creates a <b>private</b> GitHub repo called <code>{f.name}</code> and pushes what's already committed. Nothing uncommitted leaves your computer.
-          {!f.git && ' An empty folder gets a starter README first.'}
+          {t('picker.publishBody').replace('{name}', f.name)}
+          {!f.git && t('picker.publishBodyNoGit')}
         </>
       ),
-      confirm: 'Create private repo',
+      confirm: t('picker.createPrivate'),
     });
     if (ok) void run(f, () => api.publishFolder({ path: f.path, visibility: 'private', ...floor }));
   };
@@ -71,55 +74,54 @@ function FolderMode({ floor, onDone }: { floor: FloorOptions; onDone: (r: RepoVi
           load(dir.trim() || undefined);
         }}
       >
-        <input value={dir} onChange={(e) => setDir(e.target.value)} placeholder="C:\Projects" title="Your projects folder" aria-label="Your projects folder" />
-        <button className="btn btn-small">Look here</button>
+        <input value={dir} onChange={(e) => setDir(e.target.value)} placeholder={t('picker.projectFolder')} title={t('picker.projectFolderAria')} aria-label={t('picker.projectFolderAria')} />
+        <button className="btn btn-small"><TranslatedLabel id="lookHere" /></button>
       </form>
       {root && root !== projectsDir && (
         <div className="row small">
-          <span className="muted grow">New projects are created in {projectsDir}.</span>
+          <span className="muted grow">{t('picker.newProjDir').replace('{dir}', projectsDir)}</span>
           <button className="btn btn-small btn-ghost" onClick={() => void attempt(() => api.updateSettings({ projectsDir: root }))}>
-            Use {root} instead
+            {t('picker.useInstead').replace('{dir}', root)}
           </button>
         </div>
       )}
-      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Filter folders…" />
+      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('picker.filterFolders')} />
       <div className="repo-list folder-list">
-        {folders === null && <div className="muted small">Looking through {dir || 'your projects folder'}…</div>}
-        {folders && shown.length === 0 && <div className="muted small">No folders here{q ? ' match' : ''}.</div>}
+        {folders === null && <div className="muted small">{t('picker.looking').replace('{dir}', dir || t('picker.projectFolderAria'))}</div>}
+        {folders && shown.length === 0 && <div className="muted small">{q ? t('picker.noFoldersMatch') : t('picker.noFolders')}</div>}
         {shown.map((f) => (
           <div key={f.path} className="repo-row">
             <div style={{ minWidth: 0 }}>
               <b>📁 {f.name}</b>{' '}
               {f.floor != null ? (
-                <span className="chip chip-good">floor {f.floor}</span>
+                <span className="chip chip-good">{t('picker.floor').replace('{floor}', String(f.floor))}</span>
               ) : f.github ? (
                 <span className="chip">🐙 {f.github}</span>
               ) : (
-                <span className="chip chip-warn">{f.git ? 'not on GitHub' : 'no git yet'}</span>
+                <span className="chip chip-warn">{f.git ? t('picker.notOnGitHub') : t('picker.noGit')}</span>
               )}
             </div>
             {f.floor != null ? (
-              <span className="muted small">in the office</span>
+              <span className="muted small">{t('picker.inOffice')}</span>
             ) : f.github ? (
               <button className="btn btn-small btn-good" disabled={!!busy} onClick={() => run(f, () => api.connectFolder(f.path, floor))}>
-                {busy === f.path ? 'Moving in…' : 'Add floor'}
+                {busy === f.path ? t('picker.movingIn') : t('picker.addFloor')}
               </button>
             ) : (
               <button className="btn btn-small" disabled={!!busy} onClick={() => void publish(f)}>
-                {busy === f.path ? 'Publishing…' : 'Publish to GitHub'}
+                {busy === f.path ? t('picker.publishing') : t('picker.publishToGitHub')}
               </button>
             )}
           </div>
         ))}
       </div>
-      <p className="muted small">
-        The office never touches your work in progress: after a merge it only fast-forwards your folder when it's on the default branch with no local changes (and runs npm install if dependencies changed). Each agent works in its own git worktree of it, kept outside your project (so your dev server and linters never see them).
-      </p>
+      <p className="muted small">{t('picker.folderTip')}</p>
     </div>
   );
 }
 
 function GithubMode({ floor, onDone }: { floor: FloorOptions; onDone: (r: RepoView) => void }) {
+  const t = useT();
   const repos = useStore((s) => s.repos);
   const projectsDir = useStore((s) => s.settings.projectsDir);
   const [list, setList] = useState<GhRepoSummary[] | null>(null);
@@ -143,15 +145,15 @@ function GithubMode({ floor, onDone }: { floor: FloorOptions; onDone: (r: RepoVi
   return (
     <div className="picker-mode">
       <div className="row">
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Filter your repos…" />
-        <input value={owner} onChange={(e) => setOwner(e.target.value)} placeholder="Org (optional)" style={{ maxWidth: 160 }} />
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('picker.filterRepos')} />
+        <input value={owner} onChange={(e) => setOwner(e.target.value)} placeholder={t('picker.orgOptional')} style={{ maxWidth: 160 }} />
         <button className="btn btn-small" onClick={() => load(owner.trim() || undefined)}>
-          List
+          {t('picker.list')}
         </button>
       </div>
       <div className="repo-list folder-list">
-        {list === null && <div className="muted small">Asking GitHub for your repos…</div>}
-        {list && shown.length === 0 && <div className="muted small">No matching repos.</div>}
+        {list === null && <div className="muted small">{t('picker.askingGitHub')}</div>}
+        {list && shown.length === 0 && <div className="muted small"><TranslatedLabel id="noRepos" /></div>}
         {shown.map((r) => (
           <div key={r.nameWithOwner} className="repo-row">
             <div style={{ minWidth: 0 }}>
@@ -159,7 +161,7 @@ function GithubMode({ floor, onDone }: { floor: FloorOptions; onDone: (r: RepoVi
               {r.description && <div className="muted small">{r.description}</div>}
             </div>
             <button className="btn btn-small btn-good" disabled={!!busy} onClick={() => connect(r.nameWithOwner)}>
-              {busy === r.nameWithOwner ? 'Moving in…' : 'Add floor'}
+              {busy === r.nameWithOwner ? t('picker.movingIn') : t('picker.addFloor')}
             </button>
           </div>
         ))}
@@ -171,20 +173,20 @@ function GithubMode({ floor, onDone }: { floor: FloorOptions; onDone: (r: RepoVi
           if (manual.trim()) void connect(manual.trim());
         }}
       >
-        <input value={manual} onChange={(e) => setManual(e.target.value)} placeholder="…or type owner/name" />
+        <input value={manual} onChange={(e) => setManual(e.target.value)} placeholder={t('picker.orTypeName')} />
         <button className="btn btn-small" disabled={!manual.trim() || !!busy}>
-          Add floor
+          {t('picker.addFloor')}
         </button>
       </form>
       <p className="muted small">
-        If it's already in {projectsDir || 'your projects folder'}, that folder is used. Otherwise it's cloned to {projectsDir}
-        {sep(projectsDir)}&lt;name&gt;.
+        {t('picker.repoUsed').replace(/{dir}/g, projectsDir || t('picker.projectFolderAria'))}{sep(projectsDir)}&lt;name&gt;
       </p>
     </div>
   );
 }
 
 function NewMode({ floor, onDone }: { floor: FloorOptions; onDone: (r: RepoView) => void }) {
+  const t = useT();
   const projectsDir = useStore((s) => s.settings.projectsDir);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -203,29 +205,31 @@ function NewMode({ floor, onDone }: { floor: FloorOptions; onDone: (r: RepoView)
         if (repo) onDone(repo);
       }}
     >
-      <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Project name, e.g. island-bakery" autoFocus />
-      <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="One-line description (optional)" />
+      <input value={name} onChange={(e) => setName(e.target.value)} placeholder={t('picker.projectName')} autoFocus />
+      <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t('picker.projectDesc')} />
       <div className="row">
         <label className="toggle">
-          <input type="radio" checked={visibility === 'private'} onChange={() => setVisibility('private')} /> Private
+          <input type="radio" checked={visibility === 'private'} onChange={() => setVisibility('private')} /> {t('picker.private')}
         </label>
         <label className="toggle">
-          <input type="radio" checked={visibility === 'public'} onChange={() => setVisibility('public')} /> Public
+          <input type="radio" checked={visibility === 'public'} onChange={() => setVisibility('public')} /> {t('picker.public')}
         </label>
         <span className="spacer" />
         <button className="btn btn-good" disabled={busy || !slug}>
-          {busy ? 'Creating…' : 'Create project'}
+          {busy ? t('picker.creating') : t('picker.createProject')}
         </button>
       </div>
       <p className="muted small">
-        Creates <code>{slug ? `${projectsDir}${sep(projectsDir)}${slug}` : `${projectsDir}${sep(projectsDir)}…`}</code> with a README and pushes it to a new {visibility} GitHub repo. Give the CEO a brief below and
-        they'll plan the first milestone.
+        {t('picker.createTip')
+          .replace('{path}', slug ? `${projectsDir}${sep(projectsDir)}${slug}` : `${projectsDir}${sep(projectsDir)}…`)
+          .replace('{vis}', visibility)}
       </p>
     </form>
   );
 }
 
 export function ProjectPicker({ onConnected, initial = 'folder' }: { onConnected?: (repo: RepoView) => void; initial?: Mode }) {
+  const t = useT();
   const [mode, setMode] = useState<Mode>(initial);
   const [mission, setMission] = useState('');
   const [autoAssign, setAutoAssign] = useState(true);
@@ -235,9 +239,9 @@ export function ProjectPicker({ onConnected, initial = 'folder' }: { onConnected
     onConnected?.(repo);
   };
   const modes: [Mode, string][] = [
-    ['folder', '📁 A folder on this computer'],
-    ['github', '🐙 A GitHub repo'],
-    ['new', '✨ Something new'],
+    ['folder', t('picker.folder')],
+    ['github', t('picker.github')],
+    ['new', t('picker.new')],
   ];
   return (
     <div className="picker">
@@ -252,11 +256,11 @@ export function ProjectPicker({ onConnected, initial = 'folder' }: { onConnected
         value={mission}
         onChange={(e) => setMission(e.target.value)}
         rows={2}
-        placeholder={mode === 'new' ? 'What should the team build? e.g. A cozy 3D browser game where you run a tiny island bakery.' : 'Brief for the CEO (optional): what should the team work on next?'}
+        placeholder={mode === 'new' ? t('picker.missionNew') : t('picker.missionOpt')}
       />
       <label className="toggle small">
         <input type="checkbox" checked={autoAssign} onChange={(e) => setAutoAssign(e.target.checked)} />
-        ⚡ Start work automatically: free agents pick up issues as soon as they're filed (you can switch this off per floor)
+        {t('picker.autoStart')}
       </label>
       {mode === 'folder' && <FolderMode floor={floor} onDone={done} />}
       {mode === 'github' && <GithubMode floor={floor} onDone={done} />}

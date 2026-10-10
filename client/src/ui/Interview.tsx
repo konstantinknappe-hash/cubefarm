@@ -6,6 +6,7 @@ import { Markdown } from './Markdown';
 import { closeOverlay } from './Panel';
 import { HireSetupFields, cliLabel, hireCli, hireOverrides, setupOf, type HireSetup } from './Phone';
 import { CLAUDE_MODELS, effectiveModel } from '../../../shared/models';
+import { useT } from '../i18n';
 
 // A team change face to face (#227), as an office document: a new agent waiting in the lobby (E on them, world/
 // Candidates.tsx), set up here before they're created (name, coding agent, model, effort), or the CEO's let-go note in
@@ -13,6 +14,7 @@ import { CLAUDE_MODELS, effectiveModel } from '../../../shared/models';
 // console's, with a note the CEO reads. Deciding closes it, so the person's reaction plays out in front of you.
 
 export function Interview({ requestId }: { requestId: string }) {
+  const t = useT();
   const req = useStore((s) => s.requests.find((r) => r.id === requestId));
   const repo = useStore((s) => (req ? s.repos.find((r) => r.id === req.repoId) : undefined));
   const settings = useStore((s) => s.settings);
@@ -36,15 +38,15 @@ export function Interview({ requestId }: { requestId: string }) {
   if (!req) {
     return (
       <div className="overlay interview-overlay" onMouseDown={(e) => e.target === e.currentTarget && closeOverlay()}>
-        <div className="doc" role="dialog" aria-label="Team change">
+        <div className="doc" role="dialog" aria-label={t('interview.aria.notFound')}>
           <div className="doc-head">
-            <span>✻ {company} · personnel</span>
+            <span>{t('interview.personnel').replace('{company}', company)}</span>
           </div>
-          <p>This team change no longer exists.</p>
+          <p>{t('interview.noLonger')}</p>
           <div className="doc-actions">
             <span className="spacer" />
             <button className="btn btn-small" onClick={closeOverlay}>
-              Close
+              {t('interview.close')}
             </button>
           </div>
         </div>
@@ -56,8 +58,11 @@ export function Interview({ requestId }: { requestId: string }) {
   const pending = req.status === 'pending';
   const setup = edited ?? setupOf(req);
   const name = (hire && pending && setup.name.trim()) || req.name;
-  const floor = repo ? `floor ${repo.floor} · ${repo.fullName.split('/')[1] ?? repo.fullName}` : 'a floor that has gone';
-  const stamp = pending ? null : req.status === 'approved' ? (hire ? 'Hired' : 'Let go') : hire ? 'Declined' : 'Kept';
+  const repoName = repo?.fullName.split('/')[1] ?? repo?.fullName;
+  const floor = repo && repoName
+    ? t('interview.floorDesc').replace('{floor}', String(repo.floor)).replace('{name}', repoName)
+    : t('interview.floorGone');
+  const stamp = pending ? null : req.status === 'approved' ? (hire ? t('interview.stamp.hired') : t('interview.stamp.letGo')) : hire ? t('interview.stamp.declined') : t('interview.stamp.kept');
   const cli = hireCli(req.cli, settings);
 
   const decide = async (yes: boolean) => {
@@ -73,72 +78,72 @@ export function Interview({ requestId }: { requestId: string }) {
 
   return (
     <div className="overlay interview-overlay" onMouseDown={(e) => e.target === e.currentTarget && closeOverlay()}>
-      <div className={`doc ${hire ? '' : 'doc-letgo'}`} role="dialog" aria-label={hire ? `Setting up ${name}` : `Letting ${req.name} go`}>
+      <div className={`doc ${hire ? '' : 'doc-letgo'}`} role="dialog" aria-label={hire ? t('interview.aria.hire').replace('{name}', name) : t('interview.aria.letGo').replace('{name}', req.name)}>
         <div className="doc-head">
-          <span>✻ {company} · personnel</span>
-          <span>{hire ? 'New agent' : 'Confidential'}</span>
+          <span>{t('interview.personnel').replace('{company}', company)}</span>
+          <span>{hire ? t('interview.newAgent') : t('interview.confidential')}</span>
         </div>
         <div className="doc-who">
           <span className="avatar" style={{ background: req.color, width: 48, height: 48, fontSize: 22 }}>
             {name[0]}
           </span>
           <div className="grow">
-            <h2 className="doc-title">{hire ? name : `Let ${req.name} go?`}</h2>
-            <div className="muted">{hire ? `Joining ${floor}` : `On ${floor}`}</div>
+            <h2 className="doc-title">{hire ? name : t('resume.letGo').replace('{name}', req.name)}</h2>
+            <div className="muted">{hire ? t('interview.joining').replace('{floor}', floor) : t('interview.on').replace('{floor}', floor)}</div>
           </div>
-          <button className="panel-x" onClick={closeOverlay} aria-label="Close">
+          <button className="panel-x" onClick={closeOverlay} aria-label={t('interview.close')}>
             ✕
           </button>
         </div>
         {stamp && <div className={`doc-stamp ${req.status === 'approved' ? 'doc-stamp-good' : 'doc-stamp-bad'}`}>{stamp}</div>}
-        <h3 className="doc-h">{hire ? `Why ${ceo} wants to grow the team` : `${ceo}'s note`}</h3>
-        <Markdown className="doc-pitch" text={req.reason || 'No reason given.'} />
-        <div className="doc-sign">— {ceo}, CEO</div>
-        {hire && <h3 className="doc-h">Their setup</h3>}
+        <h3 className="doc-h">{hire ? t('interview.whyCeo').replace('{ceo}', ceo) : t('interview.ceoNote').replace('{ceo}', ceo)}</h3>
+        <Markdown className="doc-pitch" text={req.reason || t('interview.noReason')} />
+        <div className="doc-sign">{t('interview.sign').replace('{ceo}', ceo)}</div>
+        {hire && <h3 className="doc-h">{t('interview.theirSetup')}</h3>}
         {hire && pending && (
           <>
             <HireSetupFields value={setup} onChange={setSetup} disabled={busy} />
-            <p className="muted small doc-tip">Hiring creates {name} and their own machine. You can change these later in their ⚙️ Setup.</p>
+            <p className="muted small doc-tip">{t('interview.tip').replace('{name}', name)}</p>
           </>
         )}
         {hire && !pending && (
           <dl className="doc-fields">
-            <dt>Coding agent</dt>
+            <dt>{t('interview.codingAgent')}</dt>
             <dd>{cliLabel(clis, cli)}</dd>
-            <dt>Model</dt>
-            <dd>{effectiveModel(req.model, cli, settings, CLAUDE_MODELS[0]) || 'its default model'}</dd>
-            <dt>Effort</dt>
+            <dt>{t('interview.model')}</dt>
+            <dd>{effectiveModel(req.model, cli, settings, CLAUDE_MODELS[0]) || t('interview.defaultModel')}</dd>
+            <dt>{t('interview.effort')}</dt>
             <dd>{req.effort || settings.defaultEffort}</dd>
           </dl>
         )}
         {pending ? (
           <>
-            <h3 className="doc-h">Your note</h3>
+            <h3 className="doc-h">{t('interview.yourNote')}</h3>
             <textarea
               className="doc-note"
               rows={2}
               maxLength={400}
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              placeholder={hire ? `Optional: why, or what ${name} should start with. ${ceo} reads it.` : `Optional: why. ${ceo} reads it.`}
-              aria-label="Your note for the CEO"
+              placeholder={hire ? t('interview.placeholderHire').replace('{name}', name).replace('{ceo}', ceo) : t('interview.placeholderLetGo').replace('{ceo}', ceo)}
+              aria-label={t('interview.noteAria')}
             />
             <div className="doc-actions">
               <button className="btn btn-bad" disabled={busy} onClick={() => void decide(false)}>
-                {hire ? 'Decline' : 'Keep them'}
+                {hire ? t('interview.decline') : t('interview.keepThem')}
               </button>
               <span className="spacer" />
               <button className="btn btn-good" disabled={busy} onClick={() => void decide(true)}>
-                {hire ? `Hire ${name}` : `Let ${req.name} go`}
+                {hire ? t('interview.hireBtn').replace('{name}', name) : t('interview.letGoBtn').replace('{name}', req.name)}
               </button>
             </div>
           </>
         ) : (
           <div className="doc-actions">
-            {req.note && <span className="muted small">Your note: “{req.note}”</span>}
+            {req.note && <span className="muted small">{t('interview.yourNoteText').replace('{note}', req.note)}</span>}
             <span className="spacer" />
             <button className="btn btn-small" onClick={closeOverlay}>
-              Close
+              {t('interview.close')}
             </button>
           </div>
         )}

@@ -1,3 +1,5 @@
+import { TranslatedLabel } from './TranslatedLabel';
+import { useT } from '../i18n';
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../api';
 import { floorPrCounts, isBusy, pendingRequests, unreadMessages, useStore, type PhoneTab } from '../store';
@@ -69,6 +71,7 @@ export function setupLine(s: Pick<HireSetup, 'cli' | 'model' | 'effort'>, settin
 
 /** A new agent's settings, edited before they're created: the lobby's card and the phone's both use these. */
 export function HireSetupFields({ value, onChange, disabled }: { value: HireSetup; onChange: (v: HireSetup) => void; disabled?: boolean }) {
+  const t = useT();
   const settings = useStore((s) => s.settings);
   const clis = useStore((s) => s.clis);
   const id = useId();
@@ -78,38 +81,38 @@ export function HireSetupFields({ value, onChange, disabled }: { value: HireSetu
   return (
     <div className="hire-setup">
       <label className="field" htmlFor={`${id}-name`}>
-        <span>Name</span>
+        <span><TranslatedLabel id="name" /></span>
         <input id={`${id}-name`} value={value.name} maxLength={24} disabled={disabled} onChange={(e) => set({ name: e.target.value })} />
       </label>
       <label className="field" htmlFor={`${id}-cli`}>
-        <span>Coding agent</span>
+        <span><TranslatedLabel id="codingAgent" /></span>
         <select
           id={`${id}-cli`}
           value={sdk ? '' : value.cli}
           disabled={disabled || sdk}
-          title={sdk ? 'The Agent SDK runs Claude Code for every agent (Settings → How agents run)' : undefined}
+          title={sdk ? t('resume.sdkTitle') : undefined}
           onChange={(e) => set({ cli: e.target.value as AgentCli | '' })}
         >
-          <option value="">{sdk ? 'Claude Code' : `${cliLabel(clis, settings.defaultCli)} (default)`}</option>
+          <option value="">{sdk ? 'Claude Code' : t('resume.defaultCli').replace('{cli}', cliLabel(clis, settings.defaultCli))}</option>
           {[...clis]
             .sort((a, b) => Number(b.installed) - Number(a.installed))
             .map((c) => (
               <option key={c.id} value={c.id} disabled={!c.installed}>
                 {c.label}
-                {c.installed ? '' : ' (not installed)'}
+                {c.installed ? '' : t('resume.notInstalled')}
               </option>
             ))}
         </select>
       </label>
       <label className="field" htmlFor={`${id}-model`}>
-        <span>Model</span>
+        <span><TranslatedLabel id="model" /></span>
         <input
           id={`${id}-model`}
           list={`${id}-models`}
           value={value.model}
           disabled={disabled}
-          placeholder={effectiveModel('', cli, settings, CLAUDE_MODELS[0]) || 'agent default'}
-          title="Empty: the default for their coding agent"
+          placeholder={effectiveModel('', cli, settings, CLAUDE_MODELS[0]) || t('resume.agentDefault')}
+          title={t('resume.emptyDefault')}
           onChange={(e) => set({ model: e.target.value })}
         />
         <datalist id={`${id}-models`}>
@@ -119,9 +122,9 @@ export function HireSetupFields({ value, onChange, disabled }: { value: HireSetu
         </datalist>
       </label>
       <label className="field" htmlFor={`${id}-effort`}>
-        <span>Effort</span>
+        <span><TranslatedLabel id="effort" /></span>
         <select id={`${id}-effort`} value={value.effort} disabled={disabled} onChange={(e) => set({ effort: e.target.value as EffortLevel | '' })}>
-          <option value="">default ({settings.defaultEffort})</option>
+          <option value="">{t('resume.defaultEffort').replace('{effort}', settings.defaultEffort)}</option>
           {EFFORTS.map((x) => (
             <option key={x} value={x}>
               {x}
@@ -138,6 +141,7 @@ export function HireSetupFields({ value, onChange, disabled }: { value: HireSetu
  * change it before hiring them, or an agent the CEO would let go. The CEO's reason either way.
  */
 export function Resume({ req, highlight }: { req: HireRequestView; highlight?: boolean }) {
+  const t = useT();
   const repo = useStore((s) => s.repos.find((r) => r.id === req.repoId));
   const settings = useStore((s) => s.settings);
   const clis = useStore((s) => s.clis);
@@ -158,22 +162,22 @@ export function Resume({ req, highlight }: { req: HireRequestView; highlight?: b
     await attempt(fn);
     setBusy(false);
   };
-  const outcome = req.status === 'approved' ? (hire ? '✅ hired' : '👋 left') : hire ? '✋ declined' : '🤝 kept';
+  const outcome = req.status === 'approved' ? (hire ? t('resume.hired') : t('resume.left')) : hire ? t('resume.declined') : t('resume.kept');
   return (
     <div ref={ref} className={`resume ${hire ? '' : 'resume-letgo'} ${highlight ? 'resume-hot' : ''} ${pending ? '' : 'resume-done'}`}>
       <div className="resume-head">
         <Avatar name={name} color={req.color} size={42} />
         <div className="grow">
-          <div className="resume-name">{hire ? name : `Let ${req.name} go?`}</div>
-          <div className="resume-title">{hire ? 'A new agent' : 'Leaving the team'}</div>
+          <div className="resume-name">{hire ? name : t('resume.letGo').replace('{name}', req.name)}</div>
+          <div className="resume-title">{hire ? t('resume.newAgent') : t('resume.leaving')}</div>
         </div>
         {!pending && <span className={`chip ${req.status === 'approved' ? 'chip-good' : ''}`}>{outcome}</span>}
       </div>
       <div className="resume-meta">
         <span className="chip" style={{ background: repo?.color }}>
-          Floor {repo?.floor ?? '?'}
+          {t('resume.floor').replace('{floor}', String(repo?.floor ?? '?'))}
         </span>
-        <span className="muted small">{repo?.fullName.split('/')[1] ?? 'removed floor'}</span>
+        <span className="muted small">{repo?.fullName.split('/')[1] ?? t('resume.removedFloor')}</span>
       </div>
       {req.reason && <Markdown className="resume-reason" text={req.reason} />}
       {hire && (
@@ -181,21 +185,21 @@ export function Resume({ req, highlight }: { req: HireRequestView; highlight?: b
           <span className="grow">⚙️ {setupLine(pending ? setup : req, settings, clis)}</span>
           {pending && (
             <button className="linkish small" aria-expanded={editing} onClick={() => setEditing(!editing)}>
-              {editing ? 'Done' : 'Change'}
+              {editing ? t('resume.done') : t('resume.change')}
             </button>
           )}
         </div>
       )}
       {hire && pending && editing && <HireSetupFields value={setup} onChange={setSetup} disabled={busy} />}
-      {!pending && req.note && <div className="muted small">Your note: “{req.note}”</div>}
+      {!pending && req.note && <div className="muted small">{t('resume.yourNote').replace('{note}', req.note)}</div>}
       {pending && !declining && (
         <div className="row">
           <button className="btn btn-small btn-ghost" disabled={busy} onClick={() => setDeclining(true)}>
-            {hire ? 'Decline' : 'Keep them'}
+            {hire ? t('resume.decline') : t('resume.keep')}
           </button>
           <span className="spacer" />
           <button className="btn btn-small btn-good" disabled={busy} onClick={() => act(() => api.approveRequest(req.id, hire ? hireOverrides(req, setup) : {}))}>
-            {hire ? `Hire ${name}` : `Let ${req.name} go`}
+            {hire ? t('resume.hire').replace('{name}', name) : t('resume.doLetGo').replace('{name}', req.name)}
           </button>
         </div>
       )}
@@ -207,9 +211,9 @@ export function Resume({ req, highlight }: { req: HireRequestView; highlight?: b
             void act(() => api.rejectRequest(req.id, note));
           }}
         >
-          <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Why not? (optional, the CEO reads it)" autoFocus />
+          <input value={note} onChange={(e) => setNote(e.target.value)} placeholder={t('resume.whyNot')} autoFocus />
           <button className="btn btn-small btn-bad" disabled={busy}>
-            {hire ? 'Decline' : 'Keep'}
+            {hire ? t('resume.decline') : t('resume.keep')}
           </button>
         </form>
       )}
@@ -219,6 +223,7 @@ export function Resume({ req, highlight }: { req: HireRequestView; highlight?: b
 
 /** New agents waiting in the lobby to be set up and hired, with a way down to meet them (unless you're there already). */
 function LobbyNudge() {
+  const t = useT();
   const n = useStore((s) => pendingRequests(s.requests).filter((r) => r.kind === 'hire').length);
   const inLobby = useStore((s) => s.floor === 0);
   const goToFloor = useStore((s) => s.goToFloor);
@@ -227,11 +232,11 @@ function LobbyNudge() {
     <div className="phone-nudge" role="status">
       <span>🪑</span>
       <span className="grow">
-        {n} new agent{n === 1 ? ' is' : 's are'} waiting in the lobby
+        {n === 1 ? t('phone.lobby.one').replace('{n}', String(n)) : t('phone.lobby.many').replace('{n}', String(n))}
       </span>
       {!inLobby && (
         <button className="btn btn-small" onClick={() => goToFloor(0)}>
-          Meet them
+          {t('phone.lobby.meet')}
         </button>
       )}
     </div>
@@ -239,31 +244,32 @@ function LobbyNudge() {
 }
 
 function TeamChanges({ focusId }: { focusId?: string }) {
+  const t = useT();
   const requests = useStore((s) => s.requests);
   const demo = useStore((s) => s.demo);
   const pending = pendingRequests(requests);
   const decided = requests.filter((r) => r.status !== 'pending').slice(-8).reverse();
   return (
     <div className="phone-scroll">
-      <h3 className="phone-h">👥 Waiting on you {pending.length > 0 && <span className="badge">{pending.length}</span>}</h3>
-      {pending.length === 0 && <p className="muted small phone-empty">Nothing waiting. When the CEO wants a floor's team to grow or shrink, the change shows up here for your OK.</p>}
+      <h3 className="phone-h">👥 {t('phone.waitingOn')} {pending.length > 0 && <span className="badge">{pending.length}</span>}</h3>
+      {pending.length === 0 && <p className="muted small phone-empty">{t('phone.nothingWaiting')}</p>}
       {pending.map((r) => (
         <Resume key={r.id} req={r} highlight={r.id === focusId} />
       ))}
       {demo && (
         <div className="row wrap">
-          <span className="muted small">Demo:</span>
+          <span className="muted small">{t('phone.demo')}</span>
           <button className="btn btn-small btn-ghost" onClick={() => void attempt(() => api.demoPropose('hire'))}>
-            👥 Grow a floor
+            {t('phone.grow')}
           </button>
           <button className="btn btn-small btn-ghost" onClick={() => void attempt(() => api.demoPropose('let-go'))}>
-            ✉️ Shrink a floor
+            {t('phone.shrink')}
           </button>
         </div>
       )}
       {decided.length > 0 && (
         <>
-          <h3 className="phone-h">Earlier</h3>
+          <h3 className="phone-h"><TranslatedLabel id="earlier" /></h3>
           {decided.map((r) => (
             <Resume key={r.id} req={r} />
           ))}
@@ -296,10 +302,11 @@ function ReplayButton({ m }: { m: PhoneMessage }) {
   );
 }
 
-const QUICK = ["What's everyone working on?", 'Should a team grow?', 'Plan the next milestone for the busiest floor.'];
+// QUICK messages resolved in Chat using t() since they need translation
 
 /** The hands-free conversation's switch: after the CEO's spoken reply, the phone listens for up to 8 s. */
 function HandsFreeToggle({ ceoName }: { ceoName: string }) {
+  const t = useT();
   const listen = useStore((s) => s.settings.listen);
   useStore((s) => `${s.voiceKeySet}:${s.settings.voice.provider}`); // handsFreeProblem() follows the key and the voice
   if (!listen || listen.provider === 'off') return null;
@@ -310,10 +317,10 @@ function HandsFreeToggle({ ceoName }: { ceoName: string }) {
       type="button"
       className={`hands-free ${on ? 'hands-free-on' : ''}`}
       aria-pressed={on}
-      title={on ? `Hands-free is on: after ${ceoName}'s spoken reply the phone listens for up to 8 s and sends what you say. Esc or M closes the mic.` : why || `Hands-free: talk with ${ceoName} without touching anything`}
+      title={on ? t('phone.handsFreeTitle.on').replace('{ceo}', ceoName) : why || t('phone.handsFreeTitle.off').replace('{ceo}', ceoName)}
       onClick={() => void setHandsFree(!on, ceoName)}
     >
-      🎧 {on ? 'Hands-free on' : 'Hands-free'}
+      🎧 {on ? t('phone.handsFreeOn') : t('phone.handsFreeTxt')}
     </button>
   );
 }
@@ -339,6 +346,7 @@ function Bubble({ m, ceoName }: { m: PhoneMessage; ceoName: string }) {
 
 /** The thread with the CEO; pocket mode shows it as its Chat tab, where the keyboard waits for a tap. */
 export function Chat({ autoFocus = true }: { autoFocus?: boolean }) {
+  const t = useT();
   const messages = useStore((s) => s.messages);
   const readAt = useStore((s) => s.phoneReadAt);
   const ceo = useStore((s) => s.agents[CEO_ID]);
@@ -358,9 +366,9 @@ export function Chat({ autoFocus = true }: { autoFocus?: boolean }) {
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages.length, info.job?.kind]);
 
-  if (!ceo) return <p className="muted phone-empty">The corner office is empty.</p>;
-  const send = (t: string) => {
-    const body = t.trim();
+  if (!ceo) return <p className="muted phone-empty">{t('ceo.empty')}</p>;
+  const send = (msg: string) => {
+    const body = msg.trim();
     if (!body) return;
     setText('');
     void attempt(() => api.messageCeo(body));
@@ -370,15 +378,16 @@ export function Chat({ autoFocus = true }: { autoFocus?: boolean }) {
   const presence =
     ceo.status === 'working'
       ? replying
-        ? 'typing…'
-        : `busy: ${info.job?.label ?? 'working'}`
+        ? t('ceo.status.typing')
+        : t('ceo.status.busy').replace('{label}', info.job?.label ?? 'working')
       : chatQueued
         ? settings.sessionLimit && running >= settings.sessionLimit
-          ? `will reply when a session slot frees up (${running}/${settings.sessionLimit} busy)`
-          : 'reading your message…'
+          ? t('ceo.status.slotFull').replace('{running}', String(running)).replace('{max}', String(settings.sessionLimit))
+          : t('ceo.status.reading')
         : info.queue.length
-          ? `next up: ${info.queue[0].label}`
-          : 'available';
+          ? t('ceo.status.nextUp').replace('{label}', info.queue[0].label)
+          : t('ceo.status.available');
+  const QUICK = [t('phone.quick1'), t('phone.quick2'), t('phone.quick3')];
 
   return (
     <div className="phone-chat">
@@ -393,7 +402,7 @@ export function Chat({ autoFocus = true }: { autoFocus?: boolean }) {
       <div className="chat-log" ref={scroller} aria-label={`Messages with ${ceo.name}`} tabIndex={0}>
         {messages.length === 0 && (
           <p className="muted small phone-empty">
-            Say hi to {ceo.name}. Ask how things are going, hand over a project brief, or ask whether a team should grow. Replies land here, and the phone buzzes when {ceo.name} needs you.
+            {t('phone.sayHi').replace('{name}', ceo.name).replace('{name}', ceo.name)}
           </p>
         )}
         {messages.map((m) => (
@@ -423,10 +432,10 @@ export function Chat({ autoFocus = true }: { autoFocus?: boolean }) {
           send(text);
         }}
       >
-        <MessageBox value={text} onChange={setText} placeholder={`Message ${ceo.name}…`} aria-label={`Message ${ceo.name}`} title="Enter sends · Shift+Enter adds a new line" autoFocus={autoFocus} />
+        <MessageBox value={text} onChange={setText} placeholder={t('ceo.message').replace('{name}', ceo.name)} aria-label={t('ceo.message').replace('{name}', ceo.name)} autoFocus={autoFocus} />
         <MicButton kind="phone" value={text} onChange={setText} onSend={send} />
         <button className="btn btn-small btn-good" disabled={!text.trim()}>
-          Send
+          {t('phone.send')}
         </button>
       </form>
     </div>
@@ -436,6 +445,7 @@ export function Chat({ autoFocus = true }: { autoFocus?: boolean }) {
 // ---------- company at a glance ----------
 
 function useCompany() {
+  const t = useT();
   const repos = useStore((s) => s.repos);
   const agents = useStore((s) => s.agents);
   const qa = useStore((s) => s.qa);
@@ -471,54 +481,55 @@ function useCompany() {
     if (readyList.length)
       report.push({
         icon: '✅',
-        text: `${sum('ready')} pull request${sum('ready') === 1 ? ' passed' : 's passed'} QA and ${sum('ready') === 1 ? 'is' : 'are'} ready for you to merge (${readyList.map((f) => `${f.repo.fullName.split('/')[1]}: ${f.ready}`).join(', ')}).`,
+        text: t('phone.report.ready', { count: sum('ready'), n: sum('ready'), detail: readyList.map((f) => `${f.repo.fullName.split('/')[1]}: ${f.ready}`).join(', ') }),
         tone: 'good',
       });
-    if (sum('stuck')) report.push({ icon: '⚠️', text: `${sum('stuck')} pull request${sum('stuck') === 1 ? '' : 's'} need${sum('stuck') === 1 ? 's' : ''} your call: the team can't move ${sum('stuck') === 1 ? 'it' : 'them'} on alone.`, tone: 'warn' });
-    if (pending) report.push({ icon: '👥', text: `${pending} team change${pending === 1 ? ' is' : 's are'} waiting in Team.`, tone: 'warn' });
+    if (sum('stuck')) report.push({ icon: '⚠️', text: t('phone.report.stuck', { count: sum('stuck'), n: sum('stuck') }), tone: 'warn' });
+    if (pending) report.push({ icon: '👥', text: t('phone.report.pending', { count: pending, n: pending }), tone: 'warn' });
     report.push({
       icon: '⚙️',
       text: settings.sessionLimit
         ? running
-          ? `${running} of ${settings.sessionLimit} session slots are busy right now.`
-          : `Nobody is working at the moment (${settings.sessionLimit} session slots free).`
+          ? t('phone.report.sessions.limitedBusy').replace('{running}', String(running)).replace('{max}', String(settings.sessionLimit))
+          : t('phone.report.sessions.limitedIdle').replace('{max}', String(settings.sessionLimit))
         : running
-          ? `${running} session${running === 1 ? ' is' : 's are'} running right now.`
-          : 'Nobody is working at the moment.',
+          ? t('phone.report.sessions.busy', { count: running, n: running })
+          : t('phone.report.sessions.idle'),
     });
     for (const f of floors) {
       if (f.issues > 0 && !f.repo.autoAssign && f.working === 0 && f.idle > 0) {
-        report.push({ icon: '💤', text: `${f.repo.fullName.split('/')[1]} has ${f.issues} open issue${f.issues === 1 ? '' : 's'} and free agents, but auto-assign is off.` });
+        report.push({ icon: '💤', text: t('phone.report.autoOff', { count: f.issues, n: f.issues, name: f.repo.fullName.split('/')[1] }) });
       }
     }
     const busiest = [...floors].sort((a, b) => b.issues + b.prs - (a.issues + a.prs))[0];
     if (busiest && busiest.issues + busiest.prs > 0 && floors.length > 1) {
-      report.push({ icon: '🔥', text: `Most work in flight: ${busiest.repo.fullName.split('/')[1]} (${busiest.issues} issues, ${busiest.prs} PRs).` });
+      report.push({ icon: '🔥', text: t('phone.report.busiest').replace('{name}', busiest.repo.fullName.split('/')[1]).replace('{issues}', String(busiest.issues)).replace('{prs}', String(busiest.prs)) });
     }
     if (ceo) {
       report.push({
         icon: '🧠',
         text:
           ceo.status === 'working'
-            ? `${ceo.name} is ${(info.job?.label ?? 'working').replace(/^\w/, (c) => c.toLowerCase())}.`
+            ? t('phone.report.ceo.working').replace('{name}', ceo.name).replace('{job}', (info.job?.label ?? 'working').replace(/^\w/, (c) => c.toLowerCase()))
             : info.nextReviewAt
-              ? `${ceo.name} reviews the company next at ${clock(info.nextReviewAt)}.`
-              : `${ceo.name}'s periodic reviews are off.`,
+              ? t('phone.report.ceo.review').replace('{name}', ceo.name).replace('{time}', clock(info.nextReviewAt))
+              : t('phone.report.ceo.off').replace('{name}', ceo.name),
       });
     }
-    if (floors.length === 0) report.splice(0, report.length, { icon: '👋', text: "No projects yet. Connect a repo in the manager's office (lobby, back left) and the CEO will staff it." });
+    if (floors.length === 0) report.splice(0, report.length, { icon: '👋', text: t('phone.report.empty') });
     return { floors, staff: staff.length, running, max: settings.sessionLimit, issues: sum('issues'), prs: sum('prs'), report };
   }, [repos, agents, qa, requests, settings, info]);
 }
 
 /** Every panel, a key press away: the phone is where keyboard and screen reader users reach the rest of the office. */
 function Shortcuts() {
+  const t = useT();
   const openOverlay = useStore((s) => s.openOverlay);
   const repoId = useStore((s) => s.repos.find((r) => r.floor === s.floor)?.id);
   return (
     <nav className="phone-links" aria-label="Open a panel">
       <button className="btn btn-small" onClick={() => openOverlay({ kind: 'manager' })}>
-        🧑‍💼 Console
+        {t('phone.console')}
       </button>
       {repoId && (
         <button className="btn btn-small" onClick={() => openOverlay({ kind: 'kanban', repoId })}>
@@ -526,27 +537,29 @@ function Shortcuts() {
         </button>
       )}
       <button className="btn btn-small" onClick={() => openOverlay({ kind: 'floorList' })}>
-        👥 Floor list
+        {t('phone.floorList')}
       </button>
       <button className="btn btn-small" onClick={() => openOverlay({ kind: 'help' })}>
-        ❓ Help
+        {t('phone.helpBtn')}
       </button>
       <button className="btn btn-small" onClick={() => openOverlay({ kind: 'manager', tab: 'access' })}>
-        ♿ Accessibility
+        {t('phone.accessBtn')}
       </button>
     </nav>
   );
 }
 
 function Company() {
+  const t = useT();
   const c = useCompany();
   const goToFloor = useStore((s) => s.goToFloor);
+  const projectLabel = t('phone.tile.projects', { count: c.floors.length });
   const tiles: [string, string | number, string][] = [
-    ['🏢', c.floors.length, c.floors.length === 1 ? 'project' : 'projects'],
-    ['📋', c.issues, 'open issues'],
-    ['🔀', c.prs, 'open PRs'],
-    ['👥', c.staff, 'on staff'],
-    ['⚙️', c.max ? `${c.running}/${c.max}` : `${c.running}`, 'working now'],
+    ['🏢', c.floors.length, projectLabel],
+    ['📋', c.issues, t('phone.tile.issues')],
+    ['🔀', c.prs, t('phone.tile.prs')],
+    ['👥', c.staff, t('phone.tile.staff')],
+    ['⚙️', c.max ? `${c.running}/${c.max}` : `${c.running}`, t('phone.tile.working')],
   ];
   return (
     <div className="phone-scroll">
@@ -561,7 +574,7 @@ function Company() {
         ))}
       </div>
       <Shortcuts />
-      <h3 className="phone-h">Today's report</h3>
+      <h3 className="phone-h">{t('phone.report')}</h3>
       <ul className="report">
         {c.report.map((r, i) => (
           <li key={i} className={r.tone ? `report-${r.tone}` : ''}>
@@ -570,7 +583,7 @@ function Company() {
           </li>
         ))}
       </ul>
-      {c.floors.length > 0 && <h3 className="phone-h">Projects</h3>}
+      {c.floors.length > 0 && <h3 className="phone-h"><TranslatedLabel id="projects" /></h3>}
       {c.floors.map((f) => (
         <div key={f.repo.id} className="proj" style={{ ['--accent' as string]: f.repo.color }}>
           <div className="row">
@@ -580,13 +593,13 @@ function Company() {
               <div className="muted small proj-sum">{f.repo.summary || f.repo.description || f.repo.fullName}</div>
             </div>
             <button className="btn btn-small" onClick={() => goToFloor(f.repo.floor)}>
-              Go
+              {t('phone.go')}
             </button>
           </div>
           <div className="proj-stats small">
             <span>
               👥 {f.team}
-              {f.working ? ` (${f.working} busy)` : ''}
+              {f.working ? ` ${t('phone.busy').replace('{n}', String(f.working))}` : ''}
             </span>
             <span>📋 {f.issues}</span>
             <span>🔍 {f.inQa}</span>
@@ -610,6 +623,7 @@ const waitingNow = () => {
 };
 
 export function Phone({ tab: initialTab, requestId }: { tab?: PhoneTab; requestId?: string }) {
+  const t = useT();
   const [tab, setTab] = useState<PhoneTab>(() =>
     resumeGames && !requestId && waitingNow() <= resumeGames.waiting ? 'games' : (initialTab ?? (requestId ? 'hires' : 'chat')),
   );
@@ -660,13 +674,13 @@ export function Phone({ tab: initialTab, requestId }: { tab?: PhoneTab; requestI
   const unread = unreadMessages(messages, readAt);
   const tabs: [PhoneTab, string, string, number][] = [
     ['chat', '💬', ceoName, tab === 'chat' ? 0 : unread],
-    ['hires', '👥', 'Team', pending],
-    ['company', '📊', 'Company', 0],
-    ['games', '🎮', 'Games', 0],
+    ['hires', '👥', t('phone.tabTeam'), pending],
+    ['company', '📊', t('phone.tabCompany'), 0],
+    ['games', '🎮', t('phone.tabGames'), 0],
   ];
   return (
     <div className="overlay phone-overlay" onMouseDown={(e) => e.target === e.currentTarget && closeOverlay()}>
-      <div className="phone" ref={box} role="dialog" aria-modal="true" aria-label="Your phone" tabIndex={-1}>
+      <div className="phone" ref={box} role="dialog" aria-modal="true" aria-label={t('phone.aria')} tabIndex={-1}>
         <div className="phone-status" aria-hidden>
           <span>{clock(now)}</span>
           <span className="phone-notch" />
@@ -687,7 +701,7 @@ export function Phone({ tab: initialTab, requestId }: { tab?: PhoneTab; requestI
               key={k}
               role="tab"
               aria-selected={tab === k}
-              aria-label={badge > 0 ? `${label}, ${badge} new` : label}
+              aria-label={badge > 0 ? t('phone.aria.newBadge').replace('{label}', label).replace('{badge}', String(badge)) : label}
               className={`phone-tab ${tab === k ? 'phone-tab-on' : ''}`}
               onClick={() => (k === 'games' && tab === 'games' ? setGame(null) : setTab(k))}
             >
@@ -702,20 +716,20 @@ export function Phone({ tab: initialTab, requestId }: { tab?: PhoneTab; requestI
         <div className="phone-hint">
           {tab === 'chat' && (
             <>
-              <kbd>Shift</kbd>+<kbd>Enter</kbd> new line ·{' '}
+              <kbd>Shift</kbd>+<kbd>Enter</kbd> {t('phone.newLine')} ·{' '}
               {listenOn && (
                 <>
-                  <Key action="talk" /> to talk ·{' '}
+                  <Key action="talk" /> {t('phone.toTalk')} ·{' '}
                 </>
               )}
             </>
           )}
           {tab === 'games' && game && (
             <>
-              <kbd>Backspace</kbd> games ·{' '}
+              <kbd>Backspace</kbd> {t('phone.gamesBack')} ·{' '}
             </>
           )}
-          <Key action="phone" /> or <kbd>Esc</kbd> to put it away
+          <Key action="phone" /> {t('phone.putAway')}
         </div>
       </div>
     </div>

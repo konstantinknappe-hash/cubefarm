@@ -5,6 +5,7 @@ import { requestLook } from '../world/Player';
 import { CEO_ID, type RepoView } from '../../../shared/types';
 import { Key } from './Key';
 import { ProjectPicker } from './ProjectPicker';
+import { useT } from '../i18n';
 
 // First run: who you are, the company, your CEO and your first project. Every field has a default, so
 // "Skip" (or just pressing Next) gets a working office.
@@ -38,6 +39,7 @@ function CeoPortrait({ color, look }: { color: string; look: 'feminine' | 'mascu
 }
 
 export function SetupWizard() {
+  const t = useT();
   const user = useStore((s) => s.user);
   const demo = useStore((s) => s.demo);
   const ghReady = useStore((s) => s.ghReady);
@@ -99,19 +101,19 @@ export function SetupWizard() {
           <>
             <div className="start-logo">✻</div>
             <h1>cubefarm</h1>
-            <p className="start-tag">Your own cartoon software company, staffed by AI coding agents.</p>
+            <p className="start-tag">{t('wizard.step0.tag')}</p>
             <ul className="start-list">
-              <li>🏢 Every project gets its own floor, with a team of coding agents building and testing its GitHub issues.</li>
-              <li>🧠 A CEO studies each project, plans the work you ask for and sizes each team. You approve every new agent.</li>
-              <li>📱 Your phone keeps you in the loop from anywhere in the building.</li>
+              <li>{t('wizard.step0.item1')}</li>
+              <li>{t('wizard.step0.item2')}</li>
+              <li>{t('wizard.step0.item3')}</li>
             </ul>
             {!ghReady && ghError && <div className="term-error small">⚠️ {ghError}</div>}
             <button className="btn btn-big" onClick={() => setStep(1)}>
-              Let's set up your company
+              {t('wizard.step0.start')}
             </button>
             <div className="start-meta">
               <button className="linkish" onClick={finish} disabled={busy}>
-                Skip setup and use the defaults
+                {t('wizard.step0.skip')}
               </button>
               {demo && <span className="pill pill-demo">DEMO MODE</span>}
             </div>
@@ -121,68 +123,68 @@ export function SetupWizard() {
         {step === 1 && (
           <>
             <div className="wizard-icon">🧑‍💼</div>
-            <h2>Who's the boss?</h2>
-            <p className="start-tag">That's you. You run the company; the agents do the typing.</p>
+            <h2>{t('wizard.step1.title')}</h2>
+            <p className="start-tag">{t('wizard.step1.tag')}</p>
             <label className="field">
-              <span>Your name</span>
+              <span>{t('wizard.step1.yourName')}</span>
               <input value={managerName} onChange={(e) => setManagerName(e.target.value)} placeholder={user ?? 'Boss'} autoFocus />
             </label>
             <label className="field">
-              <span>Company name</span>
+              <span>{t('wizard.step1.companyName')}</span>
               <div className="row" style={{ margin: 0 }}>
                 <input value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder={COMPANIES[0]} />
-                <button type="button" className="btn btn-small" title="Suggest another name" onClick={() => setCompanyName(pickOther(COMPANIES, companyName))}>
+                <button type="button" className="btn btn-small" title={t('wizard.step1.suggest')} onClick={() => setCompanyName(pickOther(COMPANIES, companyName))}>
                   🎲
                 </button>
               </div>
             </label>
-            <p className="muted small">It goes on the sign in the lobby. Change either any time in the manager's console.</p>
+            <p className="muted small">{t('wizard.step1.nameTip')}</p>
           </>
         )}
 
         {step === 2 && (
           <>
-            <h2>Meet your CEO</h2>
+            <h2>{t('wizard.step2.title')}</h2>
             <div className="ceo-setup">
               <CeoPortrait color={ceoColor} look={ceoLook} />
               <div className="grow">
                 <label className="field">
-                  <span>Name</span>
+                  <span>{t('wizard.ceoName')}</span>
                   <div className="row" style={{ margin: 0 }}>
                     <input value={ceoName} onChange={(e) => setCeoName(e.target.value)} placeholder="Morgan" autoFocus />
-                    <button type="button" className="btn btn-small" title="Suggest another name" onClick={() => setCeoName(pickOther(CEO_NAMES, ceoName))}>
+                    <button type="button" className="btn btn-small" title={t('wizard.step1.suggest')} onClick={() => setCeoName(pickOther(CEO_NAMES, ceoName))}>
                       🎲
                     </button>
                   </div>
                 </label>
                 <div className="row">
                   <label className="toggle">
-                    <input type="radio" checked={ceoLook === 'feminine'} onChange={() => setCeoLook('feminine')} /> 👩 She
+                    <input type="radio" checked={ceoLook === 'feminine'} onChange={() => setCeoLook('feminine')} /> {t('wizard.step2.she')}
                   </label>
                   <label className="toggle">
-                    <input type="radio" checked={ceoLook === 'masculine'} onChange={() => setCeoLook('masculine')} /> 👨 He
+                    <input type="radio" checked={ceoLook === 'masculine'} onChange={() => setCeoLook('masculine')} /> {t('wizard.step2.he')}
                   </label>
                   <span className="spacer" />
                   {TIES.map((c) => (
-                    <button key={c} type="button" className={`swatch ${c === ceoColor ? 'swatch-on' : ''}`} style={{ background: c }} onClick={() => setCeoColor(c)} title="Tie colour" />
+                    <button key={c} type="button" className={`swatch ${c === ceoColor ? 'swatch-on' : ''}`} style={{ background: c }} onClick={() => setCeoColor(c)} title={t('wizard.step2.tieColor')} />
                   ))}
                 </div>
-                <div className="muted small">Claude Opus 5.5 at xhigh effort: the thinking-hardest person in the building.</div>
+                <div className="muted small">{t('wizard.step2.info')}</div>
               </div>
             </div>
             <p className="start-tag" style={{ margin: '12px 0 6px' }}>
-              {ceo} studies every project, writes its QA checklist, turns the work you ask for into GitHub issues and decides how big each team should be.
+              {t('wizard.ceoDesc').replace('{ceo}', ceo)}
             </p>
             <label className="toggle block">
               <input type="radio" checked={scaling === 'approve'} onChange={() => setScaling('approve')} />
               <span>
-                <b>Ask me before every team change</b> (recommended). New agents wait in the lobby and on your phone.
+                <b>{t('wizard.step2.approve')}</b> {t('wizard.step2.approveNote')}
               </span>
             </label>
             <label className="toggle block">
               <input type="radio" checked={scaling === 'auto'} onChange={() => setScaling('auto')} />
               <span>
-                <b>Let {ceo} change teams</b> on their own, up to {maxAgents} agents per floor.
+                <b>{t('wizard.step2.auto').replace('{ceo}', ceo)}</b> {t('wizard.step2.autoNote').replace('{max}', String(maxAgents))}
               </span>
             </label>
           </>
@@ -190,20 +192,18 @@ export function SetupWizard() {
 
         {step === 3 && (
           <>
-            <h2>Your first project</h2>
+            <h2>{t('wizard.step3.title')}</h2>
             {project ? (
               <div className="wizard-done">
                 <div className="wizard-icon">🎉</div>
                 <p>
-                  <b>{project.fullName}</b> moved into floor {project.floor}.
+                  <b>{project.fullName}</b> {t('wizard.step3.movedIn').replace('{repo}', '').replace('{floor}', String(project.floor)).trimStart()}
                 </p>
-                <p className="muted">
-                  {ceo} is studying it right now and will text you when they know how big the team should be. One agent is already at a desk.
-                </p>
+                <p className="muted">{t('wizard.step3.studying').replace('{ceo}', ceo)}</p>
               </div>
             ) : (
               <>
-                <p className="start-tag">Pick one of your project folders, a GitHub repo, or start something new. Every project needs to be on GitHub: issues and pull requests are how the team works.</p>
+                <p className="start-tag">{t('wizard.step3.pick')}</p>
                 <ProjectPicker onConnected={setProject} />
               </>
             )}
@@ -213,21 +213,29 @@ export function SetupWizard() {
         {step === 4 && (
           <>
             <div className="wizard-icon">🏢</div>
-            <h2>{company} is open for business</h2>
+            <h2>{t('wizard.step4.title').replace('{company}', company)}</h2>
             <ul className="start-list">
               <li>
-                🧠 {ceo}{project ? ` is studying ${project.fullName.split('/')[1]}` : ' is waiting for your first project'}.{' '}
-                {scaling === 'approve' ? 'Team changes wait for your OK.' : `Team changes up to ${maxAgents} agents per floor go through on their own.`}
+                🧠 {project ? t('wizard.studying').replace('{ceo}', ceo).replace('{project}', project.fullName.split('/')[1]) : t('wizard.waiting').replace('{ceo}', ceo)}{' '}
+                {scaling === 'approve' ? t('wizard.approveChange') : t('wizard.autoChange').replace('{max}', String(maxAgents))}
               </li>
               <li>
-                📱 Press <Key action="phone" /> anywhere for your phone: chat with {ceo}, approve team changes, and see every project at a glance.
+                {t('help.locale') === 'de' ? (
+                  <>📱 Drücke <Key action="phone" /> überall für dein Telefon: chatte mit {ceo}, genehmige Teamänderungen und sieh alle Projekte auf einen Blick.</>
+                ) : (
+                  <>📱 Press <Key action="phone" /> anywhere for your phone: chat with {ceo}, approve team changes, and see every project at a glance.</>
+                )}
               </li>
               <li>
-                🧭 A short tour starts when you walk in. Press <Key action="help" /> any time for help.
+                {t('help.locale') === 'de' ? (
+                  <>🧭 Eine kurze Tour startet beim Eintreten. Drücke <Key action="help" /> jederzeit für Hilfe.</>
+                ) : (
+                  <>🧭 A short tour starts when you walk in. Press <Key action="help" /> any time for help.</>
+                )}
               </li>
             </ul>
             <button className="btn btn-big" onClick={finish} disabled={busy}>
-              {busy ? 'Opening the doors…' : 'Enter the office'}
+              {busy ? t('wizard.step4.opening') : t('wizard.step4.enter')}
             </button>
           </>
         )}
@@ -235,17 +243,17 @@ export function SetupWizard() {
         {step > 0 && step < 4 && (
           <div className="wizard-nav">
             <button className="btn btn-ghost" onClick={() => setStep(step - 1)} disabled={busy}>
-              ← Back
+              {t('wizard.back')}
             </button>
             <span className="spacer" />
             {step === 3 && !project && (
               <button className="linkish" onClick={() => setStep(4)}>
-                I'll add one later
+                {t('wizard.addLater')}
               </button>
             )}
             {(step !== 3 || project) && (
               <button className="btn btn-good" onClick={() => void next()} disabled={busy}>
-                Next →
+                {t('wizard.next')}
               </button>
             )}
           </div>
