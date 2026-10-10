@@ -1624,6 +1624,21 @@ export class Swarm {
       this.setQa(rec, { passedSha: details.headSha });
       return false;
     }
+    if (step.do === 'ready') {
+      // QA passed the draft's head and GitHub's checks are green: undraft it; the next sync merges it as usual.
+      try {
+        await this.backend.markReady(repo.fullName, pr.number);
+      } catch (err) {
+        const error = oneLine(err).replace(/^gh .*? failed: /, '');
+        rec.mergeRetryAt = Date.now() + MERGE_RETRY_MS;
+        if (!rec.alerted) {
+          rec.alerted = true;
+          this.postMessage('office', `⚠️ PR #${pr.number} on ${repo.fullName} passed QA and its checks, but GitHub won't mark the draft ready for review: ${error}. The office retries every ${MERGE_RETRY_MS / 60_000} minutes.`);
+        }
+        return this.mergeNote(rec, `could not mark the draft ready: ${error}`);
+      }
+      return this.mergeNote(rec, 'marked ready for review');
+    }
     if (step.do !== 'merge') return false;
     this.mergeNote(rec, 'merging…');
     let error = '';

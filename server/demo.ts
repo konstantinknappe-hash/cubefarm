@@ -713,6 +713,11 @@ export function createDemoBackend(scale: DemoScale | null = null): Backend {
       Object.assign(pr, { headSha: fakeSha(), mergeState: 'CLEAN' });
       runChecks(pr, false);
     },
+    markReady: async (fullName, number) => {
+      const pr = repos.get(fullName)?.pulls.find((p) => p.number === number);
+      if (!pr) throw new Error('Unknown PR');
+      Object.assign(pr, { isDraft: false, mergeState: pr.mergeState === 'DRAFT' ? 'CLEAN' : pr.mergeState });
+    },
     failedRunLog: async (_fullName, runId) =>
       [
         `build\tRun npm test\t2025-01-01T00:00:00Z > vitest run (run ${runId})`,
