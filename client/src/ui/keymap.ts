@@ -10,6 +10,7 @@ export type ActionId =
   | 'left'
   | 'right'
   | 'run'
+  | 'jump'
   | 'interact'
   | 'throw'
   | 'drop'
@@ -51,6 +52,7 @@ const RAW: readonly Omit<ActionDef, 'label'>[] = [
   { id: 'left', group: 'Moving', scope: 'move', keys: ['KeyA', 'ArrowLeft'] },
   { id: 'right', group: 'Moving', scope: 'move', keys: ['KeyD', 'ArrowRight'] },
   { id: 'run', group: 'Moving', scope: 'move', keys: ['ShiftLeft', 'ShiftRight'] },
+  { id: 'jump', group: 'Moving', scope: 'walk', keys: ['Space'] },
   { id: 'interact', group: 'Hands', scope: 'walk', keys: ['KeyE'] },
   { id: 'throw', group: 'Hands', scope: 'walk', keys: ['KeyF'] },
   { id: 'drop', group: 'Hands', scope: 'walk', keys: ['KeyG'] },

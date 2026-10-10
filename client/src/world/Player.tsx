@@ -226,6 +226,17 @@ const pressKey = (key: 'Escape' | 'Enter') => window.dispatchEvent(new KeyboardE
 
 /** Right stick at full tilt turns this many radians a second (times the pad sensitivity). */
 const PAD_TURN = 2.6;
+// Jumping and bunny hopping, roughly CS-style: Quake air control (strafe with A/D while turning the mouse to gain a
+// little speed), a hop pressed right on landing keeps the speed, capped at MAX_HOP. No double jumps, no hold-to-hop.
+const JUMP_SPEED = 4.6;
+const GRAVITY = 13;
+const AIR_CAP = 0.9;
+const AIR_ACCEL = 12;
+const MAX_HOP = 9;
+const HOP_BONUS = 1.04;
+const JUMP_BUFFER_MS = 120;
+const HOP_WINDOW_MS = 120;
+const LAND_SLIDE_MS = 250;
 
 /** Whether `code` gets you up from a perch (a deck chair, the telescope): a walking key, or Space. */
 const gotUp = (b: ReturnType<typeof bindings>, code: string) => code === 'Space' || [...MOVES].some((a) => isBound(b, a, code));
@@ -245,6 +256,7 @@ export function Player({ colliders, floor }: { colliders: Rect[]; floor: number 
   const frame = useRef(0);
   const lookFilter = useMemo(createLookFilter, []);
   const padRun = useRef(false);
+  const jump = useRef({ y: 0, vy: 0, vx: 0, vz: 0, press: 0, landed: 0 });
   useEffect(() => setHomeLook(() => look.current), []);
   const perched = useRef<Perch | null>(null);
 
@@ -344,6 +356,7 @@ export function Player({ colliders, floor }: { colliders: Rect[]; floor: number 
         // − and + turn the jukebox down and up while you look at it.
         if (action === 'volumeDown' && s.focus?.action.kind === 'jukebox') jukeboxAction('vol-');
         if (action === 'volumeUp' && s.focus?.action.kind === 'jukebox') jukeboxAction('vol+');
+        if (action === 'jump' && !e.repeat) jump.current.press = performance.now(); // a held key never hops again
         if (action === 'throw' && !e.repeat && !s.travel) startCharge();
         // G puts a sticky down where you aim (or back on the board), peels the one you aim at off, or drops what you hold
         if (action === 'drop' && !e.repeat && !placeSticky(s.focus, true) && !peelAimed(s.focus)) dropHeld();
@@ -533,22 +546,69 @@ export function Player({ colliders, floor }: { colliders: Rect[]; floor: number 
     walk.x = 0;
     walk.z = 0;
     const tilt = Math.min(1, Math.hypot(fwd, strafe));
-    if (tilt > 0 && !s.travel && !p) {
-      const len = Math.hypot(fwd, strafe);
-      const sin = Math.sin(yaw);
-      const cos = Math.cos(yaw);
-      const dx = ((-sin * fwd + cos * strafe) / len) * speed * tilt * dt;
-      const dz = ((-cos * fwd - sin * strafe) / len) * speed * tilt * dt;
-      let p = collide(camera.position.x + dx, camera.position.z + dz, colliders);
+    const j = jump.current;
+    const tNow = performance.now();
+    const free = !s.travel && !p;
+    if (!free) Object.assign(j, { y: 0, vy: 0, press: 0 });
+    const len = Math.hypot(fwd, strafe) || 1;
+    const sin = Math.sin(yaw);
+    const cos = Math.cos(yaw);
+    const wx = tilt > 0 ? (-sin * fwd + cos * strafe) / len : 0;
+    const wz = tilt > 0 ? (-cos * fwd - sin * strafe) / len : 0;
+    if (free && j.y <= 0 && tNow - j.press < JUMP_BUFFER_MS) {
+      const v = Math.hypot(j.vx, j.vz);
+      if (tNow - j.landed < HOP_WINDOW_MS && v > 0) {
+        const k = Math.min(MAX_HOP, Math.max(v * HOP_BONUS, speed * tilt)) / v; // a timed hop keeps its speed, and a bit more
+        j.vx *= k;
+        j.vz *= k;
+      } else {
+        j.vx = wx * speed * tilt;
+        j.vz = wz * speed * tilt;
+      }
+      j.vy = JUMP_SPEED;
+      j.press = 0;
+    }
+    const airborne = free && (j.y > 0 || j.vy > 0);
+    if (airborne) {
+      // air control: accelerate only up to AIR_CAP along the wished direction, so turning while strafing gains speed
+      const add = AIR_CAP - (j.vx * wx + j.vz * wz);
+      if (tilt > 0 && add > 0) {
+        const a = Math.min(add, AIR_ACCEL * speed * tilt * dt);
+        j.vx += wx * a;
+        j.vz += wz * a;
+      }
+      const v = Math.hypot(j.vx, j.vz);
+      if (v > MAX_HOP) {
+        j.vx *= MAX_HOP / v;
+        j.vz *= MAX_HOP / v;
+      }
+      j.vy -= GRAVITY * dt;
+      j.y += j.vy * dt;
+      if (j.y <= 0) {
+        j.y = 0;
+        j.vy = 0;
+        j.landed = tNow;
+      }
+    } else if (free) {
+      // on the ground: walk at once, though just after a landing the speed eases back down instead of stopping dead
+      const ease = tNow - j.landed < LAND_SLIDE_MS ? Math.min(1, dt * 8) : 1;
+      j.vx += (wx * speed * tilt - j.vx) * ease;
+      j.vz += (wz * speed * tilt - j.vz) * ease;
+    } else {
+      j.vx = 0;
+      j.vz = 0;
+    }
+    if (free && (j.vx || j.vz) && dt > 0) {
+      let p = collide(camera.position.x + j.vx * dt, camera.position.z + j.vz * dt, colliders);
       const shut = shutDoorways(); // a side door still sliding open
       if (shut.length) p = collide(p.x, p.z, shut);
-      if (dt > 0) {
-        walk.x = (p.x - camera.position.x) / dt;
-        walk.z = (p.z - camera.position.z) / dt;
-      }
+      walk.x = (p.x - camera.position.x) / dt;
+      walk.z = (p.z - camera.position.z) / dt;
+      j.vx = walk.x; // a wall takes the speed you ran into it with
+      j.vz = walk.z;
       camera.position.x = p.x;
       camera.position.z = p.z;
-      moving = true;
+      moving = !airborne && tilt > 0;
     }
     bob.current += moving ? dt * speed * tilt * 2.2 : 0;
     // Head bob and the head tipping back for a sip can be turned off (Settings → Accessibility, motion comfort).
@@ -557,7 +617,7 @@ export function Player({ colliders, floor }: { colliders: Rect[]; floor: number 
       camera.position.set(p.x, p.y, p.z);
       p.yaw = yaw;
       p.pitch = pitch;
-    } else camera.position.y = EYE_HEIGHT + (moving && comfort.headBob ? Math.sin(bob.current) * 0.035 : 0);
+    } else camera.position.y = EYE_HEIGHT + j.y + (moving && comfort.headBob ? Math.sin(bob.current) * 0.035 : 0);
     footstepsFollow(bob.current, moving, speed > 5, surfaceAt(floor === ROOF ? 'roof' : floor === 0 ? 'lobby' : 'office', camera.position.x, camera.position.z));
     camera.rotation.set(pitch + (p?.tilt ?? 0) + (comfort.cameraShake ? sipPose.head : 0), yaw, 0, 'YXZ');
     playerAt.x = camera.position.x;
