@@ -141,6 +141,35 @@ eigenes Sampling. ISO-8601-Zeitstempel; unbekannte Werte `null`.
 3. CubeFarm mit `MONEYPRINT_WALLBOARD_URL=http://127.0.0.1:8765/status.json` starten (später `/wallboard.json`).
    Der CubeFarm-Server selbst lauscht weiterhin nur auf 127.0.0.1.
 
+## Betrieb auf dem Produktionsserver
+
+MoneyPrint und CubeFarm laufen auf demselben Server; die Verbindung bleibt auf Loopback, ohne Tunnel und ohne
+öffentliche Freigabe.
+
+| Dienst | Rolle |
+| --- | --- |
+| `moneyprint-dashboard.service` | `moneyprint dashboard --port 8765`, User `moneyprint`, nur `127.0.0.1`, `ReadOnlyPaths=/var/lib/moneyprint`, keine Zugangsdaten |
+| `cubefarm.service` | `/opt/cubefarm-de` (Branch `deutsch-entwicklung`), Launcher `scripts/office.mjs` |
+| `moneyprint-trader.service` | wird vom Wallboard weder gelesen noch neu gestartet |
+
+Einrichtung (einmalig, als root):
+
+```bash
+mkdir -p /etc/systemd/system/cubefarm.service.d
+cat > /etc/systemd/system/cubefarm.service.d/trading-wallboard.conf <<'CONF'
+[Service]
+Environment=MONEYPRINT_WALLBOARD_URL=http://127.0.0.1:8765/status.json
+CONF
+systemctl daemon-reload
+systemctl restart cubefarm        # nur CubeFarm; Agenten laufen über den Terminal-Keeper weiter
+```
+
+Updates: Die Umgebung steht im Drop-in, nicht im Repo; Self-Updates des Launchers (`u`, git fetch + merge, build,
+restart) und Neustarts behalten sie. Wenn MoneyPrint `/wallboard.json` (Issue moneyprint#116) liefert, nur die URL im
+Drop-in umstellen. Prüfen:
+`systemctl show cubefarm -p Environment`, und im Büro auf Etage 1 muss das Wallboard „LIVE“ statt „MOCK“ zeigen.
+Startet `moneyprint-dashboard` neu, zeigt die Wand kurz „VERALTET“ und wird von selbst wieder „LIVE“.
+
 ## Sicherheit
 
 - Nur `GET` mit `accept`-Header (+ optional Bearer); kein Body, keine Schreibmethode (`server/trading.test.ts` prüft das).
