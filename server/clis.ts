@@ -286,8 +286,9 @@ const TRUST_PROMPT = /Quick safety check|Do you trust the (files|contents) (in|o
 export function trustKey(screen: string): 'enter' | 'down' | null {
   const at = screen.search(TRUST_PROMPT);
   if (at < 0) return null;
-  // Only the options below the question: a previous session's prompt (Codex's "› …") can still be on screen above it.
-  const selected = screen.slice(at).match(/^\s*[❯›]\s*(?:\d+\.\s*)?(.+)$/m)?.[1] ?? '';
+  // The live menu is the last selection on screen: above it can be a previous session's prompt (Codex's "› …") or
+  // the same question as it stood before the office restarted.
+  const selected = [...screen.slice(at).matchAll(/^\s*[❯›]\s*(?:\d+\.\s*)?(.+)$/gm)].at(-1)?.[1] ?? '';
   if (/^(yes|trust|continue|proceed)\b/i.test(selected.trim())) return 'enter';
   if (/^(no|exit|quit|cancel)\b/i.test(selected.trim())) return 'down';
   return null;
