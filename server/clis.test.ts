@@ -62,6 +62,16 @@ describe('trustKey', () => {
     expect(trustKey(screen)).toBe('down');
   });
 
+  it('reads the last trust question when an earlier one is still on screen', () => {
+    const question = (selected: 'no' | 'yes') =>
+      [
+        'Quick safety check: Is this a project you created or one you trust?',
+        selected === 'no' ? '❯ No, exit' : '  No, exit',
+        selected === 'yes' ? '❯ Yes, I trust this folder' : '  Yes, I trust this folder',
+      ].join('\n');
+    expect(trustKey([question('no'), '(the office restarted)', question('yes')].join('\n'))).toBe('enter');
+  });
+
   it('leaves every other screen alone', () => {
     expect(trustKey('❯ Try "refactor <filepath>"')).toBeNull();
   });
