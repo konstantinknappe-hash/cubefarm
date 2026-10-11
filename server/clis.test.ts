@@ -50,6 +50,18 @@ describe('trustKey', () => {
     expect(trustKey(screen)).toBe('enter');
   });
 
+  it("reads Claude Code's selection, not a previous Codex session's prompt above the question", () => {
+    const screen = [
+      '› Ask Codex to do anything',
+      '── Codex session ended ──',
+      'Accessing workspace:',
+      'Quick safety check: Is this a project you created or one you trust?',
+      '❯ No, exit',
+      '  Yes, I trust this folder',
+    ].join('\n');
+    expect(trustKey(screen)).toBe('down');
+  });
+
   it('leaves every other screen alone', () => {
     expect(trustKey('❯ Try "refactor <filepath>"')).toBeNull();
   });

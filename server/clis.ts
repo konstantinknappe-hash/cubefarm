@@ -284,8 +284,10 @@ const TRUST_PROMPT = /Quick safety check|Do you trust the (files|contents) (in|o
  * question on screen.
  */
 export function trustKey(screen: string): 'enter' | 'down' | null {
-  if (!TRUST_PROMPT.test(screen)) return null;
-  const selected = screen.match(/^\s*[❯›]\s*(?:\d+\.\s*)?(.+)$/m)?.[1] ?? '';
+  const at = screen.search(TRUST_PROMPT);
+  if (at < 0) return null;
+  // Only the options below the question: a previous session's prompt (Codex's "› …") can still be on screen above it.
+  const selected = screen.slice(at).match(/^\s*[❯›]\s*(?:\d+\.\s*)?(.+)$/m)?.[1] ?? '';
   if (/^(yes|trust|continue|proceed)\b/i.test(selected.trim())) return 'enter';
   if (/^(no|exit|quit|cancel)\b/i.test(selected.trim())) return 'down';
   return null;
