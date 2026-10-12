@@ -12,6 +12,7 @@ import type { AgentCli, CliView } from '../shared/types.ts';
 type Agent = { id: string; model: string; cli: AgentCli | ''; role: string; status: string; endedAt: number | null };
 type Internals = {
   clis: CliView[];
+  ensureCeo(interrupted: unknown[]): void;
   state: { agents: Agent[]; rejectedModels: Record<string, string>; settings: { defaultCli: AgentCli; defaultModel: string } };
   isFree(a: Agent): boolean;
   noteRejection(a: Agent, used: { cli: AgentCli; model: string }, result: SessionResult): void;
@@ -30,7 +31,7 @@ async function office() {
   internals.toast = (_level, text) => void toasts.push(text);
   const worker = internals.state.agents.find((a) => a.role !== 'ceo')!;
   worker.cli = 'codex';
-  return { swarm, internals, worker, toasts };
+  return { swarm, internals, worker, toasts, backend };
 }
 
 const refused: SessionResult = {
@@ -61,6 +62,25 @@ describe('picking a model', () => {
     expect(internals.state.settings.defaultCli).toBe('codex');
     swarm.updateSettings({ defaultModel: 'gpt-5.6-terra' });
     expect(internals.state.settings.defaultModel).toBe('gpt-5.6-terra');
+  });
+
+  it('lets the manager set the CEO to Codex and validate Codex models', async () => {
+    const { swarm, internals } = await office();
+    internals.ensureCeo([]);
+    const ceo = internals.state.agents.find((a) => a.role === 'ceo')!;
+    swarm.updateAgent(ceo.id, { cli: 'codex' });
+    expect(ceo.cli).toBe('codex');
+    expect(ceo.model).toBe('');
+    swarm.updateAgent(ceo.id, { model: 'gpt-5.6-sol' });
+    expect(ceo.model).toBe('gpt-5.6-sol');
+    expect(() => swarm.updateAgent(ceo.id, { model: 'claude-opus-5-5' })).toThrow();
+  });
+
+  it('redetects installed CLIs when the model list is refreshed', async () => {
+    const { swarm, internals, backend } = await office();
+    backend.detectClis = async () => internals.clis.map((c) => c.id === 'codex' ? { ...c, installed: false, version: null } : c);
+    const clis = await swarm.refreshModels();
+    expect(clis.find((c) => c.id === 'codex')?.installed).toBe(false);
   });
 
   it('lists each coding agent with its catalog', async () => {

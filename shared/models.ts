@@ -99,8 +99,8 @@ export function fitEffort(effort: EffortLevel, supported: EffortLevel[]): Effort
 }
 
 /** The models to offer in a picker: the catalog's own (hidden ones only if chosen), with the current pick kept even if unknown. */
-export function modelChoices(catalog: ModelCatalog | null | undefined, current: string): { id: string; label: string; known: boolean }[] {
-  const listed = (catalog?.models ?? []).filter((o) => !o.hidden || o.id === current.trim());
+export function modelChoices(catalog: ModelCatalog | null | undefined, current: string, includeHidden = false): { id: string; label: string; known: boolean }[] {
+  const listed = (catalog?.models ?? []).filter((o) => includeHidden || !o.hidden || o.id === current.trim());
   const out = listed.map((o) => ({ id: o.id, label: o.label && o.label !== o.id ? `${o.label} (${o.id})` : o.id, known: true }));
   if (current.trim() && !out.some((o) => o.id === current.trim())) out.unshift({ id: current.trim(), label: current.trim(), known: false });
   return out;

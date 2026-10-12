@@ -261,6 +261,7 @@ function FloorBrief({ repo }: { repo: RepoView }) {
 function CeoTab() {
   const t = useT();
   const ceo = useStore((s) => s.agents[CEO_ID]);
+  const terminal = useStore((s) => s.settings.runtime === 'terminal');
   const log = useStore((s) => s.logs[CEO_ID]) ?? [];
   const info = useStore((s) => s.ceo);
   const repos = useStore((s) => s.repos);
@@ -293,6 +294,7 @@ function CeoTab() {
             <span className="muted small">CEO</span>
             <StatusPill status={ceo.status} />
             <span className="spacer" />
+            {terminal && <CliSelect agent={ceo} style={{ width: 'auto' }} />}
             <ModelInput agent={ceo} style={{ maxWidth: 150 }} />
             <EffortSelect agent={ceo} style={{ width: 'auto' }} />
           </div>
