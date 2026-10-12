@@ -110,6 +110,7 @@ describe('efforts', () => {
 describe('modelChoices', () => {
   it("lists the CLI's own picks, keeping the current one (hidden or unknown) so an old setting still shows", () => {
     expect(modelChoices(codex, '').map((m) => m.id)).toEqual(['gpt-5.6-luna']);
+    expect(modelChoices(codex, '', true).map((m) => m.id)).toContain('gpt-5.5');
     expect(modelChoices(codex, 'gpt-5.5').map((m) => m.id)).toEqual(['gpt-5.6-luna', 'gpt-5.5']);
     expect(modelChoices(codex, 'gpt6-luna')).toEqual([{ id: 'gpt6-luna', label: 'gpt6-luna', known: false }, { id: 'gpt-5.6-luna', label: 'GPT-5.6-Luna (gpt-5.6-luna)', known: true }]);
     expect(modelChoices(null, '')).toEqual([]);

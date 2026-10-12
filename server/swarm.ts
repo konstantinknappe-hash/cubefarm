@@ -921,14 +921,7 @@ export class Swarm {
     setInterval(() => this.emitOps(), OPS_TICK_MS); // the clock moves the numbers too: the last hour, today, errors turning into alarms
     setInterval(() => this.notifyStuck(), 60_000);
     setInterval(() => this.watchdogTick(), WATCHDOG_MS);
-    void this.backend
-      .detectClis()
-      .then((clis) => {
-        this.clis = clis;
-        this.broadcast({ type: 'clis', clis });
-        return this.refreshModels();
-      })
-      .catch((err) => console.warn('could not look for agent CLIs', err));
+    void this.refreshModels().catch((err) => console.warn('could not look for agent CLIs', err));
     await this.journal.start();
     // A fresh demo office has yesterday to replay too.
     if (this.backend.demo) void this.journal.hasPastDays().then((has) => (has ? undefined : this.journalSample())).catch((err) => console.warn('could not write the sample day', err));
@@ -2238,6 +2231,7 @@ export class Swarm {
 
   /** Ask each installed CLI which models it offers (at startup, and when the manager asks again). */
   async refreshModels(): Promise<CliView[]> {
+    this.clis = await this.backend.detectClis();
     await Promise.all(this.clis.filter((c) => c.installed).map(async (c) => (c.catalog = await this.backend.listModels(c.id))));
     this.toldModel.clear();
     this.emitClis();
@@ -2258,7 +2252,7 @@ export class Swarm {
 
   /** The coding agent an agent's next session runs (the Agent SDK runtime is always Claude Code). */
   private plannedCli(a: PersistedAgent, cli: AgentCli | '' = a.cli): AgentCli {
-    if (a.role === 'ceo' || this.state.settings.runtime !== 'terminal' || !this.backend.terminals) return 'claude';
+    if (this.state.settings.runtime !== 'terminal' || !this.backend.terminals) return 'claude';
     return cli || this.state.settings.defaultCli;
   }
 
@@ -2330,10 +2324,13 @@ export class Swarm {
 
   updateAgent(id: string, patch: { name?: string; model?: string; effort?: string; cli?: string; look?: string; color?: string; hair?: string; style?: unknown }, by: 'manager' | 'ceo' = 'manager') {
     const a = this.agent(id);
-    const cli = patch.cli !== undefined && a.role !== 'ceo' ? (isCli(patch.cli) ? patch.cli : '') : a.cli;
+    const cli = patch.cli !== undefined ? (isCli(patch.cli) ? patch.cli : '') : a.cli;
+    const cliChanged = this.plannedCli(a) !== this.plannedCli(a, cli);
     if (cli !== a.cli && cli && !this.cliReady(cli)) throw new HttpError(400, `${cliLabel(cli)} isn't installed on this computer.`);
     if (patch.model !== undefined) this.checkModel(this.plannedCli(a, cli), String(patch.model), by === 'manager'); // before anything changes
     a.cli = cli;
+    if (cliChanged && patch.model === undefined) a.model = '';
+    if (cliChanged && patch.effort === undefined) a.effort = '';
     if (patch.name?.trim() && patch.name.trim() !== a.name) {
       a.name = patch.name.trim().slice(0, 24);
       a.look = lookFor(a.name);
@@ -2480,7 +2477,7 @@ export class Swarm {
    */
   private sessionRuntime(a: PersistedAgent, resume?: string): { terminal?: AgentTerminal; cli?: AgentCli; label?: string; resumeSessionId?: string } {
     const inTerminal = this.state.settings.runtime === 'terminal' && this.backend.terminals;
-    let cli: AgentCli = a.role === 'ceo' ? 'claude' : a.cli || this.state.settings.defaultCli;
+    let cli: AgentCli = inTerminal ? a.cli || this.state.settings.defaultCli : 'claude';
     if (resume && a.sessionCli && a.sessionCli !== cli) {
       if (inTerminal) cli = a.sessionCli;
       else if (a.sessionCli !== 'claude') resume = undefined;
@@ -4072,8 +4069,8 @@ export class Swarm {
         cwd: CEO_DIR,
         prompt: ceoJobPrompt(job, floor, triage),
         systemAppend: ceoSystemPrompt(this.ceoPromptInput(a)),
-        model: a.model || CEO_MODEL,
-        effort: a.effort || CEO_EFFORT,
+        model: a.model || (how.cli === 'codex' || how.cli === 'opencode' ? '' : CEO_MODEL),
+        effort: a.effort || (how.cli === 'codex' || how.cli === 'opencode' ? this.state.settings.defaultEffort : CEO_EFFORT),
         browserTesting: false,
         additionalDirectories: this.state.repos.filter((r) => this.repoRt.get(r.id)?.cloneStatus === 'ready').map((r) => this.backend.mainDir(r.fullName)),
         role: 'ceo',
@@ -4089,7 +4086,7 @@ export class Swarm {
         },
         sessionId: (id) => {
           a.sessionId = id;
-          a.sessionCli = id ? 'claude' : null;
+          a.sessionCli = id ? how.cli ?? 'claude' : null;
         },
         browserUrl: () => undefined,
         screenshot: () => undefined,
@@ -5065,11 +5062,11 @@ export class Swarm {
   /** What an agent runs, defaults resolved, for the CEO. */
   private agentSetup(a: PersistedAgent) {
     const ceo = a.role === 'ceo';
-    const cli = ceo ? 'claude' : a.cli || this.state.settings.defaultCli;
+    const cli = this.plannedCli(a);
     return {
       codingAgent: cli,
-      model: ceo ? a.model || CEO_MODEL : this.modelFor(a, cli) || 'the coding agent default',
-      effort: a.effort || (ceo ? CEO_EFFORT : this.state.settings.defaultEffort),
+      model: ceo ? a.model || (cli === 'claude' ? CEO_MODEL : 'the coding agent default') : this.modelFor(a, cli) || 'the coding agent default',
+      effort: a.effort || (ceo && cli === 'claude' ? CEO_EFFORT : this.state.settings.defaultEffort),
     };
   }
 
