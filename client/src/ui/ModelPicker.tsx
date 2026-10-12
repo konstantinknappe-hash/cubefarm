@@ -31,7 +31,7 @@ export function ModelOptions({ cli, current }: { cli: AgentCli; current: string 
   const { catalog, rejected } = useModels(cli);
   return (
     <>
-      {modelChoices(catalog, current).map((m) => {
+      {modelChoices(catalog, current, cli === 'codex').map((m) => {
         const problem = modelProblem(cli, m.id, catalog, rejected);
         const text = problem?.kind === 'rejected' ? t('models.rejectedOption', { model: m.label }) : problem ? t('models.unavailableOption', { model: m.label }) : m.label;
         return (

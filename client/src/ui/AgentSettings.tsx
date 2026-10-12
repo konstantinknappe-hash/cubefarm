@@ -77,7 +77,7 @@ export function CliSelect({ agent, id, style }: FieldProps) {
 
 /** The model they run: the CEO's own, else a worker's own or their coding agent's default. */
 function modelOf(agent: Agent, cli: AgentCli, settings: Parameters<typeof effectiveModel>[2]) {
-  return agent.role === 'ceo' ? agent.model.trim() || CLAUDE_MODELS[0] : effectiveModel(agent.model, cli, settings, CLAUDE_MODELS[0]);
+  return effectiveModel(agent.model, cli, settings, CLAUDE_MODELS[0]);
 }
 
 /** Their model, picked from what their coding agent lists ('' = the default), with a ⚠ when it can't run. */
@@ -86,7 +86,7 @@ export function ModelInput({ agent, id, style }: FieldProps) {
   const settings = useStore((s) => s.settings);
   const clis = useStore((s) => s.clis);
   const cli = workerCli(agent, settings);
-  const fallback = agent.role === 'ceo' ? CLAUDE_MODELS[0] : effectiveModel('', cli, settings, CLAUDE_MODELS[0]);
+  const fallback = effectiveModel('', cli, settings, CLAUDE_MODELS[0]);
   const { problem, text } = useModelProblem(cli, modelOf(agent, cli, settings));
   return (
     <span className="model-pick">
@@ -309,7 +309,7 @@ export function PromptPreview({ agent }: { agent: Agent }) {
   );
 }
 
-/** The ⚙️ Setup section of an agent's panel. The CEO always runs Claude Code, so they only get model and effort. */
+/** The ⚙️ Setup section of an agent's panel. */
 export function AgentSetup({ agent }: { agent: Agent }) {
   const t = useT();
   const terminal = useStore((s) => s.settings.runtime === 'terminal');
@@ -338,7 +338,7 @@ export function AgentSetup({ agent }: { agent: Agent }) {
             <LookSelect agent={agent} id={`${id}-look`} />
           </label>
         )}
-        {!ceo && terminal && (
+        {terminal && (
           <label className="field" htmlFor={`${id}-cli`}>
             <span>{t('uiExtra.codingAgent')}</span>
             <CliSelect agent={agent} id={`${id}-cli`} />
