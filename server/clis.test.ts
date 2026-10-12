@@ -156,6 +156,12 @@ describe('launchArgs', () => {
     expect(env.CUBEFARM_HOOK_URL).toBe('http://127.0.0.1:1/api/hooks/t');
   });
 
+  it("connects the Codex CEO to the office's HTTP MCP tools", () => {
+    const args = launchArgs('codex', ctx({ officeMcpUrl: 'http://127.0.0.1:4849/api/mcp/session-token' })).args;
+    expect(args).toContain('mcp_servers.office={url="http://127.0.0.1:4849/api/mcp/session-token",enabled=true}');
+    expect(launchArgs('codex', ctx()).args.some((arg) => arg.startsWith('mcp_servers.office='))).toBe(false);
+  });
+
   it('runs the hook program with a command that never starts with a quote on Windows', () => {
     expect(codexHookCommand('C:\\Program Files\\nodejs\\node.exe', 'C:\\Users\\A B\\.cubefarm\\bin\\codex-hook.cjs', true)).toBe('node "C:\\Users\\A B\\.cubefarm\\bin\\codex-hook.cjs"');
     expect(codexHookCommand('/usr/bin/node', "/home/o'neil/.cubefarm/bin/codex-hook.cjs", false)).toBe(`'/usr/bin/node' '/home/o'"'"'neil/.cubefarm/bin/codex-hook.cjs'`);

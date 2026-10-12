@@ -149,6 +149,8 @@ export interface LaunchContext {
   plugin: string; // file URL of the OpenCode plugin
   /** The Playwright MCP server, when the floor tests in a browser. Claude Code gets it through its MCP config file. */
   browser: { command: string; args: string[] } | null;
+  /** The office's Streamable HTTP MCP endpoint, available to the CEO. */
+  officeMcpUrl?: string;
 }
 
 export interface Launch {
@@ -214,6 +216,7 @@ export function launchArgs(id: AgentCli, ctx: LaunchContext): Launch {
         // Only an effort the model's catalog lists reaches here (shared/models.ts fitEffort), max included.
         ...(ctx.effort ? ['-c', `model_reasoning_effort=${toml(ctx.effort)}`] : []),
         ...(ctx.browser ? ['-c', `mcp_servers.playwright={command=${toml(ctx.browser.command)},args=[${ctx.browser.args.map(toml).join(',')}]}`] : []),
+        ...(ctx.officeMcpUrl ? ['-c', `mcp_servers.office={url=${toml(ctx.officeMcpUrl)},enabled=true}`] : []),
         ...CODEX_HOOK_EVENTS.flatMap((e) => ['-c', `hooks.${e}=[{hooks=[{type="command",command=${toml(codexHookCommand(process.execPath, ctx.codexHook))},timeout=10}]}]`]),
         // Like the manager's own Codex, but it can't stop to ask: no approvals and no sandbox (its sandbox can't reach
         // the credential store, so git and gh fail in it).
