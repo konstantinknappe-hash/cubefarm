@@ -77,6 +77,15 @@ export function sample(history: EquityPoint[], equity: number | null, at: number
   return [...next.slice(0, half).filter((_, i) => i % 2 === 0), ...next.slice(half)];
 }
 
+/**
+ * MoneyPrint's own history (Alpaca's, refreshed every quarter hour) with the wall's readings after its last point, so
+ * the latest minutes show too; both are measured points, sorted by time.
+ */
+export function withLiveTail(upstream: readonly EquityPoint[], own: readonly EquityPoint[]): EquityPoint[] {
+  const last = upstream[upstream.length - 1]?.timestamp ?? Number.NEGATIVE_INFINITY;
+  return [...upstream, ...own.filter((p) => p.timestamp > last)];
+}
+
 /** Why a read failed, in words safe to show: never the URL (it may carry a host the manager keeps private) or the token. */
 export function readError(err: unknown): string {
   const e = err as Error & { cause?: { code?: string } };
@@ -176,13 +185,10 @@ export class TradingService {
   }
 
   private apply(read: SourceRead, now: number) {
-    let history: EquityPoint[];
-    if (read.equity_history) history = read.equity_history;
-    else {
-      history = sample(this.history, read.account.equity, now, 'moneyprint.report');
-      if (history !== this.history) this.save(history);
-    }
-    this.history = history;
+    const own = sample(this.history, read.account.equity, now, 'moneyprint.report');
+    if (own !== this.history) this.save(own);
+    this.history = own;
+    const history = read.equity_history ? withLiveTail(read.equity_history, own) : own;
     const key = `${history.length}:${history[history.length - 1]?.timestamp ?? 0}:${history[0]?.timestamp ?? 0}`;
     const historyChanged = key !== this.historyKey;
     const ranges = historyChanged ? (Object.fromEntries(HISTORY_RANGES.map((r) => [r, rangePoints(history, r, now)])) as Record<HistoryRange, EquityPoint[]>) : this.view.history;
