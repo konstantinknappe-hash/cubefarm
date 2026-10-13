@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type { TradingView } from '../shared/trading.ts';
-import { nextDelay, readError, sample, tradingConfig, TradingService, type Fetcher } from './trading.ts';
+import { nextDelay, readError, sample, tradingConfig, TradingService, withLiveTail, type Fetcher } from './trading.ts';
 
 const STATUS = {
   controls: { kill_switch: 'off', risk_paused: 'off', autotrade_paused: 'off' },
@@ -144,6 +144,41 @@ describe('equity sampling', () => {
     expect(sample([p(0, 100)], 100, 10 * 60_000, 's')).toHaveLength(2);
     expect(sample([p(0, 100)], null, 10 * 60_000, 's')).toHaveLength(1);
     expect(sample([p(5, 100)], 120, 1, 's')).toHaveLength(1);
+  });
+});
+
+describe("MoneyPrint's history with the wall's own readings", () => {
+  const p = (timestamp: number, equity: number) => ({ timestamp, equity, source: 's' });
+  it('keeps every upstream point and adds only readings after the last one', () => {
+    expect(withLiveTail([p(0, 100), p(300, 99)], [p(100, 1), p(300, 2), p(400, 98)])).toEqual([p(0, 100), p(300, 99), p(400, 98)]);
+    expect(withLiveTail([], [p(1, 5)])).toEqual([p(1, 5)]);
+  });
+
+  it('shows a different stretch for each range once the history is fine-grained', async () => {
+    const now = Date.parse('2026-10-13T19:00:00Z');
+    const equity_history = Array.from({ length: 7 * 24 }, (_, h) => ({
+      timestamp: new Date(now - (7 * 24 - h) * 3_600_000).toISOString(),
+      equity: 10_000 - h,
+      source: 'alpaca.portfolio_history',
+    }));
+    const wallboard = {
+      schema: 'moneyprint.wallboard/v1',
+      generated_at: new Date(now).toISOString(),
+      account: { equity: 9_830, cash: 9_000 },
+      equity_history,
+      positions: [],
+      recent_fills: [],
+      market_quotes: [],
+      system: { kill_switch: 'off', trading_mode: 'paper', last_successful_update: new Date(now).toISOString() },
+    };
+    const { s } = service([wallboard], { now: () => now });
+    await s.poll();
+    s.stop();
+    const h = s.current().history;
+    expect(h['24h'].length).toBeGreaterThan(20);
+    expect(h['24h'].length).toBeLessThan(h['7d'].length);
+    expect(h['24h'][0].timestamp).toBeGreaterThanOrEqual(now - 86_400_000);
+    expect(h['24h'].at(-1)).toMatchObject({ timestamp: now, equity: 9_830 }); // the wall's own reading after Alpaca's last point
   });
 });
 
