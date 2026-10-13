@@ -230,7 +230,14 @@ export function launchArgs(id: AgentCli, ctx: LaunchContext): Launch {
         instructions: [ctx.files.system],
         autoupdate: false, // several agents starting at once must not each reinstall it
         permission: { edit: 'allow', bash: 'allow', webfetch: 'allow' }, // it can't stop to ask either
-        ...(ctx.browser ? { mcp: { playwright: { type: 'local', command: [ctx.browser.command, ...ctx.browser.args], enabled: true } } } : {}),
+        ...(ctx.browser || ctx.officeMcpUrl
+          ? {
+              mcp: {
+                ...(ctx.browser ? { playwright: { type: 'local', command: [ctx.browser.command, ...ctx.browser.args], enabled: true } } : {}),
+                ...(ctx.officeMcpUrl ? { office: { type: 'remote', url: ctx.officeMcpUrl, enabled: true } } : {}),
+              },
+            }
+          : {}),
       };
       // No project argument: it starts in its terminal's folder, and a desk path in its command line would make the
       // desk clean-up take it for a leftover.

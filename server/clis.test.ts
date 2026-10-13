@@ -172,6 +172,16 @@ describe('launchArgs', () => {
     for (const role of ['agent'] as const) expect(config({ role }).permission).toEqual({ edit: 'allow', bash: 'allow', webfetch: 'allow' });
     expect(config({}).autoupdate).toBe(false);
   });
+
+  it("connects the OpenCode CEO to Office MCP only when Office access is enabled", () => {
+    const config = (patch: Partial<LaunchContext>) => JSON.parse(launchArgs('opencode', ctx(patch)).env.OPENCODE_CONFIG_CONTENT);
+    expect(config({ officeMcpUrl: 'http://127.0.0.1:4849/api/mcp/session-token' }).mcp.office).toEqual({
+      type: 'remote',
+      url: 'http://127.0.0.1:4849/api/mcp/session-token',
+      enabled: true,
+    });
+    expect(config({}).mcp).toBeUndefined();
+  });
 });
 
 describe('oneAtATime', () => {
