@@ -185,10 +185,11 @@ export class TradingService {
   }
 
   private apply(read: SourceRead, now: number) {
-    const own = sample(this.history, read.account.equity, now, 'moneyprint.report');
+    // The mock's numbers are made up: they never join the saved readings.
+    const own = this.mock ? this.history : sample(this.history, read.account.equity, now, 'moneyprint.report');
     if (own !== this.history) this.save(own);
     this.history = own;
-    const history = read.equity_history ? withLiveTail(read.equity_history, own) : own;
+    const history = read.equity_history ? (this.mock ? read.equity_history : withLiveTail(read.equity_history, own)) : own;
     const key = `${history.length}:${history[history.length - 1]?.timestamp ?? 0}:${history[0]?.timestamp ?? 0}`;
     const historyChanged = key !== this.historyKey;
     const ranges = historyChanged ? (Object.fromEntries(HISTORY_RANGES.map((r) => [r, rangePoints(history, r, now)])) as Record<HistoryRange, EquityPoint[]>) : this.view.history;
