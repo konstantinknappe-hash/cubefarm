@@ -3,16 +3,16 @@ import { clock, limitName, usedPercent } from '../shared/usage.ts';
 
 export { clock };
 
-// Pacing new work on Claude's usage warnings (#40). Every agent shares one subscription. When Claude warns that
-// usage is getting high, the office slows down instead of running into the hard limit: finishing beats starting.
-// QA, QA fixes and CEO jobs start as normal; new issues only while fewer than settings.pacingSessions sessions run.
+// Pace Claude sessions on Claude usage warnings. Codex and OpenCode use separate subscriptions and remain available.
 
 /** How long pacing lasts when Claude doesn't say when the window resets. */
 export const PACING_MS = 60 * 60_000;
 export const DEFAULT_PACING_SESSIONS = 3;
+export const CLAUDE_CODEX_FAILOVER_PERCENT = 85;
 
-/** What a session is started for. Only new issues are held back while pacing. */
+/** What a session is started for. Only Claude issue sessions are held back while pacing. */
 export type WorkKind = 'issue' | 'qa' | 'fix' | 'ceo';
+export type UsageCli = 'claude' | 'codex' | 'opencode';
 
 export interface UsageClock {
   now: number;
@@ -20,10 +20,27 @@ export interface UsageClock {
   pacingUntil: number; // Claude warned about usage: new issues are paced until this
 }
 
-/** May work of this kind start now? A rejection pauses everything; pacing caps new issues at `pacingSessions` running. */
-export function mayStart(kind: WorkKind, c: UsageClock & { running: number; pacingSessions: number }): boolean {
-  if (c.now < c.pausedUntil) return false;
-  if (kind === 'issue' && c.now < c.pacingUntil) return c.running < c.pacingSessions;
+/** Select Codex for new sessions while Claude is near its limit; switch back when that Claude window resets. */
+export function failoverCli(input: {
+  selected: UsageCli;
+  codexReady: boolean;
+  utilization: number | null;
+  resetsAt: number | null;
+  pacingUntil: number;
+  pausedUntil: number;
+  now: number;
+}): UsageCli {
+  if (input.selected !== 'claude' || !input.codexReady) return input.selected;
+  const windowActive = input.resetsAt !== null ? input.resetsAt > input.now : input.pacingUntil > input.now;
+  const nearLimit = input.utilization !== null && input.utilization >= CLAUDE_CODEX_FAILOVER_PERCENT && windowActive;
+  return nearLimit || input.pausedUntil > input.now ? 'codex' : 'claude';
+}
+
+/** May work of this kind start now? A Claude rejection pauses Claude; pacing caps Claude issues at `pacingSessions`. */
+export function mayStart(kind: WorkKind, c: UsageClock & { running: number; pacingSessions: number; cli?: UsageCli }): boolean {
+  const cli = c.cli ?? 'claude';
+  if (cli === 'claude' && c.now < c.pausedUntil) return false;
+  if (cli === 'claude' && kind === 'issue' && c.now < c.pacingUntil) return c.running < c.pacingSessions;
   return true;
 }
 
@@ -56,7 +73,7 @@ export interface UsageWarning {
 export function pacingMessage(w: UsageWarning, until: number, sessions: number, now: number): string {
   const v = warningView(w, now);
   const what = [v.limit, v.pct === null ? null : `${v.pct}%`].filter(Boolean).join(', ');
-  return `🐢 Claude's usage is getting high${what ? ` (${what})` : ''}. Until ${clock(until, now)} the office finishes open work first and starts at most ${sessions} session${sessions === 1 ? '' : 's'} at a time.`;
+  return `🐢 Claude's usage is getting high${what ? ` (${what})` : ''}. Until ${clock(until, now)} it starts at most ${sessions} new Claude issue session${sessions === 1 ? '' : 's'} at a time; Codex and OpenCode carry on.`;
 }
 
 /** A warning as the usage meter shows it: which limit, how full (0-100) and when it resets. */
@@ -68,7 +85,7 @@ export function warningView(w: UsageWarning, at: number): UsageWarningView {
 
 /** Why "Resume full speed" can't clear pacing right now, or null when it can. A hard pause is never lifted early. */
 export function resumeRefusal(c: UsageClock): string | null {
-  if (c.now < c.pausedUntil) return `Claude turned a session away at the usage limit, so nothing new starts until ${clock(c.pausedUntil, c.now)}. That pause can't be lifted early.`;
+  if (c.now < c.pausedUntil) return `Claude turned a session away at the usage limit, so no new Claude sessions start until ${clock(c.pausedUntil, c.now)}. That pause can't be lifted early.`;
   if (c.now >= c.pacingUntil) return 'The office is already running at full speed.';
   return null;
 }

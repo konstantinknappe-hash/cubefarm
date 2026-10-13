@@ -34,9 +34,9 @@ describe('usage', () => {
 
   it('shows the chip only while new work is held back', () => {
     expect(usageChip({ state: 'normal', until: null, warning }, 3, NOW)).toBeNull();
-    expect(usageChip(pacing, 3, NOW)).toMatch(/^🐢 Paced until [A-Z][a-z]{2} 00:00: new issues start when fewer than 3 sessions run$/);
-    expect(usageChip(pacing, 1, NOW)).toMatch(/fewer than 1 session run$/);
-    expect(usageChip({ state: 'paused', until: NOW + 5 * MIN, warning: null }, 3, NOW)).toBe("⏸ Paused until 12:05: at Claude's usage limit, nothing new starts");
+    expect(usageChip(pacing, 3, NOW)).toMatch(/^🐢 Claude paced until [A-Z][a-z]{2} 00:00: Claude issues start under 3 sessions$/);
+    expect(usageChip(pacing, 1, NOW)).toMatch(/Claude issues start under 1 session$/);
+    expect(usageChip({ state: 'paused', until: NOW + 5 * MIN, warning: null }, 3, NOW)).toBe('⏸ Claude paused until 12:05: Codex and OpenCode can continue');
   });
 
   it("reads the meter: the state, and the last warning's limit, fill and reset", () => {
