@@ -1,10 +1,39 @@
 import { describe, expect, it } from 'vitest';
-import { clampPacingSessions, clock, mayStart, pacingMessage, resumeRefusal, usageLabel, usageView, waived, warningView, type WorkKind } from './pacing.ts';
+import { clampPacingSessions, CLAUDE_CODEX_FAILOVER_PERCENT, clock, failoverCli, mayStart, pacingMessage, resumeRefusal, usageLabel, usageView, waived, warningView, type WorkKind } from './pacing.ts';
 
 const NOW = new Date(2026, 8, 28, 12, 0).getTime();
 const HOUR = 60 * 60_000;
 const at = (over: Partial<Parameters<typeof mayStart>[1]> = {}) => ({ now: NOW, pausedUntil: 0, pacingUntil: 0, running: 0, pacingSessions: 3, ...over });
 const KINDS: WorkKind[] = ['issue', 'qa', 'fix', 'ceo'];
+
+describe('Claude to Codex failover', () => {
+  const input = (over: Partial<Parameters<typeof failoverCli>[0]> = {}) => ({
+    selected: 'claude' as const,
+    codexReady: true,
+    utilization: 85,
+    resetsAt: NOW + HOUR,
+    pacingUntil: NOW + HOUR,
+    pausedUntil: 0,
+    now: NOW,
+    ...over,
+  });
+
+  it('switches at the configured threshold and returns after the Claude window resets', () => {
+    expect(CLAUDE_CODEX_FAILOVER_PERCENT).toBe(85);
+    expect(failoverCli(input())).toBe('codex');
+    expect(failoverCli(input({ utilization: 84 }))).toBe('claude');
+    expect(failoverCli(input({ utilization: 99, resetsAt: NOW }))).toBe('claude');
+  });
+
+  it('switches on a hard Claude limit even when utilization is unavailable', () => {
+    expect(failoverCli(input({ utilization: null, pausedUntil: NOW + HOUR }))).toBe('codex');
+  });
+
+  it('respects the selected backend and does not fail over when Codex is unavailable', () => {
+    expect(failoverCli(input({ selected: 'opencode' }))).toBe('opencode');
+    expect(failoverCli(input({ codexReady: false }))).toBe('claude');
+  });
+});
 
 describe('mayStart', () => {
   it('starts everything when usage is normal, however much is running', () => {
@@ -21,11 +50,19 @@ describe('mayStart', () => {
     for (const kind of ['qa', 'fix', 'ceo'] as const) expect(mayStart(kind, at({ pacingUntil: NOW + HOUR, running: 12 }))).toBe(true);
   });
 
-  it('starts nothing at all once Claude rejects a session, pacing or not', () => {
+  it('pauses Claude work when Claude rejects a session, but lets other CLIs start', () => {
     for (const kind of KINDS) {
       expect(mayStart(kind, at({ pausedUntil: NOW + HOUR }))).toBe(false);
       expect(mayStart(kind, at({ pausedUntil: NOW + HOUR, pacingUntil: NOW + 2 * HOUR }))).toBe(false);
+      expect(mayStart(kind, at({ pausedUntil: NOW + HOUR, cli: 'codex' }))).toBe(true);
+      expect(mayStart(kind, at({ pausedUntil: NOW + HOUR, cli: 'opencode' }))).toBe(true);
     }
+  });
+
+  it('applies Claude usage pacing only to Claude issue sessions', () => {
+    expect(mayStart('issue', at({ pacingUntil: NOW + HOUR, running: 3, cli: 'claude' }))).toBe(false);
+    expect(mayStart('issue', at({ pacingUntil: NOW + HOUR, running: 3, cli: 'codex' }))).toBe(true);
+    expect(mayStart('issue', at({ pacingUntil: NOW + HOUR, running: 3, cli: 'opencode' }))).toBe(true);
   });
 
   it('stops pacing when it expires', () => {
@@ -63,13 +100,13 @@ describe('usageView and usageLabel', () => {
 describe('pacingMessage', () => {
   it('says which limit, how full, until when and how many sessions', () => {
     expect(pacingMessage({ resetsAt: null, rateLimitType: 'five_hour', utilization: 0.82 }, NOW + 150 * 60_000, 3, NOW)).toBe(
-      "🐢 Claude's usage is getting high (5-hour limit, 82%). Until 14:30 the office finishes open work first and starts at most 3 sessions at a time.",
+      "🐢 Claude's usage is getting high (5-hour limit, 82%). Until 14:30 it starts at most 3 new Claude issue sessions at a time; Codex and OpenCode carry on.",
     );
   });
 
   it('copes with a percentage and with missing details', () => {
     expect(pacingMessage({ resetsAt: null, rateLimitType: 'seven_day', utilization: 91 }, NOW + HOUR, 1, NOW)).toContain('(weekly limit, 91%)');
-    expect(pacingMessage({ resetsAt: null, rateLimitType: 'seven_day', utilization: 91 }, NOW + HOUR, 1, NOW)).toContain('at most 1 session at a time');
+    expect(pacingMessage({ resetsAt: null, rateLimitType: 'seven_day', utilization: 91 }, NOW + HOUR, 1, NOW)).toContain('at most 1 new Claude issue session at a time');
     expect(pacingMessage({ resetsAt: null, rateLimitType: null, utilization: null }, NOW + HOUR, 3, NOW)).toMatch(/^🐢 Claude's usage is getting high\. Until 13:00/);
   });
 });
@@ -88,7 +125,7 @@ describe('resume full speed', () => {
   it('clears pacing, but never a hard pause and never when there is nothing to clear', () => {
     expect(resumeRefusal({ now: NOW, pausedUntil: 0, pacingUntil: NOW + HOUR })).toBeNull();
     expect(resumeRefusal({ now: NOW, pausedUntil: NOW + 5 * 60_000, pacingUntil: NOW + HOUR })).toBe(
-      "Claude turned a session away at the usage limit, so nothing new starts until 12:05. That pause can't be lifted early.",
+      "Claude turned a session away at the usage limit, so no new Claude sessions start until 12:05. That pause can't be lifted early.",
     );
     expect(resumeRefusal({ now: NOW, pausedUntil: 0, pacingUntil: 0 })).toBe('The office is already running at full speed.');
     expect(resumeRefusal({ now: NOW, pausedUntil: NOW - 1, pacingUntil: NOW })).toBe('The office is already running at full speed.');

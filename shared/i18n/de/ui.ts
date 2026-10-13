@@ -1,8 +1,8 @@
 import type { ui as English } from '../en/ui.ts';
 import type { TranslationOf } from '../types.ts';
 export const ui = {
-  'ui.ops.pausedChip': '⏸ Pausiert bis {until}: Claudes Nutzungslimit ist erreicht, nichts Neues startet',
-  'ui.ops.pacedChip': { one: '🐢 Gedrosselt bis {until}: Neue Issues starten erst, wenn weniger als {count} Sitzung läuft', other: '🐢 Gedrosselt bis {until}: Neue Issues starten erst, wenn weniger als {count} Sitzungen laufen' },
+  'ui.ops.pausedChip': '⏸ Claude pausiert bis {until}: Codex und OpenCode laufen weiter',
+  'ui.ops.pacedChip': { one: '🐢 Claude gedrosselt bis {until}: Claude-Issues starten unter {count} Sitzung', other: '🐢 Claude gedrosselt bis {until}: Claude-Issues starten unter {count} Sitzungen' },
   'ui.ops.claudeUsage': 'Claudes Nutzung',
   'ui.ops.noWarnings': 'Keine Nutzungswarnungen',
   'ui.ops.signLine': '🚀 {merged} heute · ⏱ {lead} Durchlauf · ✅ CI {ci} · 💵 ~{cost}',

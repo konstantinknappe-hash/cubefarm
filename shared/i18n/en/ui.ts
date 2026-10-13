@@ -1,7 +1,7 @@
 // English texts for the remaining overlays: pocket mode, photo mode, games, HUD hints and toasts.
 export const ui = {
-  'ui.ops.pausedChip': '⏸ Paused until {until}: at Claude\'s usage limit, nothing new starts',
-  'ui.ops.pacedChip': { one: '🐢 Paced until {until}: new issues start when fewer than {count} session run', other: '🐢 Paced until {until}: new issues start when fewer than {count} sessions run' },
+  'ui.ops.pausedChip': '⏸ Claude paused until {until}: Codex and OpenCode can continue',
+  'ui.ops.pacedChip': { one: '🐢 Claude paced until {until}: Claude issues start under {count} session', other: '🐢 Claude paced until {until}: Claude issues start under {count} sessions' },
   'ui.ops.claudeUsage': 'Claude\'s usage',
   'ui.ops.noWarnings': 'No usage warnings',
   'ui.ops.signLine': '🚀 {merged} today · ⏱ {lead} lead · ✅ CI {ci} · 💵 ~{cost}',

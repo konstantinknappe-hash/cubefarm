@@ -32,7 +32,7 @@ import { pruneQaShots, qaShotsDir, readQaShot, removeQaShots, saveQaShots } from
 import { agentPromptPreview, ceoPromptPreview, devBranch, devSystemPrompt, failedLogLines, noPushNudge, ownPrLine, qaBranch, qaSystemPrompt } from './prompts.ts';
 import { QA_RESUME_PROMPT, qaRetry } from './qaRetry.ts';
 import { drainDecision, lastUpdateMessage, POSTPONE_MS, type DrainInput, type LastUpdate } from './officeUpdate.ts';
-import { clampPacingSessions, DEFAULT_PACING_SESSIONS, mayStart, PACING_MS, pacingMessage, resumeRefusal, usageLabel, usageView, waived, warningView, type UsageWarning, type Waiver, type WorkKind } from './pacing.ts';
+import { clampPacingSessions, DEFAULT_PACING_SESSIONS, failoverCli, mayStart, PACING_MS, pacingMessage, resumeRefusal, usageLabel, usageView, waived, warningView, type UsageCli, type UsageWarning, type Waiver, type WorkKind } from './pacing.ts';
 import { emptyHistory, loadHistory, opsView, recordChecks, recordCost, recordMerges, recordQa, type OpsFloorState, type OpsHistory } from './metrics.ts';
 import { clampTrimIdleMin, DEFAULT_TRIM_IDLE_MIN, desksToTrim, formatBytes, freedMessage, idleSince, TRIM_SWEEP_MS } from './deskTrim.ts';
 import { cliLabel, isCli } from './clis.ts';
@@ -2472,16 +2472,15 @@ export class Swarm {
   }
 
   /**
-   * How an agent's next session runs: the CLI in their terminal (the terminal runtime), or Claude Code through the
-   * SDK. A session can only be resumed by the CLI that made it, so a follow-up stays with that CLI.
+   * How an agent's next session runs: the selected CLI, with Claude usage failover in terminal mode. A session can
+   * only be resumed by the CLI that made it, so a follow-up stays with that CLI.
    */
   private sessionRuntime(a: PersistedAgent, resume?: string): { terminal?: AgentTerminal; cli?: AgentCli; label?: string; resumeSessionId?: string } {
     const inTerminal = this.state.settings.runtime === 'terminal' && this.backend.terminals;
-    let cli: AgentCli = inTerminal ? a.cli || this.state.settings.defaultCli : 'claude';
-    if (resume && a.sessionCli && a.sessionCli !== cli) {
-      if (inTerminal) cli = a.sessionCli;
-      else if (a.sessionCli !== 'claude') resume = undefined;
-    }
+    const cli: AgentCli = inTerminal ? this.agentCli(a) as AgentCli : 'claude';
+    // A changed CLI cannot resume the old runtime's thread. Start a clean session on the selected CLI instead of
+    // silently keeping a stale Claude/Codex process after the manager changes the agent's backend.
+    if (resume && a.sessionCli && a.sessionCli !== cli) resume = undefined;
     if (!inTerminal) return { resumeSessionId: resume };
     const what = a.role === 'ceo' ? a.issueTitle : a.task === 'qa' ? `QA · PR #${a.prNumber}` : a.task === 'fix' ? `fixing PR #${a.prNumber}` : a.issueNumber ? `#${a.issueNumber} ${a.issueTitle ?? ''}` : null;
     return { terminal: this.terminalFor(a), cli, label: `${a.name}${what ? ` · ${what}` : ''}`.slice(0, 80).trim(), resumeSessionId: resume };
@@ -2845,7 +2844,7 @@ export class Swarm {
 
     if (a.status === 'stopped') return; // the manager already logged the stop
     if (!result.ok) {
-      this.issueFailed(repo, a.issueNumber);
+      this.issueFailed(repo, a.issueNumber, a);
       return this.fail(a, result, `#${a.issueNumber}`);
     }
     this.issueFailures.delete(`${repo.id}#${a.issueNumber}`);
@@ -3098,7 +3097,7 @@ export class Swarm {
     const rt = this.agentRt.get(a.id)!;
     const report = result.ok ? parseReport(result) : null;
     const resume = rt.qaResume;
-    const next = qaRetry({ stopped: a.status === 'stopped', limited: this.limited(), ok: result.ok, report: !!report, canResume: !!resume && !!a.sessionId });
+    const next = qaRetry({ stopped: a.status === 'stopped', limited: this.limited(a), ok: result.ok, report: !!report, canResume: !!resume && !!a.sessionId });
     if (next === 'resume' && resume && a.sessionId) {
       // Same session, context and screenshots: they likely ended a turn to wait on something that never woke them.
       rt.qaResume = null;
@@ -3111,7 +3110,7 @@ export class Swarm {
     if (next === 'give-up' || !report) {
       if (a.status !== 'stopped') this.fail(a, { ...result, errors: result.errors.length ? result.errors : ['QA finished without a usable report'] }, `QA of PR #${a.prNumber}`);
       if (rec) {
-        const failures = rec.sessionFailures + (this.limited() ? 0 : 1); // the usage limit isn't the PR's fault
+        const failures = rec.sessionFailures + (this.limited(a) ? 0 : 1); // the usage limit isn't the PR's fault
         const patch = { qaAgentId: null, sessionFailures: failures, summary: a.status === 'stopped' ? QA_STOPPED : rec.summary };
         if (a.status === 'stopped') this.setQa(rec, { ...patch, status: 'needs-human', escalated: true }); // the manager stopped it: theirs to decide
         else if (failures >= MAX_QA_FAILURES) this.stuck(rec, patch, `QA ended without a usable report ${failures} times in a row`);
@@ -3322,7 +3321,7 @@ export class Swarm {
     if (!result.ok) {
       this.fail(a, result, `the fix for PR #${a.prNumber}`);
       // Someone else gets a go before it lands on the manager.
-      const failures = rec ? rec.sessionFailures + (this.limited() ? 0 : 1) : 0;
+      const failures = rec ? rec.sessionFailures + (this.limited(a) ? 0 : 1) : 0;
       if (rec && failures >= MAX_FIX_FAILURES) this.stuck(rec, { sessionFailures: failures }, `${failures} fix sessions in a row failed`);
       else if (rec) this.setQa(rec, { status: 'failed', sessionFailures: failures });
       return;
@@ -3333,12 +3332,12 @@ export class Swarm {
       return;
     }
     const head = current?.headSha ?? null;
-    const step = fixOutcome(rec, head, this.minutes(a), !this.limited(), current?.checks ?? null);
+    const step = fixOutcome(rec, head, this.minutes(a), !this.limited(a), current?.checks ?? null);
     if (!step.pushed && head) {
       // Asked once to push or say why nothing needs to change, before it counts as a strike.
       const key = `${repo.id}#${rec.prNumber}`;
       const noChange = noChangeReason(result.text);
-      const next = unpushedFix(rec, head, { nudged: this.fixNudged.has(key), noChange, counts: !this.limited() });
+      const next = unpushedFix(rec, head, { nudged: this.fixNudged.has(key), noChange, counts: !this.limited(a) });
       if (next.do === 'retest') {
         this.fixNudged.delete(key);
         a.status = 'done';
@@ -3513,7 +3512,7 @@ export class Swarm {
   private issueFailures = new Map<string, number>(); // `${repoId}#${issue}` → failed sessions on it
   private nudged = new Set<string>(); // `${repoId}#${issue}`: its agent was asked once to finish the missing PR
   private fixNudged = new Set<string>(); // `${repoId}#${pr}`: its fix session was asked once to push or say why not
-  private pausedUntil = 0; // Claude's usage limit was hit: nothing new starts before this
+  private pausedUntil = 0; // Claude's usage limit was hit: new Claude sessions pause until this
   private pacingUntil = 0; // Claude warned about usage: new issues are paced until this
   private pacingLimit: string | null = null; // which of Claude's limits the pacing is for
   private lastWarning: UsageWarningView | null = null; // the latest usage warning, for the usage meter
@@ -3545,7 +3544,7 @@ export class Swarm {
    * failing to set up sits out.
    */
   private startPipelineWork(repo: PersistedRepo): boolean {
-    const free = this.available(repo);
+    const free = this.available(repo).filter((a) => this.mayStart('qa', this.agentCli(a)));
     if (!free.length) return false;
     const now = Date.now();
     const floor = this.floorState(this.repoRt.get(repo.id)!);
@@ -3584,8 +3583,8 @@ export class Swarm {
    * "Depends on #N" wait until #N is closed; the rest go in readyIssues() order.
    */
   private startIssueWork(repo: PersistedRepo): boolean {
-    if (!repo.autoAssign || !this.mayStart('issue')) return false;
-    const agent = this.available(repo)[0];
+    if (!repo.autoAssign) return false;
+    const agent = this.available(repo).find((a) => this.mayStart('issue', this.agentCli(a)));
     const next = agent ? this.readyIssues(repo)[0] : undefined;
     if (!agent || !next) return false;
     // assign() flips the agent to 'preparing' synchronously, so the next pass sees it as busy.
@@ -3593,8 +3592,8 @@ export class Swarm {
     return agent.status === 'preparing';
   }
 
-  private limited() {
-    return Date.now() < this.pausedUntil;
+  private limited(a: PersistedAgent) {
+    return Date.now() < this.pausedUntil && this.agentCli(a) === 'claude';
   }
 
   /** Claude turned a session away for the usage limit: start nothing new until it resets, rather than failing agent after agent. */
@@ -3603,7 +3602,7 @@ export class Swarm {
     if (until <= this.pausedUntil) return;
     const fresh = Date.now() >= this.pausedUntil;
     this.pausedUntil = until;
-    if (fresh) this.postMessage('office', `⏸ Claude's usage limit was reached. The office starts no new work until ${new Date(until).toLocaleTimeString()}; sessions already running carry on.`);
+    if (fresh) this.postMessage('office', `⏸ Claude's usage limit was reached. No new Claude sessions start until ${new Date(until).toLocaleTimeString()}; Codex and OpenCode can keep working.`);
     this.emitUsage();
   }
 
@@ -3628,7 +3627,7 @@ export class Swarm {
     if (refused) throw new HttpError(409, refused);
     this.waiver = { until: this.pacingUntil, limit: this.pacingLimit };
     this.pacingUntil = 0;
-    this.postMessage('office', '⏩ You resumed full speed: new issues start as usual again. If Claude turns a session away at the limit, the office still pauses until it resets.');
+    this.postMessage('office', '⏩ You resumed full speed: new issues start as usual again. If Claude turns a session away at the limit, new Claude sessions pause until it resets; Codex and OpenCode can keep working.');
     this.emitUsage();
     setTimeout(() => this.schedule(), 200);
     return this.usageNow();
@@ -3649,8 +3648,27 @@ export class Swarm {
   }
 
   /** May work of this kind start now, as far as Claude's usage goes? */
-  private mayStart(kind: WorkKind) {
-    return mayStart(kind, { now: Date.now(), pausedUntil: this.pausedUntil, pacingUntil: this.pacingUntil, running: this.running(), pacingSessions: this.state.settings.pacingSessions });
+  private agentCli(a: PersistedAgent): UsageCli {
+    const rt = this.agentRt.get(a.id);
+    if (rt?.session && BUSY.includes(a.status) && a.sessionCli) return a.sessionCli;
+    if (this.state.settings.runtime !== 'terminal' || !this.backend.terminals) return 'claude';
+    return failoverCli({
+      selected: a.cli || this.state.settings.defaultCli,
+      codexReady: this.cliReady('codex'),
+      utilization: this.lastWarning?.pct ?? null,
+      resetsAt: this.lastWarning?.resetsAt ?? null,
+      pacingUntil: this.pacingUntil,
+      pausedUntil: this.pausedUntil,
+      now: Date.now(),
+    });
+  }
+
+  private runningCli(cli: UsageCli) {
+    return this.state.agents.filter((a) => BUSY.includes(a.status) && this.agentCli(a) === cli).length;
+  }
+
+  private mayStart(kind: WorkKind, cli: UsageCli = 'claude') {
+    return mayStart(kind, { now: Date.now(), pausedUntil: this.pausedUntil, pacingUntil: this.pacingUntil, running: this.runningCli(cli), pacingSessions: this.state.settings.pacingSessions, cli });
   }
 
   private usageNow() {
@@ -3666,7 +3684,7 @@ export class Swarm {
     this.broadcast({ type: 'usage', usage });
     if (usage.state !== was && usage.state !== 'normal') {
       const until = usage.until ? new Date(usage.until).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'it resets';
-      if (usage.state === 'paused') this.notifier.notify('usage', "Claude's usage limit was reached", `The office starts no new work until ${until}; running sessions carry on.`);
+      if (usage.state === 'paused') this.notifier.notify('usage', "Claude's usage limit was reached", `No new Claude sessions start until ${until}; Codex and OpenCode can keep working.`);
       else this.notifier.notify('usage', 'Pacing new work', `Claude warned that usage is high, so new issues start slowly until ${until}.`);
     }
   }
@@ -3729,8 +3747,8 @@ export class Swarm {
   }
 
   /** A failed session releases its issue for someone else; an issue that keeps failing waits for the manager. */
-  private issueFailed(repo: PersistedRepo, n: number | null) {
-    if (n == null || this.limited()) return; // the usage limit isn't the issue's fault
+  private issueFailed(repo: PersistedRepo, n: number | null, a: PersistedAgent) {
+    if (n == null || this.limited(a)) return; // the usage limit isn't the issue's fault
     const key = `${repo.id}#${n}`;
     const failures = (this.issueFailures.get(key) ?? 0) + 1;
     this.issueFailures.set(key, failures);
@@ -3749,7 +3767,6 @@ export class Swarm {
     this.progressTick();
     if (this.officeUpdateTick()) return; // draining for the office's own update
     this.applyTeamChanges(); // before handing out work, so agents on their way out get none
-    if (this.limited()) return;
     // Management first: the CEO's jobs are short and shape everyone else's work.
     this.maybeHeartbeat();
     this.startCeoWork();
@@ -4006,7 +4023,7 @@ export class Swarm {
       this.emitCeo();
       this.save();
     }
-    if (!a || BUSY.includes(a.status) || c.job || c.queue.length === 0) return;
+    if (!a || BUSY.includes(a.status) || c.job || c.queue.length === 0 || !this.mayStart('ceo', this.agentCli(a))) return;
     if (this.slotsFull()) return;
     const rank: Record<CeoJob['kind'], number> = { chat: 0, triage: 0, onboard: 1, plan: 1, review: 2 };
     // A floor's jobs wait for its clone and first sync, so the CEO has something to read.
@@ -4069,7 +4086,7 @@ export class Swarm {
         cwd: CEO_DIR,
         prompt: ceoJobPrompt(job, floor, triage),
         systemAppend: ceoSystemPrompt(this.ceoPromptInput(a)),
-        model: a.model || (how.cli === 'codex' || how.cli === 'opencode' ? '' : CEO_MODEL),
+        model: how.cli === 'claude' ? (a.model || CEO_MODEL) : this.modelFor(a, how.cli),
         effort: a.effort || (how.cli === 'codex' || how.cli === 'opencode' ? this.state.settings.defaultEffort : CEO_EFFORT),
         browserTesting: false,
         additionalDirectories: this.state.repos.filter((r) => this.repoRt.get(r.id)?.cloneStatus === 'ready').map((r) => this.backend.mainDir(r.fullName)),
