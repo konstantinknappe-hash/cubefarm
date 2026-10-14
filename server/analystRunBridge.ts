@@ -64,7 +64,7 @@ export function parseAnalystRunRequest(body: unknown, idempotencyKey: string | u
 export class AnalystRunCache<T> {
   private readonly entries = new Map<string, { promise: Promise<T>; expiresAt: number; settled: boolean }>();
 
-  constructor(private readonly ttlMs = 15 * 60_000, private readonly maxEntries = 128) {}
+  constructor(private readonly ttlMs = 30 * 60_000, private readonly maxEntries = 32) {}
 
   get activeCount(): number {
     return [...this.entries.values()].filter((entry) => !entry.settled).length;

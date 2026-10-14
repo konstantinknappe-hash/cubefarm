@@ -7,7 +7,7 @@ uses `POST /api/analysts/invoke`; MoneyPrint's direct `backend: cubefarm` transp
 
 The direct endpoint requires a matching `Idempotency-Key` header and `request_id` field. It accepts only visible
 analyst sessions, protects coding, QA, and CEO sessions, and rejects requests that grant file, repository, or order
-access. Repeated request IDs reuse the in-flight or recently completed result for 15 minutes. The response reports
+access. Repeated request IDs reuse the in-flight or recently completed result for 30 minutes. The response reports
 `status: completed`, the request ID, a visible analyst session, model, and structured result. It returns HTTP 429 while
 all configured analyst slots are busy.
 
