@@ -20,6 +20,7 @@ import { screenStatus } from './screenReply.ts';
 import { parseSendBackNote } from './sendBack.ts';
 import { PresenceHub } from './presence.ts';
 import { HttpError, Swarm } from './swarm.ts';
+import { AnalystRunCache, AnalystRunInputError, parseAnalystRunRequest } from './analystRunBridge.ts';
 
 const swarm = new Swarm(DEMO ? createDemoBackend(DEMO_SCALE) : realBackend);
 // Who else is in the 3D office (shared presence): relayed between tabs over /ws, never saved. The demo adds fake visitors.
@@ -58,7 +59,7 @@ app.get('/api/state', route(() => swarm.snapshot()));
 
 // MoneyPrint sends one queued analysis job at a time. The selected CubeFarm agent runs it in
 // an isolated temporary directory and remains visible in the office for the duration.
-const invokeAnalyst = route((req) => {
+function requireAnalystBridgeAuth(req: Request) {
   const secret = process.env.MONEYPRINT_CUBEFARM_TOKEN ?? '';
   if (secret.length < 32) throw new HttpError(503, 'Analyst bridge is not configured.');
   const supplied = req.get('authorization')?.replace(/^Bearer\s+/i, '') ?? '';
@@ -67,6 +68,10 @@ const invokeAnalyst = route((req) => {
   if (expectedBytes.length !== suppliedBytes.length || !crypto.timingSafeEqual(expectedBytes, suppliedBytes)) {
     throw new HttpError(401, 'Invalid analyst bridge credentials.');
   }
+}
+
+const invokeAnalyst = route((req) => {
+  requireAnalystBridgeAuth(req);
   const body = req.body ?? {};
   const cli = body.cli;
   if (cli !== 'claude' && cli !== 'codex') throw new HttpError(400, 'cli must be claude or codex.');
@@ -85,6 +90,40 @@ const invokeAnalyst = route((req) => {
   });
 });
 
+const analystRunCache = new AnalystRunCache<{ output: unknown; model: string; agent: string }>();
+const invokeAnalystRun = route(async (req) => {
+  requireAnalystBridgeAuth(req);
+  let input;
+  try {
+    input = parseAnalystRunRequest(req.body, req.get('idempotency-key'));
+  } catch (error) {
+    if (error instanceof AnalystRunInputError) throw new HttpError(400, error.message);
+    throw error;
+  }
+  const repoId = process.env.MONEYPRINT_CUBEFARM_REPO_ID?.trim();
+  if (!repoId) throw new HttpError(503, 'MoneyPrint repo is not configured for analyst runs.');
+  const configuredParallel = Number(process.env.MONEYPRINT_CUBEFARM_PARALLEL_SESSIONS ?? 1);
+  const parallelLimit = Number.isInteger(configuredParallel) ? Math.max(1, Math.min(2, configuredParallel)) : 1;
+  if (!analystRunCache.has(input.requestId) && analystRunCache.activeCount >= Math.min(parallelLimit, input.maxParallel)) {
+    throw new HttpError(429, 'No visible analyst session is free; retry the queued task later.');
+  }
+  const result = await analystRunCache.run(input.requestId, () => swarm.invokeAnalyst({
+    repoId,
+    cli: input.cli === 'codex_cli' ? 'codex' : 'claude',
+    prompt: input.prompt,
+    model: input.model,
+    effort: input.effort,
+    timeoutMs: input.timeoutMs,
+  }));
+  return {
+    status: 'completed',
+    request_id: input.requestId,
+    session: { visibility: 'visible', class: 'analyst', agent: result.agent },
+    model: result.model,
+    result: result.output,
+  };
+});
+
 // Keep MoneyPrint on a dedicated loopback listener instead of granting it access to the office API.
 const bridgeToken = process.env.MONEYPRINT_CUBEFARM_TOKEN ?? '';
 if (bridgeToken.length >= 32) {
@@ -94,6 +133,7 @@ if (bridgeToken.length >= 32) {
   }
   const bridge = express();
   bridge.post('/api/analysts/invoke', express.json({ limit: '64kb' }), invokeAnalyst);
+  bridge.post('/v1/analyst-runs', express.json({ limit: '2mb' }), invokeAnalystRun);
   bridge.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
     const parserStatus = (err as { status?: unknown })?.status;
     const status = err instanceof HttpError ? err.status : typeof parserStatus === 'number' && parserStatus >= 400 && parserStatus < 500 ? parserStatus : 500;
