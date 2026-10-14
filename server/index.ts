@@ -58,7 +58,7 @@ app.get('/api/state', route(() => swarm.snapshot()));
 
 // MoneyPrint sends one queued analysis job at a time. The selected CubeFarm agent runs it in
 // an isolated temporary directory and remains visible in the office for the duration.
-app.post('/api/analysts/invoke', route((req) => {
+const invokeAnalyst = route((req) => {
   const secret = process.env.MONEYPRINT_CUBEFARM_TOKEN ?? '';
   if (secret.length < 32) throw new HttpError(503, 'Analyst bridge is not configured.');
   const supplied = req.get('authorization')?.replace(/^Bearer\s+/i, '') ?? '';
@@ -83,7 +83,28 @@ app.post('/api/analysts/invoke', route((req) => {
     outputSchema: body.outputSchema,
     timeoutMs: Number.isFinite(body.timeoutMs) ? Number(body.timeoutMs) : undefined,
   });
-}));
+});
+
+// Keep MoneyPrint on a dedicated loopback listener instead of granting it access to the office API.
+const bridgeToken = process.env.MONEYPRINT_CUBEFARM_TOKEN ?? '';
+if (bridgeToken.length >= 32) {
+  const bridgePort = Number(process.env.MONEYPRINT_CUBEFARM_BRIDGE_PORT ?? 4389);
+  if (!Number.isInteger(bridgePort) || bridgePort < 1024 || bridgePort > 65_000 || bridgePort === PORT || bridgePort === 4317 || bridgePort === 5317) {
+    throw new Error('MONEYPRINT_CUBEFARM_BRIDGE_PORT must be an unused local port other than the office ports.');
+  }
+  const bridge = express();
+  bridge.post('/api/analysts/invoke', express.json({ limit: '64kb' }), invokeAnalyst);
+  bridge.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
+    const parserStatus = (err as { status?: unknown })?.status;
+    const status = err instanceof HttpError ? err.status : typeof parserStatus === 'number' && parserStatus >= 400 && parserStatus < 500 ? parserStatus : 500;
+    if (status >= 500) console.error(err);
+    if (status === 429) res.setHeader('Retry-After', '15');
+    res.status(status).json({ error: err instanceof Error ? err.message : String(err) });
+  });
+  http.createServer(bridge).listen(bridgePort, '127.0.0.1', () => {
+    console.log(`MoneyPrint analyst bridge listening on 127.0.0.1:${bridgePort}`);
+  });
+}
 
 app.get('/api/github/repos', route((req) => swarm.listGithubRepos(str(req.query.owner) || undefined)));
 
