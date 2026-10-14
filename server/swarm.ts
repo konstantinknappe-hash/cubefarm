@@ -1419,10 +1419,13 @@ export class Swarm {
     if ((process.env.MONEYPRINT_CUBEFARM_TOKEN ?? '').length < 32) return [];
     const configured = (process.env.MONEYPRINT_CUBEFARM_AGENT_IDS ?? '').split(',').map((id) => id.trim()).filter(Boolean).slice(0, 2);
     if (configured.length) return configured;
-    const first = this.state.agents
+    const floorAgents = this.state.agents
       .filter((candidate) => candidate.repoId === repo.id && candidate.role !== 'ceo')
-      .sort((x, y) => x.desk - y.desk)[0];
-    return first ? [first.id] : [];
+      .sort((x, y) => x.desk - y.desk);
+    return (['codex', 'claude'] as const).flatMap((cli) => {
+      const first = floorAgents.find((candidate) => (candidate.cli || this.state.settings.defaultCli) === cli);
+      return first ? [first.id] : [];
+    });
   }
 
   // ---------- GitHub / repos ----------
@@ -1466,7 +1469,7 @@ export class Swarm {
     this.beginTask(a, { task: 'analysis', issueNumber: null, issueTitle: label, branch: null, prNumber: null, prUrl: null, sessionId: null }, label, 'Waiting for an isolated research workspace…');
 
     return new Promise<{ output: unknown; model: string; agent: string }>((resolve, reject) => {
-      const timeoutMs = Math.max(10_000, Math.min(input.timeoutMs ?? 120_000, 180_000));
+      const timeoutMs = Math.max(10_000, Math.min(input.timeoutMs ?? 120_000, 900_000));
       const invocation: AnalystInvocation = {
         resolve,
         reject,
