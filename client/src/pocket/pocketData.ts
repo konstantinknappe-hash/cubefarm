@@ -58,6 +58,7 @@ export function assignChoices(cols: KanbanColumns | null): AssignChoice[] {
 export function doing(a: Pick<Agent, 'status' | 'task' | 'issueNumber' | 'issueTitle' | 'prNumber'>): string {
   if (a.status === 'idle') return t('ui.pocket.free');
   if (a.task === 'qa') return `${t('ui.doing.testingPr', { n: a.prNumber ?? '?' })}${a.issueTitle ? `: ${a.issueTitle}` : ''}`;
+  if (a.task === 'analysis') return a.issueTitle ?? 'Market analysis';
   if (a.task === 'fix') return `${t('ui.doing.fixingPr', { n: a.prNumber ?? '?' })}${a.issueTitle ? `: ${a.issueTitle}` : ''}`;
   if (a.issueNumber != null) return `#${a.issueNumber}${a.issueTitle ? ` ${a.issueTitle}` : ''}`;
   return a.status === 'done' ? t('ui.status.done') : '';

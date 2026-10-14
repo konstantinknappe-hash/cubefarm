@@ -203,6 +203,10 @@ describe('agentActivity', () => {
     expect(agentActivity({ ...base, task: 'fix', prNumber: 12 }, seen('ci', 'gh pr checks 12'))).toEqual({ kind: 'ci', detail: 'gh pr checks 12' });
   });
 
+  it('shows a visible market analysis task by its title', () => {
+    expect(agentActivity({ ...base, task: 'analysis', issueTitle: 'Market analysis · codex' }, null)).toEqual({ kind: 'read', detail: 'Market analysis · codex' });
+  });
+
   it('talking to the manager wins', () => {
     expect(agentActivity({ ...base, task: 'qa' }, seen('talk', 'your message'))).toEqual({ kind: 'talk', detail: 'your message' });
     expect(agentActivity({ ...base, task: null }, seen('read', 'company status'), true)).toEqual({ kind: 'talk', detail: 'company status' });

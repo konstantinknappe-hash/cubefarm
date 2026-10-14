@@ -167,7 +167,7 @@ export const INSTALL_STEP = 'Installing dependencies';
 export type AgentLook = 'feminine' | 'masculine';
 
 /** What an agent is currently doing: implementing an issue, testing a PR, or fixing a PR after QA. */
-export type AgentTask = 'issue' | 'qa' | 'fix';
+export type AgentTask = 'issue' | 'qa' | 'fix' | 'analysis';
 
 /**
  * How agents run. terminal: each agent is the real coding-agent CLI in its own terminal, shown live in the office.

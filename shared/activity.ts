@@ -315,6 +315,7 @@ export function recentActions(log: readonly Pick<LogLine, 'kind' | 'text' | 'too
 export interface ActivityInput {
   status: AgentStatus;
   task: AgentTask | null;
+  issueTitle?: string | null;
   currentTool: string | null;
   issueNumber: number | null;
   prNumber: number | null;
@@ -338,6 +339,7 @@ export function agentActivity(a: ActivityInput, last: SeenActivity | null, chat 
   const pr = a.prNumber ? `PR #${a.prNumber}` : '';
   if (a.task === 'qa') return { kind: 'qa', detail: seen?.detail || pr };
   if (a.task === 'fix') return { kind: 'fix', detail: seen?.detail || pr };
+  if (a.task === 'analysis') return { kind: 'read', detail: a.issueTitle || 'market analysis' };
   return seen ?? { kind: 'read', detail: a.issueNumber ? `issue #${a.issueNumber}` : '' };
 }
 
