@@ -18,7 +18,7 @@ export interface ReconcileAgent {
   role: string;
   /** Their status when the office stopped. */
   status: string;
-  task: 'issue' | 'qa' | 'fix' | null;
+  task: 'issue' | 'qa' | 'fix' | 'analysis' | null;
   work: WorkState;
   deskExists: boolean;
   /** A CLI the terminal keeper kept working on this task (restartRecovery.ts followKeptCli). */

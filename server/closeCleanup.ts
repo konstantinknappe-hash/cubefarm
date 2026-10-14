@@ -74,7 +74,7 @@ export interface Holder {
   id: string;
   role: string;
   status: string;
-  task: 'issue' | 'qa' | 'fix' | null;
+  task: 'issue' | 'qa' | 'fix' | 'analysis' | null;
   issueNumber: number | null;
   prNumber: number | null;
   branch: string | null;

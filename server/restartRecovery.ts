@@ -4,7 +4,7 @@
 
 export interface RestartAgent {
   status: string;
-  task: 'issue' | 'qa' | 'fix' | null;
+  task: 'issue' | 'qa' | 'fix' | 'analysis' | null;
   sessionId: string | null;
   branch: string | null;
   issueNumber: number | null;

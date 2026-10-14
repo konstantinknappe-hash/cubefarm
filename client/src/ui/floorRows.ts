@@ -46,6 +46,7 @@ export function agentLabel(a: Pick<Agent, 'cli' | 'role'>, settings: Runtime, cl
 export function doingText(a: Pick<Agent, 'role' | 'status' | 'task' | 'issueNumber' | 'issueTitle' | 'prNumber'>): string {
   if (a.role === 'ceo') return a.status === 'working' ? (a.issueTitle ?? t('ui.status.working')) : t('ui.doing.free');
   if (a.status === 'idle') return t('ui.doing.nothing');
+  if (a.task === 'analysis') return a.issueTitle ?? 'Market analysis';
   if (a.task === 'qa') return a.prNumber ? `${t('ui.doing.testingPr', { n: a.prNumber })}${a.issueTitle ? `: ${a.issueTitle}` : ''}` : t('ui.doing.testing');
   if (a.task === 'fix' && a.prNumber) return `${t('ui.doing.fixingPr', { n: a.prNumber })}${a.issueTitle ? `: ${a.issueTitle}` : ''}`;
   if (a.issueNumber) return `${t('ui.doing.issue', { n: a.issueNumber })}${a.issueTitle ? `: ${a.issueTitle}` : ''}`;

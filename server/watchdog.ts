@@ -26,7 +26,7 @@ export interface WatchAgent {
   repoId: string;
   role: string;
   status: string;
-  task: 'issue' | 'qa' | 'fix' | null;
+  task: 'issue' | 'qa' | 'fix' | 'analysis' | null;
   issueNumber: number | null;
   prNumber: number | null;
   startedAt: number | null;
@@ -82,7 +82,7 @@ export function diagnose(agents: readonly WatchAgent[], qa: readonly WatchQa[], 
     since,
   });
   for (const a of agents) {
-    if (a.role === 'ceo' || !a.task) continue;
+    if (a.role === 'ceo' || !a.task || a.task === 'analysis') continue;
     if (a.status === 'working' && now - a.activeAt >= QUIET_MS) out.push(of(a, 'quiet', a.activeAt));
     else if (a.status === 'preparing' && a.startedAt != null && now - a.startedAt >= PREPARING_MS) out.push(of(a, 'preparing', a.startedAt));
     else if ((a.status === 'error' || a.status === 'stopped') && (a.work === 'closed' || a.work === 'merged')) out.push(of(a, 'stale', a.startedAt ?? now));

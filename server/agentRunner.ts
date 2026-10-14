@@ -324,6 +324,7 @@ export function startSession(opts: SessionOptions, callbacks: SessionCallbacks):
   // inherited from a parent Claude Code session (base URL proxies, session sockets, effort overrides…).
   const env: Record<string, string | undefined> = {};
   for (const [k, v] of Object.entries(process.env)) {
+    if (k === 'MONEYPRINT_CUBEFARM_TOKEN') continue;
     if (/^(ANTHROPIC_|CLAUDE)/i.test(k) && k !== 'CLAUDE_CONFIG_DIR') continue;
     env[k] = v;
   }

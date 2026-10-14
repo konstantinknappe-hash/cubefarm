@@ -27,6 +27,7 @@ function latest(l: LogLine | undefined): { text: string; kind: LogLine['kind']; 
 function doing(a: Agent) {
   if (a.role === 'ceo') return a.issueTitle;
   if (a.task === 'qa') return `QA · PR #${a.prNumber}`;
+  if (a.task === 'analysis') return a.issueTitle ?? 'Market analysis';
   if (a.task === 'fix') return tr('world.term.fixing', { n: a.prNumber ?? '?' });
   return a.issueNumber ? `#${a.issueNumber}` : null;
 }

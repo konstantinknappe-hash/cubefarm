@@ -1,6 +1,7 @@
 import http from 'node:http';
 import path from 'node:path';
 import fs from 'node:fs';
+import crypto from 'node:crypto';
 import express, { type NextFunction, type Request, type Response } from 'express';
 import type { AddressInfo } from 'node:net';
 import { WebSocketServer } from 'ws';
@@ -54,6 +55,35 @@ const str = (v: unknown) => (typeof v === 'string' ? v : '');
 const repoId = (req: Request) => decodeURIComponent(String(req.params.repo));
 
 app.get('/api/state', route(() => swarm.snapshot()));
+
+// MoneyPrint sends one queued analysis job at a time. The selected CubeFarm agent runs it in
+// an isolated temporary directory and remains visible in the office for the duration.
+app.post('/api/analysts/invoke', route((req) => {
+  const secret = process.env.MONEYPRINT_CUBEFARM_TOKEN ?? '';
+  if (secret.length < 32) throw new HttpError(503, 'Analyst bridge is not configured.');
+  const supplied = req.get('authorization')?.replace(/^Bearer\s+/i, '') ?? '';
+  const expectedBytes = Buffer.from(secret);
+  const suppliedBytes = Buffer.from(supplied);
+  if (expectedBytes.length !== suppliedBytes.length || !crypto.timingSafeEqual(expectedBytes, suppliedBytes)) {
+    throw new HttpError(401, 'Invalid analyst bridge credentials.');
+  }
+  const body = req.body ?? {};
+  const cli = body.cli;
+  if (cli !== 'claude' && cli !== 'codex') throw new HttpError(400, 'cli must be claude or codex.');
+  if (typeof body.repoId !== 'string' || !body.repoId.trim()) throw new HttpError(400, 'repoId is required.');
+  if (typeof body.prompt !== 'string') throw new HttpError(400, 'prompt is required.');
+  if (body.outputSchema !== undefined && (!body.outputSchema || typeof body.outputSchema !== 'object' || Array.isArray(body.outputSchema) || JSON.stringify(body.outputSchema).length > 10_000)) {
+    throw new HttpError(400, 'outputSchema must be a JSON schema object smaller than 10 KB.');
+  }
+  const effort = ['low', 'medium', 'high', 'xhigh'].includes(body.effort) ? body.effort : undefined;
+  return swarm.invokeAnalyst({
+    repoId: body.repoId.trim(), cli, prompt: body.prompt,
+    model: typeof body.model === 'string' ? body.model : undefined,
+    effort,
+    outputSchema: body.outputSchema,
+    timeoutMs: Number.isFinite(body.timeoutMs) ? Number(body.timeoutMs) : undefined,
+  });
+}));
 
 app.get('/api/github/repos', route((req) => swarm.listGithubRepos(str(req.query.owner) || undefined)));
 
@@ -313,6 +343,7 @@ app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
   const status = err instanceof HttpError ? err.status : typeof parserStatus === 'number' && parserStatus >= 400 && parserStatus < 500 ? parserStatus : 500;
   const message = err instanceof Error ? err.message : String(err);
   if (status >= 500) console.error(err);
+  if (status === 429 && _req.path === '/api/analysts/invoke') res.setHeader('Retry-After', '15');
   res.status(status).json({ error: message });
 });
 
