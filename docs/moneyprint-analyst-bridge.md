@@ -17,5 +17,7 @@ The request contains `repoId`, `cli` (`claude` or `codex`), `prompt`, and option
 MoneyPrint order tools, and is shown on the agent card as market analysis. After an office restart, the interrupted
 request is cleared and MoneyPrint retries it from its queue.
 
-Keep the endpoint on a private network or loopback and store the shared token only in the two services' protected
-systemd environments. The token is not written to CubeFarm state or logs.
+When the token is configured, CubeFarm opens only `127.0.0.1:4389` for this bridge. It does not add the route to the
+office API. Set `MONEYPRINT_CUBEFARM_BRIDGE_PORT` to change the listener and set MoneyPrint's
+`MONEYPRINT_CUBEFARM_URL` to `http://127.0.0.1:4389`. Keep the endpoint on loopback and store the shared token only
+in the two services' protected systemd environments. The token is not written to CubeFarm state or logs.
