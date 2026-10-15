@@ -2492,6 +2492,11 @@ export class Swarm {
     return effectiveModel(a.model, cli ?? 'claude', this.state.settings, DEFAULT_MODEL);
   }
 
+  /** Keep a saved Claude CEO model from being passed to a different CLI after a provider switch. */
+  private ceoModelFor(a: PersistedAgent, cli: AgentCli) {
+    return effectiveModel(a.model, cli, this.state.settings, CEO_MODEL);
+  }
+
   // ---------- terminals ----------
 
   private async loadTerminal(agentId: string): Promise<AgentTerminal | null> {
@@ -4069,7 +4074,7 @@ export class Swarm {
         cwd: CEO_DIR,
         prompt: ceoJobPrompt(job, floor, triage),
         systemAppend: ceoSystemPrompt(this.ceoPromptInput(a)),
-        model: a.model || (how.cli === 'codex' || how.cli === 'opencode' ? '' : CEO_MODEL),
+        model: this.ceoModelFor(a, how.cli ?? 'claude'),
         effort: a.effort || (how.cli === 'codex' || how.cli === 'opencode' ? this.state.settings.defaultEffort : CEO_EFFORT),
         browserTesting: false,
         additionalDirectories: this.state.repos.filter((r) => this.repoRt.get(r.id)?.cloneStatus === 'ready').map((r) => this.backend.mainDir(r.fullName)),
@@ -5065,7 +5070,7 @@ export class Swarm {
     const cli = this.plannedCli(a);
     return {
       codingAgent: cli,
-      model: ceo ? a.model || (cli === 'claude' ? CEO_MODEL : 'the coding agent default') : this.modelFor(a, cli) || 'the coding agent default',
+      model: ceo ? this.ceoModelFor(a, cli) || 'the coding agent default' : this.modelFor(a, cli) || 'the coding agent default',
       effort: a.effort || (ceo && cli === 'claude' ? CEO_EFFORT : this.state.settings.defaultEffort),
     };
   }
