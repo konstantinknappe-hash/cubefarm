@@ -8,9 +8,11 @@ It ships on npm as `cubefarm` (`npx cubefarm`); it used to be called Office Swar
 
 ## SAFETY (read first)
 
-- The live office runs from `C:\Projects\office-swarm` on this machine, on ports 4317 (server) and 5317 (Vite),
-  with its state in `~/.cubefarm`. Never edit or run anything there, never read or write `~/.cubefarm` directly, and
-  never use ports 4317 or 5317.
+- The live office runs from `C:\Projects\office-swarm` on upstream's Windows machine, on ports 4317 (server) and
+  5317 (Vite), with its state in `~/.cubefarm`. Never edit or run anything there, never read or write `~/.cubefarm`
+  directly, and never use ports 4317 or 5317. Keep the separately installed office here protected. Keep the former
+  Hetzner office at `/opt/cubefarm-de` with state in `/home/cubefarm/.cubefarm` protected too; do not modify,
+  restart, deploy or remove it as part of local work.
 - Test only in demo mode (fake GitHub, fake agents, no Claude usage), with an isolated `SWARM_HOME` and your reserved
   `SWARM_PORT` (from your job instructions):
 
@@ -25,11 +27,10 @@ It ships on npm as `cubefarm` (`npx cubefarm`); it used to be called Office Swar
   ```
   Then open `http://localhost:<your port>` (the server serves the built `dist/`). The startup banner must say
   `DEMO MODE` and print a `state:` path inside your `SWARM_HOME`. Stop it when done; don't commit `.swarm-home`.
-- Never real mode (no `--demo`), and never `npm run dev` / `npm run demo` / `npm start` / `npx cubefarm`: they default
-  to 4317, and `dev`/`demo` default Vite to 5317. The first three run `scripts/office.mjs`, the launcher, which also
-  updates its own folder (git fetch + merge, npm install, build) when the office or you ask for it (`u`). Run it
-  only in a throwaway clone outside the live office, with `--demo` and your `SWARM_HOME`, `SWARM_PORT` and
-  `SWARM_CLIENT_PORT`.
+- Never run real mode for development, tests or QA. The only real-mode exception is the manager-approved local
+  production instance described below. Never run `npm run dev` / `npm run demo` / `npm start` / `npx cubefarm`:
+  they use reserved defaults, and the launcher can update its own folder. For demo checks, use an isolated
+  `SWARM_HOME`, the reserved `SWARM_PORT`, and `--demo` as described above.
 - Agents are ordinary coding-agent CLI sessions on the manager's own setup, unsandboxed, by the manager's choice. The
   office's workflow rules (no pushes to the default branch, no merging, QA leaves GitHub alone) live in their prompts
   and instructions, not in enforcement: don't add hooks, permission rules or sandboxes that refuse tool calls.
@@ -218,5 +219,21 @@ Client (`client/`, Vite root; React 19, R3F, drei, zustand):
 - Never push to `main`, never force-push, never merge your own PR.
 
 ## Fork
+
+### Manager-approved local production instance
+
+After this rule has been merged into the exact checkout being run, an explicit manager task may authorize
+operating the manager's local CubeFarm installation on the ThinkPad. This exception applies only to that
+local installation; it does not authorize access to or changes to the protected offices above.
+
+- Set `SWARM_HOME` to the dedicated, mounted gocryptfs directory outside the repository. Never use the
+  default `~/.cubefarm`, `.swarm-home`, or a path shared with another office.
+- Set `SWARM_PORT` to a port the manager selected and verified as free. Never use 4317 or 5317.
+- Run the built server directly with `node dist-server/index.js`; do not use an auto-updating launcher.
+  Do not start a second process against the same `SWARM_HOME`.
+- Do not stop or change the Hetzner office until local migration and verification succeed and the manager
+  separately authorizes that action.
+- Buchhaltung agents may use synthetic fixtures only. Keep production databases, bank credentials and
+  real financial documents outside agent-accessible repositories, worktrees and prompts.
 
 This is a fork of leonvanzyl/cubefarm: see docs/fork.md. AGENTS.md repeats the safety rules for Codex and OpenCode.
