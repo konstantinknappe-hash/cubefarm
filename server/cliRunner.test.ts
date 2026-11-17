@@ -1,5 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { lostConversation, resumableSession } from './cliRunner.ts';
+import { lostConversation, officeMcpBearerToken, resumableSession } from './cliRunner.ts';
+
+describe('officeMcpBearerToken', () => {
+  it('accepts one Bearer credential case-insensitively', () => {
+    expect(officeMcpBearerToken('Bearer abc-123')).toBe('abc-123');
+    expect(officeMcpBearerToken('bearer abc-123')).toBe('abc-123');
+  });
+
+  it('rejects missing, malformed, or extra authorization values', () => {
+    expect(officeMcpBearerToken(undefined)).toBeNull();
+    expect(officeMcpBearerToken('Basic abc-123')).toBeNull();
+    expect(officeMcpBearerToken('Bearer abc-123 extra')).toBeNull();
+  });
+});
 
 describe('resumableSession', () => {
   const onDisk = (files: string[]) => (file: string) => files.includes(file);

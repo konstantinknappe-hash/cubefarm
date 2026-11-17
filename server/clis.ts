@@ -142,6 +142,8 @@ export interface LaunchContext {
   additionalDirectories: string[];
   /** Files the office wrote for this session (settings, MCP config, instructions). */
   files: { settings: string; mcp: string | null; system: string };
+  /** The CEO's private office MCP endpoint. The bearer token is passed only through the session environment. */
+  officeMcp: { url: string; token: string } | null;
   /** Where the CLI's turn-complete signal goes (Codex notify, the OpenCode plugin). */
   notify: { script: string; url: string };
   /** Codex's hook program: forwards each hook to the office (notify.url). */
@@ -214,13 +216,27 @@ export function launchArgs(id: AgentCli, ctx: LaunchContext): Launch {
         `developer_instructions=${toml(ctx.systemAppend)}`,
         ...(ctx.model ? ['-m', ctx.model] : []),
         ...(ctx.effort ? ['-c', `model_reasoning_effort=${toml(EFFORT_CODEX[ctx.effort])}`] : []),
+        ...(ctx.officeMcp
+          ? [
+              '-c',
+              `mcp_servers.office.url=${toml(ctx.officeMcp.url)}`,
+              '-c',
+              `mcp_servers.office.bearer_token_env_var=${toml('CUBEFARM_OFFICE_MCP_TOKEN')}`,
+            ]
+          : []),
         ...(ctx.browser ? ['-c', `mcp_servers.playwright={command=${toml(ctx.browser.command)},args=[${ctx.browser.args.map(toml).join(',')}]}`] : []),
         ...CODEX_HOOK_EVENTS.flatMap((e) => ['-c', `hooks.${e}=[{hooks=[{type="command",command=${toml(codexHookCommand(process.execPath, ctx.codexHook))},timeout=10}]}]`]),
         // Like the manager's own Codex, but it can't stop to ask: no approvals and no sandbox (its sandbox can't reach
         // the credential store, so git and gh fail in it).
         '--dangerously-bypass-approvals-and-sandbox',
       ];
-      return { args: ctx.resumeId ? ['resume', ...args, ctx.resumeId, ctx.prompt] : [...args, '--', ctx.prompt], env: { CUBEFARM_HOOK_URL: ctx.notify.url } };
+      return {
+        args: ctx.resumeId ? ['resume', ...args, ctx.resumeId, ctx.prompt] : [...args, '--', ctx.prompt],
+        env: {
+          CUBEFARM_HOOK_URL: ctx.notify.url,
+          ...(ctx.officeMcp ? { CUBEFARM_OFFICE_MCP_TOKEN: ctx.officeMcp.token } : {}),
+        },
+      };
     }
     case 'opencode': {
       const config = {
