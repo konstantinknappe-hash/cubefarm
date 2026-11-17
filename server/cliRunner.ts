@@ -60,6 +60,12 @@ export function setOfficeUrl(url: string) {
   officeUrl = url;
 }
 
+/** Return a bearer credential only when the authorization header has the expected scheme and one token. */
+export function officeMcpBearerToken(authorization: string | undefined): string | null {
+  const match = /^Bearer\s+([^\s]+)$/i.exec(authorization?.trim() ?? '');
+  return match?.[1] ?? null;
+}
+
 interface Route {
   hook(body: Record<string, unknown>): Record<string, unknown>;
   office?: OfficeTools;
@@ -674,6 +680,7 @@ export function startCliSession(opts: SessionOptions, callbacks: SessionCallback
     role: opts.role,
     additionalDirectories: opts.additionalDirectories,
     files,
+    officeMcp: opts.office ? { url: `${officeUrl}/api/mcp`, token } : null,
     notify: { script: path.join(BIN_DIR, 'notify.cjs'), url: hookUrl },
     codexHook: path.join(BIN_DIR, 'codex-hook.cjs'),
     plugin: pathToFileURL(path.join(BIN_DIR, 'opencode-plugin.mjs')).href,

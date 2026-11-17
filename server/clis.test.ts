@@ -85,6 +85,7 @@ describe('launchArgs', () => {
     role: 'agent',
     additionalDirectories: [],
     files: { settings: 'settings.json', mcp: null, system: 'instructions.md' },
+    officeMcp: null,
     notify: { script: 'notify.cjs', url: 'http://127.0.0.1:1/api/hooks/t' },
     codexHook: 'codex-hook.cjs',
     plugin: 'file:///plugin.mjs',
@@ -132,6 +133,15 @@ describe('launchArgs', () => {
     expect(hooks.map((h) => h.slice(6, h.indexOf('=')))).toEqual(CODEX_HOOK_EVENTS);
     expect(hooks[0]).toContain('type="command"');
     expect(env.CUBEFARM_HOOK_URL).toBe('http://127.0.0.1:1/api/hooks/t');
+  });
+
+  it("gives Codex the office MCP endpoint and keeps its bearer token out of CLI arguments", () => {
+    const officeMcp = { url: 'http://127.0.0.1:4477/api/mcp', token: 'test-session-token' };
+    const { args, env } = launchArgs('codex', ctx({ officeMcp }));
+    expect(args).toContain('mcp_servers.office.url="http://127.0.0.1:4477/api/mcp"');
+    expect(args).toContain('mcp_servers.office.bearer_token_env_var="CUBEFARM_OFFICE_MCP_TOKEN"');
+    expect(args.join(' ')).not.toContain(officeMcp.token);
+    expect(env.CUBEFARM_OFFICE_MCP_TOKEN).toBe(officeMcp.token);
   });
 
   it('runs the hook program with a command that never starts with a quote on Windows', () => {
