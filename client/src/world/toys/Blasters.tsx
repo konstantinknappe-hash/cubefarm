@@ -1,3 +1,4 @@
+import { t } from '../../i18n';
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { CuboidCollider, RigidBody, useAfterPhysicsStep, useBeforePhysicsStep, useRapier, type RapierRigidBody } from '@react-three/rapier';
@@ -90,7 +91,7 @@ const SLOT_Y = [1.4, 1.06];
 
 function Rack({ x, onRack }: { x: number; onRack: BlasterDef[] }) {
   const first = onRack[0];
-  const ref = useInteractable<THREE.Group>(first ? { id: `toy:rack:${first.id}`, label: 'Take a blaster', action: { kind: 'pickup', toyId: first.id } } : null, TAKE_RANGE);
+  const ref = useInteractable<THREE.Group>(first ? { id: `toy:rack:${first.id}`, label: t('world.toy.takeBlaster'), action: { kind: 'pickup', toyId: first.id } } : null, TAKE_RANGE);
   const { w, d, h } = BLASTER_RACK;
   // Local +Z faces into the room.
   return (
@@ -135,7 +136,7 @@ function Rack({ x, onRack }: { x: number; onRack: BlasterDef[] }) {
 type Spot = { where: 'rack' } | { where: 'held' } | { where: 'loose'; key: number; at: [number, number, number]; vel: [number, number, number]; yaw: number };
 
 function LooseBlaster({ def, spot, groups, onLost }: { def: BlasterDef; spot: Extract<Spot, { where: 'loose' }>; groups: number; onLost: () => void }) {
-  const ref = useInteractable<THREE.Group>({ id: `toy:${def.id}`, label: 'Pick up blaster', action: { kind: 'pickup', toyId: def.id } }, TAKE_RANGE);
+  const ref = useInteractable<THREE.Group>({ id: `toy:${def.id}`, label: t('world.toy.pickBlaster'), action: { kind: 'pickup', toyId: def.id } }, TAKE_RANGE);
   const body = useRef<RapierRigidBody>(null);
   const tick = useRef(0);
   const fall = useRef({ vy: 0, landings: 0 });

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
+import { t } from '../i18n';
 import { loadView, pendingRequests, saveView, unreadMessages, useStore, type Focus } from '../store';
 import { api } from '../api';
 import { EYE_HEIGHT, ROOF, SPAWN, collide, surfaceAt, type Rect } from './layout';
@@ -82,6 +83,17 @@ export function runFocusAction(focus: Focus, via: 'key' | 'click' = 'key') {
     takeBlaster(focus.action.toyId, focus.id.startsWith('toy:rack:'));
     return;
   }
+  if (focus.action.kind === 'pickup' && focus.action.toyId.startsWith('cigarette-pack')) {
+    s.setHeld({
+      kind: 'cigarette',
+      id: 'cigarette',
+      lit: false,
+      puffs: 6,
+      puffAt: 0,
+    });
+    s.pushToast('info', t('world.player.cigTaken'));
+    return;
+  }
   if (focus.action.kind === 'pickup' && isMugId(focus.action.toyId)) {
     takeMug(focus.action.toyId);
     return;
@@ -137,7 +149,7 @@ export function runFocusAction(focus: Focus, via: 'key' | 'click' = 'key') {
         .hireAgent(repoId, {})
         .then((a) => {
           const floor = useStore.getState().repos.find((r) => r.id === repoId)?.floor;
-          s.pushToast('success', floor != null ? `${a.name} joined floor ${floor}` : `${a.name} joined the team`);
+          s.pushToast('success', floor != null ? t('world.player.joinedFloor', { name: a.name, floor }) : t('world.player.joined', { name: a.name }));
         })
         .catch(() => undefined);
     if (via === 'key') {
@@ -148,8 +160,8 @@ export function runFocusAction(focus: Focus, via: 'key' | 'click' = 'key') {
     if (document.pointerLockElement) document.exitPointerLock();
     void confirmDialog({
       icon: '🪑',
-      title: 'Add an agent at this desk?',
-      confirm: 'Add',
+      title: t('world.player.addTitle'),
+      confirm: t('world.player.add'),
     }).then((ok) => {
       if (ok) void hire();
     });
@@ -162,9 +174,30 @@ export function runFocusAction(focus: Focus, via: 'key' | 'click' = 'key') {
  * With coffee in hand it takes a sip instead, except at the coffee machine. */
 function interact() {
   const s = useStore.getState();
+  if (s.held?.kind === 'cigarette') {
+    const cigarette = s.held;
+
+    if (!cigarette.lit) {
+      s.setHeld({ ...cigarette, lit: true });
+      s.pushToast('info', t('world.player.cigLit'));
+    } else if (performance.now() - cigarette.puffAt < 2500) {
+      return;
+    } else if (cigarette.puffs <= 1) {
+      s.setHeld(null);
+      s.pushToast('info', t('world.player.cigDone'));
+    } else {
+      s.setHeld({
+        ...cigarette,
+        puffs: cigarette.puffs - 1,
+        puffAt: performance.now(),
+      });
+    }
+    return;
+  }
+
   const act = eAction(s.held, s.focus?.action.kind ?? null);
   if (act === 'sip') sipCoffee();
-  else if (act === 'empty') s.pushToast('info', "☕ It's empty: refill it at the machine");
+  else if (act === 'empty') s.pushToast('info', t('world.player.mugEmpty'));
   else if (s.focus) runFocusAction(s.focus);
 }
 
@@ -193,6 +226,18 @@ const pressKey = (key: 'Escape' | 'Enter') => window.dispatchEvent(new KeyboardE
 
 /** Right stick at full tilt turns this many radians a second (times the pad sensitivity). */
 const PAD_TURN = 2.6;
+// Jumping and bunny hopping, a bit more arcade than CS: Quake/Source air acceleration (only the speed still missing
+// along the wished direction is added, so strafing with A/D while turning the mouse the same way builds speed), and
+// holding Space hops again on landing with no ground friction. No bonus for the hop itself; capped at MAX_HOP.
+const JUMP_SPEED = 4.6;
+const GRAVITY = 13;
+const AIR_CAP = 1;
+const AIR_ACCEL = 15;
+const AIR_STEP = 1 / 120;
+const MAX_HOP = 13;
+const JUMP_BUFFER_MS = 120;
+const HOP_WINDOW_MS = 120;
+const LAND_SLIDE_MS = 250;
 
 /** Whether `code` gets you up from a perch (a deck chair, the telescope): a walking key, or Space. */
 const gotUp = (b: ReturnType<typeof bindings>, code: string) => code === 'Space' || [...MOVES].some((a) => isBound(b, a, code));
@@ -212,6 +257,7 @@ export function Player({ colliders, floor }: { colliders: Rect[]; floor: number 
   const frame = useRef(0);
   const lookFilter = useMemo(createLookFilter, []);
   const padRun = useRef(false);
+  const jump = useRef({ y: 0, vy: 0, vx: 0, vz: 0, press: 0, landed: 0 });
   useEffect(() => setHomeLook(() => look.current), []);
   const perched = useRef<Perch | null>(null);
 
@@ -291,7 +337,7 @@ export function Player({ colliders, floor }: { colliders: Rect[]; floor: number 
       const b = bindings();
       if (isBound(b, 'mute', e.code) && !e.repeat && !isConfirmOpen()) {
         toggleMute();
-        s.pushToast('info', getAudioPrefs().muted ? `🔇 Sound off (${keyName('mute')} to turn it back on)` : '🔊 Sound on');
+        s.pushToast('info', getAudioPrefs().muted ? t('world.player.soundOff', { key: keyName('mute') }) : t('world.player.soundOn'));
       }
       if (s.overlay || !s.started || isConfirmOpen() || photoActive()) return;
       keys.current.add(e.code);
@@ -311,6 +357,7 @@ export function Player({ colliders, floor }: { colliders: Rect[]; floor: number 
         // − and + turn the jukebox down and up while you look at it.
         if (action === 'volumeDown' && s.focus?.action.kind === 'jukebox') jukeboxAction('vol-');
         if (action === 'volumeUp' && s.focus?.action.kind === 'jukebox') jukeboxAction('vol+');
+        if (action === 'jump' && !e.repeat) jump.current.press = performance.now(); // holding it hops on (see useFrame)
         if (action === 'throw' && !e.repeat && !s.travel) startCharge();
         // G puts a sticky down where you aim (or back on the board), peels the one you aim at off, or drops what you hold
         if (action === 'drop' && !e.repeat && !placeSticky(s.focus, true) && !peelAimed(s.focus)) dropHeld();
@@ -362,7 +409,7 @@ export function Player({ colliders, floor }: { colliders: Rect[]; floor: number 
     window.addEventListener('blur', onBlur);
     const stopLookLock = watchLookLock(requestLook, hushMouse);
     const stopPads = watchPads((on, id) =>
-      useStore.getState().pushToast('info', on ? `🎮 ${padName(id)} connected: left stick walks, right stick looks, A uses, Start for the phone` : `🎮 ${padName(id)} disconnected`),
+      useStore.getState().pushToast('info', on ? t('world.player.padOn', { name: padName(id) }) : t('world.player.padOff', { name: padName(id) })),
     );
     return () => {
       stopLookLock();
@@ -500,22 +547,67 @@ export function Player({ colliders, floor }: { colliders: Rect[]; floor: number 
     walk.x = 0;
     walk.z = 0;
     const tilt = Math.min(1, Math.hypot(fwd, strafe));
-    if (tilt > 0 && !s.travel && !p) {
-      const len = Math.hypot(fwd, strafe);
-      const sin = Math.sin(yaw);
-      const cos = Math.cos(yaw);
-      const dx = ((-sin * fwd + cos * strafe) / len) * speed * tilt * dt;
-      const dz = ((-cos * fwd - sin * strafe) / len) * speed * tilt * dt;
-      let p = collide(camera.position.x + dx, camera.position.z + dz, colliders);
+    const j = jump.current;
+    const tNow = performance.now();
+    const free = !s.travel && !p;
+    if (!free) Object.assign(j, { y: 0, vy: 0, press: 0 });
+    const len = Math.hypot(fwd, strafe) || 1;
+    const sin = Math.sin(yaw);
+    const cos = Math.cos(yaw);
+    const wx = tilt > 0 ? (-sin * fwd + cos * strafe) / len : 0;
+    const wz = tilt > 0 ? (-cos * fwd - sin * strafe) / len : 0;
+    if (free && j.y <= 0 && (anyHeld(b, 'jump', k) || tNow - j.press < JUMP_BUFFER_MS)) {
+      // a hop right off a landing keeps the speed it came down with (no friction); from standing it takes the walk's
+      if (tNow - j.landed >= HOP_WINDOW_MS) {
+        j.vx = wx * speed * tilt;
+        j.vz = wz * speed * tilt;
+      }
+      j.vy = JUMP_SPEED;
+      j.press = 0;
+    }
+    const airborne = free && (j.y > 0 || j.vy > 0);
+    if (airborne) {
+      // air acceleration in fixed steps (the same gain at any frame rate): only up to AIR_CAP along the wished
+      // direction, measured by the speed already going that way, so turning while strafing gains speed
+      for (let left = tilt > 0 ? dt : 0; left > 1e-6; left -= AIR_STEP) {
+        const add = AIR_CAP - (j.vx * wx + j.vz * wz);
+        if (add <= 0) break;
+        const a = Math.min(add, AIR_ACCEL * speed * tilt * Math.min(AIR_STEP, left));
+        j.vx += wx * a;
+        j.vz += wz * a;
+      }
+      const v = Math.hypot(j.vx, j.vz);
+      if (v > MAX_HOP) {
+        j.vx *= MAX_HOP / v;
+        j.vz *= MAX_HOP / v;
+      }
+      j.vy -= GRAVITY * dt;
+      j.y += j.vy * dt;
+      if (j.y <= 0) {
+        j.y = 0;
+        j.vy = 0;
+        j.landed = tNow;
+      }
+    } else if (free) {
+      // on the ground: walk at once, though just after a landing the speed eases back down instead of stopping dead
+      const ease = tNow - j.landed < LAND_SLIDE_MS ? Math.min(1, dt * 8) : 1;
+      j.vx += (wx * speed * tilt - j.vx) * ease;
+      j.vz += (wz * speed * tilt - j.vz) * ease;
+    } else {
+      j.vx = 0;
+      j.vz = 0;
+    }
+    if (free && (j.vx || j.vz) && dt > 0) {
+      let p = collide(camera.position.x + j.vx * dt, camera.position.z + j.vz * dt, colliders);
       const shut = shutDoorways(); // a side door still sliding open
       if (shut.length) p = collide(p.x, p.z, shut);
-      if (dt > 0) {
-        walk.x = (p.x - camera.position.x) / dt;
-        walk.z = (p.z - camera.position.z) / dt;
-      }
+      walk.x = (p.x - camera.position.x) / dt;
+      walk.z = (p.z - camera.position.z) / dt;
+      j.vx = walk.x; // a wall takes the speed you ran into it with
+      j.vz = walk.z;
       camera.position.x = p.x;
       camera.position.z = p.z;
-      moving = true;
+      moving = !airborne && tilt > 0;
     }
     bob.current += moving ? dt * speed * tilt * 2.2 : 0;
     // Head bob and the head tipping back for a sip can be turned off (Settings → Accessibility, motion comfort).
@@ -524,7 +616,7 @@ export function Player({ colliders, floor }: { colliders: Rect[]; floor: number 
       camera.position.set(p.x, p.y, p.z);
       p.yaw = yaw;
       p.pitch = pitch;
-    } else camera.position.y = EYE_HEIGHT + (moving && comfort.headBob ? Math.sin(bob.current) * 0.035 : 0);
+    } else camera.position.y = EYE_HEIGHT + j.y + (moving && comfort.headBob ? Math.sin(bob.current) * 0.035 : 0);
     footstepsFollow(bob.current, moving, speed > 5, surfaceAt(floor === ROOF ? 'roof' : floor === 0 ? 'lobby' : 'office', camera.position.x, camera.position.z));
     camera.rotation.set(pitch + (p?.tilt ?? 0) + (comfort.cameraShake ? sipPose.head : 0), yaw, 0, 'YXZ');
     playerAt.x = camera.position.x;

@@ -1,6 +1,7 @@
 // What the overview and the building view say about people and floors: the status chip over each desk and each floor's
 // live summary. Pure, so the tests can check it; OverviewChips.tsx and BuildingView.tsx draw it.
 
+import { t } from '../../../../shared/i18n';
 import type { HireRequestView, QaView, RepoView } from '../../../../shared/types';
 import { floorPrCounts, type Agent } from '../../store';
 
@@ -68,8 +69,8 @@ export function lobbySummary(ceo: Agent | undefined, requests: HireRequestView[]
 
 /** One line for a floor's slice in the building view. */
 export function summaryLine(s: FloorSummary) {
-  const parts = [`${s.busy}/${s.team} busy`, `${s.inQa} in QA`, `${s.ready} ready`];
-  if (s.needsYou) parts.push(`${s.needsYou} need${s.needsYou === 1 ? 's' : ''} you`);
-  if (s.errors) parts.push(`${s.errors} stuck`);
+  const parts = [t('world.building.busy', { busy: s.busy, team: s.team }), t('world.building.inQa', { n: s.inQa }), t('world.building.ready', { n: s.ready })];
+  if (s.needsYou) parts.push(t('world.building.needsYou', { count: s.needsYou }));
+  if (s.errors) parts.push(t('world.building.stuck', { n: s.errors }));
   return parts.join(' · ');
 }

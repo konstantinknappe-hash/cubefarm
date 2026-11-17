@@ -674,6 +674,7 @@ export function Character({
 
           <group ref={head} position={[0, 0.66, 0]}>
             <HeadParts agent={agent} look={look} busy={busy} face={faceMesh} />
+
             <ThemeCostume agent={agent} look={look} part="head" />
             {chair && <FaceGlow id={agent.id} geometry={PARTS.head} />}
           </group>

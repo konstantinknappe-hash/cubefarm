@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
+import { t } from '../../i18n';
 import { useStore, type Agent } from '../../store';
 import { CEO_ID } from '../../../../shared/types';
 import { holdMusicDuck } from '../../ui/music';
@@ -71,7 +72,7 @@ function Banner({ at }: { at: Spot[] }) {
     2048,
     420,
     (ctx) => {
-      const letters = 'HAPPY BIRTHDAY'.split('');
+      const letters = t('world.birthday.banner').split('');
       const w = 2048 / letters.length;
       ctx.strokeStyle = '#495057';
       ctx.lineWidth = 6;
@@ -146,7 +147,7 @@ function Cake({ at }: { at: Spot[] }) {
   return (
     <>
       {at.map((s) => (
-        <Hotspot key={s.id} id="cake" label={blown ? 'Light the candles again 🕯️' : 'Blow out the candles 🎂'} range={2.4} position={[s.x, s.y, s.z]} rotationY={s.rotY}>
+        <Hotspot key={s.id} id="cake" label={blown ? t('world.birthday.light') : t('world.birthday.blow')} range={2.4} position={[s.x, s.y, s.z]} rotationY={s.rotY}>
           <mesh geometry={cake} material={paintedToon()} castShadow />
           {!blown && <mesh geometry={flames} material={paintedGlow()} />}
         </Hotspot>
@@ -267,7 +268,7 @@ export default function Birthday({ kind, office: { Character } }: ThemeProps) {
       burstAt(0, 2.2, HALF_D - 5, DEF.confetti!.colors);
       pop();
       later(pop, 0.25);
-      useStore.getState().pushToast('success', `🎂 Happy birthday${name ? `, ${name}` : ''}, from the whole team!`);
+      useStore.getState().pushToast('success', name ? t('world.birthday.fromTeamName', { name }) : t('world.birthday.fromTeam'));
     }, start + SONG_S + 0.4);
     later(() => {
       setStage('leaving');
@@ -313,19 +314,19 @@ export default function Birthday({ kind, office: { Character } }: ThemeProps) {
       const at = { x: cakeAt.x, y: cakeAt.y + 0.3, z: cakeAt.z };
       if (wasBlown) {
         tone({ name: 'birthday:light', group: 'toys', pos: at, freq: 1200, to: 1600, type: 'triangle', dur: 0.15, peak: 0.05 });
-        useStore.getState().pushToast('info', '🕯️ The candles are lit again.');
+        useStore.getState().pushToast('info', t('world.birthday.litAgain'));
         return;
       }
       blow(at);
       burstAt(at.x, at.y + 0.2, at.z, DEF.confetti!.colors);
-      useStore.getState().pushToast('success', `🎂 Make a wish${name ? `, ${name}` : ''}!`);
+      useStore.getState().pushToast('success', name ? t('world.birthday.wishName', { name }) : t('world.birthday.wish'));
     },
     [cakeAt, day, name],
   );
   useThemeActions(act);
 
   useEffect(() => {
-    useThemeRuntime.setState({ status: `🎂 Happy birthday${name ? `, ${name}` : ''}!` });
+    useThemeRuntime.setState({ status: name ? t('world.birthday.statusName', { name }) : t('world.birthday.status') });
     return () => useThemeRuntime.setState({ status: null });
   }, [name]);
   useEffect(

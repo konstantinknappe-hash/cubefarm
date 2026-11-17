@@ -13,6 +13,7 @@ import { CardLift } from './CardLift';
 import { BOARD_TEX, dependencyPairs } from './whiteboard';
 import { useA11y } from '../ui/a11y';
 import { showsShapes } from '../ui/a11yPrefs';
+import { t } from '../i18n';
 import { officeNow } from '../officeTime';
 
 export function KanbanBoard({ repo, agents }: { repo: RepoView; agents: Agent[] }) {
@@ -57,7 +58,7 @@ export function KanbanBoard({ repo, agents }: { repo: RepoView; agents: Agent[] 
     },
     [signature],
   );
-  const ref = useInteractable<THREE.Group>({ id: `board-${repo.id}`, label: 'Open the Kanban board', action: { kind: 'kanban', repoId: repo.id } }, 7, hands.pick);
+  const ref = useInteractable<THREE.Group>({ id: `board-${repo.id}`, label: t('world.board.open'), action: { kind: 'kanban', repoId: repo.id } }, 7, hands.pick);
   const cy = BOARD.y + BOARD.h / 2;
   return (
     <>

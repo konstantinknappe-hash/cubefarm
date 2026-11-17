@@ -2,6 +2,8 @@
 // that keeps them rare (per-sound cooldowns and a cap on how many in a few seconds), the arrow that says where a sound
 // came from, and how much of a spoken message to show as it's read. Pure, so the rules are tested without audio.
 
+import { t } from '../../../shared/i18n';
+
 /** 1 ambient (the jukebox, thunder), 2 events (a merge, a chime), 3 alarms: always shown, and read out by screen readers. */
 export type CaptionPriority = 1 | 2 | 3;
 
@@ -24,36 +26,36 @@ interface Rule {
 const is = (n: string) => (name: string) => name === n;
 const starts = (p: string) => (name: string) => name.startsWith(p);
 const has = (w: string) => (name: string) => name.includes(w);
-const withDetail = (what: string) => (d?: string) => (d ? `[${what}: ${d}]` : `[${what}]`);
+const withDetail = (what: string) => (d?: string) => (d ? `[${t(what)}: ${d}]` : `[${t(what)}]`);
 
 // Sound names as sfx.ts records them (window.__swarmSfx). Footsteps, typing, toys and room tone get none: they're
 // constant, and the 3D view already shows them.
 const RULES: Rule[] = [
-  { match: is('gong'), text: '[gong]', priority: 2, cooldownMs: 3000 },
-  { match: starts('cheer:'), key: () => 'cheer', text: '[merge cheer]', priority: 2, cooldownMs: 4000 },
-  { match: is('cue:merged'), text: '[merge chime]', priority: 2, cooldownMs: 3000 },
-  { match: is('cue:ready'), text: '[chime: PR ready to merge]', priority: 2, cooldownMs: 3000 },
-  { match: is('cue:qaFailed'), text: '[womp: QA failed a PR]', priority: 3, cooldownMs: 5000 },
-  { match: is('cue:error'), text: '[buzz: an agent hit an error]', priority: 3, cooldownMs: 5000 },
-  { match: is('cue:welcome'), text: '[welcome jingle]', priority: 2, cooldownMs: 3000 },
-  { match: is('chirp'), text: '[phone buzzes]', priority: 2, cooldownMs: 3000 },
-  { match: is('ding'), text: '[elevator ding]', priority: 1, cooldownMs: 4000 },
-  { match: is('visitor:ping'), text: '[ping: a visitor points something out]', priority: 2, cooldownMs: 2000 },
-  { match: has('alarm'), key: () => 'alarm', text: withDetail('alarm'), priority: 3, cooldownMs: 20_000 },
-  { match: has('thunder'), key: () => 'thunder', text: '[thunder]', priority: 1, cooldownMs: 8000 },
-  { match: is('event:roar'), text: '[kaiju roars]', priority: 1, cooldownMs: 8000 },
-  { match: is('event:crash'), text: '[crash outside]', priority: 1, cooldownMs: 8000 },
-  { match: is('event:boom'), text: '[boom outside]', priority: 1, cooldownMs: 8000 },
-  { match: is('event:launch'), text: '[launch outside]', priority: 1, cooldownMs: 8000 },
+  { match: is('gong'), text: 'ui.cap.gong', priority: 2, cooldownMs: 3000 },
+  { match: starts('cheer:'), key: () => 'cheer', text: 'ui.cap.cheer', priority: 2, cooldownMs: 4000 },
+  { match: is('cue:merged'), text: 'ui.cap.merged', priority: 2, cooldownMs: 3000 },
+  { match: is('cue:ready'), text: 'ui.cap.ready', priority: 2, cooldownMs: 3000 },
+  { match: is('cue:qaFailed'), text: 'ui.cap.qaFailed', priority: 3, cooldownMs: 5000 },
+  { match: is('cue:error'), text: 'ui.cap.error', priority: 3, cooldownMs: 5000 },
+  { match: is('cue:welcome'), text: 'ui.cap.welcome', priority: 2, cooldownMs: 3000 },
+  { match: is('chirp'), text: 'ui.cap.phone', priority: 2, cooldownMs: 3000 },
+  { match: is('ding'), text: 'ui.cap.elevator', priority: 1, cooldownMs: 4000 },
+  { match: is('visitor:ping'), text: 'ui.cap.ping', priority: 2, cooldownMs: 2000 },
+  { match: has('alarm'), key: () => 'alarm', text: withDetail('ui.cap.alarm'), priority: 3, cooldownMs: 20_000 },
+  { match: has('thunder'), key: () => 'thunder', text: 'ui.cap.thunder', priority: 1, cooldownMs: 8000 },
+  { match: is('event:roar'), text: 'ui.cap.roar', priority: 1, cooldownMs: 8000 },
+  { match: is('event:crash'), text: 'ui.cap.crash', priority: 1, cooldownMs: 8000 },
+  { match: is('event:boom'), text: 'ui.cap.boom', priority: 1, cooldownMs: 8000 },
+  { match: is('event:launch'), text: 'ui.cap.launch', priority: 1, cooldownMs: 8000 },
   // one per song: a new song is captioned at once, the same one again only after a while
-  { match: starts('jukebox:'), key: (n) => n, text: withDetail('jukebox'), priority: 1, cooldownMs: 90_000 },
+  { match: starts('jukebox:'), key: (n) => n, text: withDetail('ui.cap.jukebox'), priority: 1, cooldownMs: 90_000 },
 ];
 
 /** The caption for a sound, or null when it doesn't get one. `detail` fills in what the name can't say (a song title). */
 export function captionFor(name: string, detail?: string): CaptionInfo | null {
   const r = RULES.find((x) => x.match(name));
   if (!r) return null;
-  return { key: r.key ? r.key(name) : name, text: typeof r.text === 'string' ? r.text : r.text(detail), priority: r.priority, cooldownMs: r.cooldownMs };
+  return { key: r.key ? r.key(name) : name, text: typeof r.text === 'string' ? t(r.text) : r.text(detail), priority: r.priority, cooldownMs: r.cooldownMs };
 }
 
 /** How long a caption stays up (ms). */

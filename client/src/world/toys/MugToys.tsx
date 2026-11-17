@@ -1,3 +1,4 @@
+import { t } from '../../i18n';
 import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import {
@@ -96,7 +97,7 @@ interface Loose {
 }
 
 function LooseMug({ mug, groups, bodies, onLost }: { mug: Loose; groups: number; bodies: Map<string, RapierRigidBody>; onLost: (id: string) => void }) {
-  const ref = useInteractable<THREE.Group>({ id: `toy:${mug.id}`, label: 'Pick up mug', action: { kind: 'pickup', toyId: mug.id } }, TAKE_RANGE);
+  const ref = useInteractable<THREE.Group>({ id: `toy:${mug.id}`, label: t('world.toy.pickMug'), action: { kind: 'pickup', toyId: mug.id } }, TAKE_RANGE);
   const body = useRef<RapierRigidBody>(null);
   const cup = useRef<RapierCollider>(null);
   const handle = useRef<RapierCollider>(null);

@@ -5,6 +5,7 @@ import { startSession, type SessionCallbacks, type SessionHandle, type SessionOp
 import { hooksReady, officeProcesses, reconnectClis, releaseClis, startCliSession, terminalsAvailable, type ReconnectedCli } from './cliRunner.ts';
 import { localMachines, type MachineProvider } from './machines.ts';
 import { detectClis } from './clis.ts';
+import { listModels } from './modelCatalog.ts';
 import { installDesk, type DepsCallbacks, type DepsOutcome } from './deps.ts';
 import { realPreviews, type PreviewBackend } from './previewRunner.ts';
 import { realOffice, type OfficeHost } from './officeUpdate.ts';
@@ -15,7 +16,7 @@ import { openMeteo, type WeatherApi } from './weather.ts';
 import type { AgentTerminal } from './terminal.ts';
 import type { OpsHistory } from './metrics.ts';
 import type { UsageWarning } from './pacing.ts';
-import type { CliView, GhRepoSummary, IssueInfo, PullInfo } from '../shared/types.ts';
+import type { AgentCli, CliView, GhRepoSummary, IssueInfo, PullInfo, ModelCatalog } from '../shared/types.ts';
 
 /** Everything the swarm needs from the outside world. The demo backend fakes all of it. */
 export interface Backend {
@@ -33,6 +34,8 @@ export interface Backend {
   closeIssue(fullName: string, number: number, comment: string, reason?: 'completed' | 'not planned'): Promise<void>;
   mergePull(fullName: string, number: number, method: 'squash' | 'merge' | 'rebase', headSha?: string): Promise<void>;
   updateBranch(fullName: string, number: number): Promise<void>;
+  /** A draft PR QA passed becomes ready for review (gh pr ready). */
+  markReady(fullName: string, number: number): Promise<void>;
   /** The failed steps' log of a GitHub Actions run, for a checks fix. */
   failedRunLog(fullName: string, runId: string): Promise<string>;
   /** Re-run the failed jobs of these GitHub Actions runs. */
@@ -84,6 +87,8 @@ export interface Backend {
   releaseClis(restart: boolean): Promise<void>;
   /** The coding-agent CLIs installed on this machine. */
   detectClis(): Promise<CliView[]>;
+  /** The models a coding agent offers here (server/modelCatalog.ts); never throws. */
+  listModels(cli: AgentCli): Promise<ModelCatalog>;
   /** Run a floor's app for the preview monitor (its own worktree, its own port). */
   previews: PreviewBackend;
   /** The running office's own folder and its launcher, for the office's self-update. */
@@ -129,6 +134,7 @@ export const realBackend: Backend = {
   closeIssue: github.closeIssue,
   mergePull: github.mergePull,
   updateBranch: github.updateBranch,
+  markReady: github.markReady,
   failedRunLog: github.failedRunLog,
   rerunFailedJobs: github.rerunFailedJobs,
   closePull: github.closePull,
@@ -160,6 +166,7 @@ export const realBackend: Backend = {
   hooksReady,
   releaseClis,
   detectClis,
+  listModels,
   previews: realPreviews,
   office: realOffice,
   voice: elevenLabs,

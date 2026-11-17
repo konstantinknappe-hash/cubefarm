@@ -7,6 +7,7 @@ import { APP_SCREEN, HALF_D } from '../layout';
 import { toon } from '../materials';
 import { triggerEvent } from '../events/eventsState';
 import { say } from '../people';
+import { t as tr } from '../../i18n';
 import { agentsOnRepo, useStore } from '../../store';
 import { CEO_ID } from '../../../../shared/types';
 import { addProbe, themeNow, useThemeRuntime } from './active';
@@ -100,7 +101,7 @@ function drawCountdown(ctx: CanvasRenderingContext2D, w: number, h: number, s: N
   if (s.phase === 'show' || s.phase === 'newyear') {
     ctx.fillStyle = '#ffd23f';
     ctx.font = `700 ${Math.round(h * (big ? 0.24 : 0.15))}px ${SANS}`;
-    ctx.fillText('🎆 HAPPY NEW YEAR', w / 2, h * 0.36);
+    ctx.fillText(tr('world.newyear.banner'), w / 2, h * 0.36);
     ctx.fillStyle = '#ffffff';
     ctx.font = `700 ${Math.round(h * 0.3)}px ${SANS}`;
     ctx.fillText(String(s.year), w / 2, h * 0.72);
@@ -108,7 +109,7 @@ function drawCountdown(ctx: CanvasRenderingContext2D, w: number, h: number, s: N
   }
   ctx.fillStyle = '#ffffff';
   ctx.font = `600 ${Math.round(h * 0.2)}px ${SANS}`;
-  ctx.fillText(`🥂 Countdown to ${s.year}`, w / 2, h * 0.3);
+  ctx.fillText(tr('world.newyear.countdown', { year: s.year }), w / 2, h * 0.3);
   ctx.fillStyle = '#ffd23f';
   ctx.font = `700 ${Math.round(h * 0.36)}px ${SANS}`;
   ctx.fillText(timeToGo(s.seconds), w / 2, h * 0.68);
@@ -208,7 +209,7 @@ export default function NewYear({ kind, repoId }: ThemeProps) {
   }, [celebrate]);
 
   useEffect(() => {
-    useThemeRuntime.setState({ status: s.phase === 'waiting' ? `🥂 ${s.year} in ${timeToGo(s.seconds)}` : s.phase === 'countdown' ? `🥂 ${countdownNumber(s)}…` : `🎆 Happy New Year ${s.year}!` });
+    useThemeRuntime.setState({ status: s.phase === 'waiting' ? tr('world.newyear.in', { year: s.year, time: timeToGo(s.seconds) }) : s.phase === 'countdown' ? `🥂 ${countdownNumber(s)}…` : tr('world.newyear.happy', { year: s.year }) });
   }, [s]);
   useEffect(() => () => useThemeRuntime.setState({ status: null }), []);
 

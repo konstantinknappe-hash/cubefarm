@@ -2,6 +2,7 @@
 // the QA queue, and whether anything needs the manager. KanbanBoard.tsx works it out on the minute (so it repaints the
 // board at most once a minute) and drawKanban paints it.
 
+import { t } from '../../../shared/i18n';
 import type { PullInfo, QaView } from '../../../shared/types';
 import { elapsedLabel, needsManager } from '../qaCard';
 
@@ -68,10 +69,10 @@ export function boardStats(
 /** The stats corner's chips, left to right. "needs you" only shows when something does, and is red. */
 export function statsChips(s: BoardStats): { text: string; alarm?: boolean }[] {
   const out: { text: string; alarm?: boolean }[] = [
-    { text: `🎉 ${s.mergedToday}${s.more ? '+' : ''} merged today` },
-    { text: `⏱ ${s.avgMs === null ? '–' : elapsedLabel(s.avgMs)} issue → merge` },
-    { text: `🔍 ${s.queue} in the QA queue` },
+    { text: t('world.stats.merged', { n: `${s.mergedToday}${s.more ? '+' : ''}` }) },
+    { text: t('world.stats.lead', { time: s.avgMs === null ? '–' : elapsedLabel(s.avgMs) }) },
+    { text: t('world.stats.queue', { n: s.queue }) },
   ];
-  if (s.needsYou > 0) out.push({ text: `⚠️ ${s.needsYou} need${s.needsYou === 1 ? 's' : ''} you`, alarm: true });
+  if (s.needsYou > 0) out.push({ text: t('world.stats.needsYou', { count: s.needsYou }), alarm: true });
   return out;
 }

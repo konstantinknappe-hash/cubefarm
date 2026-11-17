@@ -10,7 +10,7 @@ import { DAY_PARTS } from '../shared/speech.ts';
 import { DEMO, DEMO_SCALE, PORT, STATE_FILE, VERSION, WORKSPACE_ROOT } from './config.ts';
 import { MACHINES_DIR } from './workspace.ts';
 import { realBackend } from './backend.ts';
-import { handleHook, handleMcp, setOfficeUrl } from './cliRunner.ts';
+import { handleHook, handleMcp, officeMcpBearerToken, setOfficeUrl } from './cliRunner.ts';
 import { createDemoBackend } from './demo.ts';
 import { parseRange } from './journal.ts';
 import { underLauncher } from './officeUpdate.ts';
@@ -28,9 +28,13 @@ if (PORT) setOfficeUrl(`http://127.0.0.1:${PORT}`);
 await swarm.init();
 
 const app = express();
-// Agent CLIs calling back: hooks (a tool result can be a large screenshot, hence the limit) and the CEO's office tools.
-// The token in the path is the session's; unknown tokens get an empty answer.
+// Agent CLIs calling back: hooks and the CEO's office tools. Claude uses a path token; Codex sends a bearer token.
+// Unknown session tokens get an empty answer.
 app.post('/api/hooks/:token', express.json({ limit: '64mb' }), (req, res) => void res.json(handleHook(String(req.params.token), req.body)));
+app.post('/api/mcp', express.json({ limit: '4mb' }), (req, res, next) =>
+  void handleMcp(officeMcpBearerToken(req.header('authorization')) ?? '', req, res).catch(next),
+);
+app.all('/api/mcp', (_req, res) => void res.status(405).set('Allow', 'POST').end());
 app.post('/api/mcp/:token', express.json({ limit: '4mb' }), (req, res, next) => void handleMcp(String(req.params.token), req, res).catch(next));
 app.all('/api/mcp/:token', (_req, res) => void res.status(405).set('Allow', 'POST').end());
 app.use(express.json({ limit: '1mb' }));
@@ -186,6 +190,9 @@ app.get('/api/agents/:id/screen', (req, res) => {
 });
 
 app.patch('/api/settings', route((req) => swarm.updateSettings(req.body ?? {})));
+// The coding agents' model lists, asked again; a model their provider refused, tried again as it is.
+app.post('/api/models/refresh', route(() => swarm.refreshModels()));
+app.post('/api/models/retry', route((req) => swarm.retryModel(String(req.body?.cli ?? ''), String(req.body?.model ?? ''))));
 
 // Phone messages read aloud (docs/voice.md). The key goes in and never comes back out.
 const parse = <T>(schema: z.ZodType<T>, value: unknown): T => {

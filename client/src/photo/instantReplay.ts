@@ -1,6 +1,7 @@
 // Instant replay: while it's on, the 3D view and the office's sound are recorded all the time (MediaRecorder encodes
 // off the main thread) into a ring that keeps only about the last 15 seconds (webmRing.ts). I saves them as a WebM
 // download and into photo mode's gallery. Off by default: it costs memory and some encoding.
+import { t } from '../../../shared/i18n';
 import { useStore } from '../store';
 import { soundStream } from '../ui/sfx';
 import { addToGallery, here } from './gallery';
@@ -36,7 +37,7 @@ export function startReplay() {
   const canvas = officeCanvas();
   const type = replayType();
   if (!canvas || typeof canvas.captureStream !== 'function' || !type) {
-    error = "This browser can't record the office (it needs MediaRecorder with WebM).";
+    error = t('ui.replay.cantRecord');
     return;
   }
   try {
@@ -57,14 +58,14 @@ export function startReplay() {
         });
     };
     recorder.onerror = () => {
-      error = 'Instant replay stopped: the browser could not keep recording.';
+      error = t('ui.replay.stopped');
       stopReplay();
     };
     recorder.start(1000);
     run = r;
     error = null;
   } catch (err) {
-    error = `Instant replay could not start: ${err instanceof Error ? err.message : String(err)}`;
+    error = t('ui.replay.cantStart', { why: err instanceof Error ? err.message : String(err) });
   }
 }
 
@@ -87,7 +88,7 @@ export async function saveReplay(): Promise<{ name: string; bytes: number; secon
   const r = run;
   const toast = useStore.getState().pushToast;
   if (!r) {
-    toast('error', error ?? 'Instant replay is not running.');
+    toast('error', error ?? t('ui.replay.notRunning'));
     return null;
   }
   // flush what the encoder holds, so the replay ends now
@@ -98,7 +99,7 @@ export async function saveReplay(): Promise<{ name: string; bytes: number; secon
   });
   const parts = replayParts(r.ring, REPLAY_MS);
   if (!parts) {
-    toast('info', r.ring.failed ? `Instant replay can't read this browser's recording (${r.ring.failed}).` : 'Nothing to replay yet: give it a second.');
+    toast('info', r.ring.failed ? t('ui.replay.cantRead', { why: r.ring.failed }) : t('ui.replay.nothingYet'));
     return null;
   }
   const blob = new Blob(parts as BlobPart[], { type: 'video/webm' });
@@ -107,6 +108,6 @@ export async function saveReplay(): Promise<{ name: string; bytes: number; secon
   const canvas = officeCanvas();
   const item = addToGallery(blob, { kind: 'replay', name, width: canvas?.width ?? 0, height: canvas?.height ?? 0, seconds });
   download(item.url, name);
-  toast('success', `🎬 Saved the last ${Math.round(seconds)} s as ${name}`);
+  toast('success', t('ui.replay.saved', { s: Math.round(seconds), name }));
   return { name, bytes: blob.size, seconds };
 }

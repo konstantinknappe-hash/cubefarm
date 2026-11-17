@@ -1,4 +1,5 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
+import { t } from '../../../shared/i18n';
 import { PONG_PLAYER } from '../../../shared/pong';
 import { useStore } from '../store';
 import { Key } from './Key';
@@ -9,12 +10,12 @@ import type { PointWhy } from '../world/toys/pongRules';
 
 /** What the one who lost the point did, as a phrase after their name. */
 const LOST: Record<PointWhy, string> = {
-  'serve-fault': 'served a fault',
-  net: 'hit the net',
-  'own-side': "didn't clear the net",
-  out: 'hit it out',
-  missed: 'missed it',
-  'double-bounce': 'let it bounce twice',
+  'serve-fault': 'ui.pong.serveFault',
+  net: 'ui.pong.net',
+  'own-side': 'ui.pong.ownSide',
+  out: 'ui.pong.out',
+  missed: 'ui.pong.missed',
+  'double-bounce': 'ui.pong.doubleBounce',
 };
 
 /** The line under the score: who serves, who won the point and how, or how the game ended. */
@@ -22,25 +23,25 @@ export function pongStatus(v: PongView, name: (end: 'west' | 'east') => string, 
   const you = v.you;
   const other = you === 'west' ? 'east' : 'west';
   if (v.phase === 'waiting') {
-    if (you && v[other]) return `${name(other)} is on the way…`;
-    return waited > 20 ? "Nobody's free to play right now" : 'Waiting for someone free to come and play…';
+    if (you && v[other]) return t('ui.pong.onTheWay', { name: name(other) });
+    return waited > 20 ? t('ui.pong.nobodyFree') : t('ui.pong.waiting');
   }
   if (v.phase === 'over' && v.last) {
     const w = v.last.winner;
     const score = `${v.score[w]}–${v.score[w === 'west' ? 'east' : 'west']}`;
-    return `${w === you ? 'You win' : `${name(w)} wins`} ${score}!${you ? ' · Click for a rematch' : ''}`;
+    return `${w === you ? t('ui.pong.youWin', { score }) : t('ui.pong.wins', { name: name(w), score })}${you ? t('ui.pong.rematch') : ''}`;
   }
   if (v.phase === 'point') {
-    if (!v.last) return 'Let: serve again';
+    if (!v.last) return t('ui.pong.let');
     if (v.last.why === 'game') return '';
     const loser = v.last.winner === 'west' ? 'east' : 'west';
-    return `${loser === you ? 'You' : name(loser)} ${LOST[v.last.why]}${v.gamePoint ? ' · Game point' : ''}`;
+    return `${t(LOST[v.last.why], { who: loser === you ? t('ui.pong.you') : name(loser) })}${v.gamePoint ? t('ui.pong.gamePointAfter') : ''}`;
   }
   if (v.phase === 'serve') {
-    const lead = v.gamePoint ? 'Game point · ' : '';
-    return v.server === you ? `${lead}Your serve: click to toss and hit` : `${lead}${name(v.server)} to serve`;
+    const lead = v.gamePoint ? t('ui.pong.gamePointBefore') : '';
+    return v.server === you ? `${lead}${t('ui.pong.yourServe')}` : `${lead}${t('ui.pong.toServe', { name: name(v.server) })}`;
   }
-  return v.rally >= 3 ? `Rally ${v.rally}` : '';
+  return v.rally >= 3 ? t('ui.pong.rally', { n: v.rally }) : '';
 }
 
 export function PongHud() {
@@ -57,7 +58,7 @@ export function PongHud() {
   if (!v) return null;
   const name = (end: 'west' | 'east') => {
     const id = v[end];
-    return !id ? '…' : id === PONG_PLAYER ? 'You' : (agents[id]?.name ?? '?');
+    return !id ? '…' : id === PONG_PLAYER ? t('ui.pong.you') : (agents[id]?.name ?? '?');
   };
   const left = v.you ?? 'west';
   const right = left === 'west' ? 'east' : 'west';
@@ -75,7 +76,7 @@ export function PongHud() {
         {status && <div className="hud-pong-status">{status}</div>}
       </div>
       <div className="hud-hint hud-pong-keys">
-        <kbd>Mouse</kbd> paddle (up: towards the net) · swing through for pace and spin · <kbd>Click</kbd> / <Key action="throw" /> serve · <Key action="drop" /> / <kbd>Esc</kbd> leave
+        <kbd>{t('ui.pong.mouse')}</kbd> {t('ui.pong.kPaddle')} · {t('ui.pong.kSwing')} · <kbd>{t('ui.held.click')}</kbd> / <Key action="throw" /> {t('ui.pong.kServe')} · <Key action="drop" /> / <kbd>Esc</kbd> {t('ui.pong.kLeave')}
       </div>
     </>
   );

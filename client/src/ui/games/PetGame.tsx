@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { GameCanvas, GameHeader, isStartKey, useGameKeys } from './kit';
 import { FLOOR, INK, burst, drawParticles, eyes, outlinedText, shade, text, toonBlock, type Particle } from './paint';
-import { MOOD_LINES, STAGES, act, advance, hatch, mood, stage, type Mood, type PetAction, type PetState } from './pet';
+import { t as tr } from '../../i18n';
+import { moodLine, STAGES, act, advance, hatch, mood, stage, type Mood, type PetAction, type PetState } from './pet';
 import { getPet, setPet, subscribePet } from './petStore';
 import { blip } from './sounds';
 
@@ -21,11 +22,11 @@ type Anim = { kind: PetAction | 'cheer' | 'hatch' | 'jitter' | 'wake'; t: number
 // When the pet screen was last closed, so it can recap what happened while you were away.
 let lastShown = Date.now();
 
-const ACTIONS: { action: PetAction; icon: string; label: string; key: string }[] = [
-  { action: 'snack', icon: '🍩', label: 'Snack', key: '1' },
-  { action: 'coffee', icon: '☕', label: 'Coffee', key: '2' },
-  { action: 'play', icon: '🎾', label: 'Play', key: '3' },
-  { action: 'nap', icon: '💤', label: 'Nap', key: '4' },
+const ACTIONS: { action: PetAction; icon: string; key: string }[] = [
+  { action: 'snack', icon: '🍩', key: '1' },
+  { action: 'coffee', icon: '☕', key: '2' },
+  { action: 'play', icon: '🎾', key: '3' },
+  { action: 'nap', icon: '💤', key: '4' },
 ];
 
 export interface Figure {
@@ -319,8 +320,8 @@ function drawCubicle(ctx: CanvasRenderingContext2D, now: number, star: boolean) 
 
   // employee of the month
   toonBlock(ctx, 232, 54, 66, 60, '#ffffff', 5, 2);
-  text(ctx, 'EMPLOYEE', 265, 64, 7.5, INK, 700);
-  text(ctx, 'OF THE MONTH', 265, 73, 7, INK, 700);
+  text(ctx, tr('ui.pet.employee1'), 265, 64, 7.5, INK, 700);
+  text(ctx, tr('ui.pet.employee2'), 265, 73, 7, INK, 700);
   drawStar(ctx, 265, 93, 13, star ? '#ffc93c' : '#e3e7ee');
 
   // the office clock, telling the real time
@@ -473,7 +474,7 @@ export function Pet({ onBack }: { onBack: () => void }) {
     setNow(t);
     const did = next.xp > before.xp;
     const size = SIZES[stage(next.xp)];
-    if (next.say?.text.startsWith('Promoted')) {
+    if (stage(next.xp) > stage(before.xp)) {
       blip.levelUp();
       burst(particles.current, W / 2, DESK_Y - size, FLOOR, 22, 160);
       anim.current = { kind: 'cheer', t: 0 };
@@ -670,22 +671,22 @@ export function Pet({ onBack }: { onBack: () => void }) {
   const view: PetState | null = pet ? advance(pet, now) : null;
   const m = view ? mood(view) : null;
   const fresh = view?.say && now - view.say.at < 20_000 ? view.say.text : null;
-  const bubble = !view ? 'A delivery just arrived at your desk…' : fresh ?? (recap && now - openedAt < 10_000 ? `While you were away: ${recap.text}` : MOOD_LINES[m!]);
+  const bubble = !view ? tr('ui.pet.delivery') : fresh ?? (recap && now - openedAt < 10_000 ? tr('ui.pet.whileAway', { text: recap.text }) : moodLine(m!));
   const title = view ? STAGES[stage(view.xp)].title : '';
   const day = view ? Math.floor((now - view.born) / 86_400_000) + 1 : 0;
   const bars: [string, string, number, string][] = view
     ? [
-        ['🍩', 'Food', view.food, '#ffc93c'],
-        ['🎾', 'Fun', view.fun, '#ff6fb5'],
-        ['⚡', 'Energy', view.energy, '#4fb3e8'],
+        ['🍩', tr('ui.pet.food'), view.food, '#ffc93c'],
+        ['🎾', tr('ui.pet.fun'), view.fun, '#ff6fb5'],
+        ['⚡', tr('ui.pet.energy'), view.energy, '#4fb3e8'],
       ]
     : [];
 
   return (
     <div className="game pet">
-      <GameHeader title="Desk Pet" color={PET_COLOR} onBack={onBack}>
+      <GameHeader title={tr('ui.games.pet')} color={PET_COLOR} onBack={onBack}>
         {view && (
-          <span className="game-chip" title={`${view.xp} care points`}>
+          <span className="game-chip" title={tr('ui.pet.points', { n: view.xp })}>
             {view.name} · {title}
           </span>
         )}
@@ -693,7 +694,7 @@ export function Pet({ onBack }: { onBack: () => void }) {
       <div className="pet-say" aria-live="polite">
         {bubble}
       </div>
-      <GameCanvas width={W} height={H} frame={frame} label={view ? `${view.name}, your desk pet, is ${m}` : 'A delivery box'} onPointer={onPointer} />
+      <GameCanvas width={W} height={H} frame={frame} label={view ? tr('ui.pet.canvas', { name: view.name, mood: tr(`ui.pet.moodWord.${m}`) }) : tr('ui.pet.box')} onPointer={onPointer} />
       {view ? (
         <>
           <div className="pet-bars">
@@ -712,21 +713,21 @@ export function Pet({ onBack }: { onBack: () => void }) {
             {ACTIONS.map((x) => {
               const wake = x.action === 'nap' && view.asleep;
               return (
-                <button key={x.action} type="button" className="btn btn-small pet-act" tabIndex={-1} onPointerDown={(e) => e.preventDefault()} onClick={() => doAction(x.action)} disabled={view.asleep && !wake} title={`${wake ? 'Wake up' : x.label} (${x.key})`}>
+                <button key={x.action} type="button" className="btn btn-small pet-act" tabIndex={-1} onPointerDown={(e) => e.preventDefault()} onClick={() => doAction(x.action)} disabled={view.asleep && !wake} title={`${wake ? tr('ui.pet.wakeUp') : tr(`ui.pet.act.${x.action}`)} (${x.key})`}>
                   <span className="pet-act-icon">{wake ? '☀️' : x.icon}</span>
-                  {wake ? 'Wake' : x.label}
+                  {wake ? tr('ui.pet.wake') : tr(`ui.pet.act.${x.action}`)}
                 </button>
               );
             })}
           </div>
           <div className="game-keys">
-            <kbd>1</kbd>–<kbd>4</kbd> care · click {view.name} (or <kbd>Space</kbd>) for a pat · day {day}
+            <kbd>1</kbd>–<kbd>4</kbd> {tr('ui.pet.keysCare')} · {tr('ui.pet.keysPat', { name: view.name })} (<kbd>Space</kbd>) · {tr('ui.pet.day', { n: day })}
           </div>
         </>
       ) : (
         <div className="pet-actions">
           <button type="button" className="btn btn-good pet-unbox" onClick={unbox}>
-            📦 Unbox your desk pet
+            {tr('ui.pet.unbox')}
           </button>
         </div>
       )}

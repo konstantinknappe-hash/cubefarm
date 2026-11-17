@@ -1,4 +1,5 @@
 import { lazy, Suspense } from 'react';
+import { t } from './i18n';
 import { useMode } from './pocket/mode';
 import { Captions, LiveRegions } from './ui/CaptionStrip';
 import { ConfirmDialog } from './ui/Confirm';
@@ -11,7 +12,7 @@ export function App() {
   const mode = useMode((s) => s.mode);
   return (
     <>
-      <Suspense fallback={<div className="app-loading">Loading the office…</div>}>{mode === 'pocket' ? <Pocket /> : <Office />}</Suspense>
+      <Suspense fallback={<div className="app-loading">{t('ui.loadingOffice')}</div>}>{mode === 'pocket' ? <Pocket /> : <Office />}</Suspense>
       <ConfirmDialog />
       <Captions />
       <LiveRegions />

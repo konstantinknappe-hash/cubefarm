@@ -1,3 +1,4 @@
+import { t } from '../../i18n';
 import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Outlines } from '../Outlines';
@@ -115,7 +116,7 @@ const STACK = [0, 1, 2];
 
 /** The mug dispenser on the kitchenette counter: aim at it and press E for a fresh, empty mug. */
 export function MugDispenser({ position }: { position: [number, number, number] }) {
-  const ref = useInteractable<THREE.Group>({ id: `toy:${DISPENSER_ID}`, label: 'Take a mug', action: { kind: 'pickup', toyId: DISPENSER_ID } }, 2.8);
+  const ref = useInteractable<THREE.Group>({ id: `toy:${DISPENSER_ID}`, label: t('world.toy.takeMug'), action: { kind: 'pickup', toyId: DISPENSER_ID } }, 2.8);
   const { h } = MUG_SIZE;
   return (
     <group ref={ref} position={position}>

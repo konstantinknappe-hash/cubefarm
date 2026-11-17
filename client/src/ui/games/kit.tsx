@@ -1,4 +1,5 @@
 import { useEffect, useRef, type PointerEvent, type ReactNode } from 'react';
+import { t } from '../../i18n';
 import { isConfirmOpen } from '../Confirm';
 import { isKey } from '../controls';
 
@@ -113,8 +114,8 @@ export function useGameKeys(handle: (e: KeyboardEvent) => boolean) {
 export function GameHeader({ title, color, onBack, children }: { title: string; color: string; onBack: () => void; children?: ReactNode }) {
   return (
     <div className="game-head" style={{ ['--game' as string]: color }}>
-      <button type="button" className="game-back" onClick={onBack} title="Back to the games (Backspace)">
-        ‹ Games
+      <button type="button" className="game-back" onClick={onBack} title={t('ui.games.backTitle')}>
+        ‹ {t('ui.games.back')}
       </button>
       <b className="game-title">{title}</b>
       <span className="game-head-right">{children}</span>

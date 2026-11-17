@@ -6,12 +6,13 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { DECOR_SLOTS, stored, type DecorItem, type FloorProgressView } from '../../../../shared/progress';
 import type { RepoView } from '../../../../shared/types';
+import { t } from '../../i18n';
 import { useStore } from '../../store';
 import { roundRect, SANS } from '../draw';
 import { useCanvasTexture, useInteractable } from '../interact';
 import { DECOR_BOX } from '../layout';
 import { glass, shade } from '../materials';
-import { decorName } from './actions';
+import { decorInSentence } from './actions';
 import { decorSize, openSlots, placement } from './decor';
 import * as M from './models';
 import { vertexGlow, vertexToon } from './parts';
@@ -95,9 +96,9 @@ function drawPoster(ctx: CanvasRenderingContext2D, w: number, h: number, item: D
     ctx.fillText('🚀', w / 2, h * 0.38);
     ctx.fillStyle = '#ffffff';
     ctx.font = `700 ${w * 0.17}px ${SANS}`;
-    ctx.fillText('SHIP IT', w / 2, h * 0.7);
+    ctx.fillText(t('world.floor.shipIt'), w / 2, h * 0.7);
     ctx.font = `500 ${w * 0.06}px ${SANS}`;
-    ctx.fillText('merged is better than perfect', w / 2, h * 0.82);
+    ctx.fillText(t('world.poster.merged'), w / 2, h * 0.82);
     return;
   }
   if (item === 'poster-repo') {
@@ -109,13 +110,13 @@ function drawPoster(ctx: CanvasRenderingContext2D, w: number, h: number, item: D
     ctx.fill();
     ctx.fillStyle = '#ffffff';
     ctx.font = `600 ${w * 0.075}px ${SANS}`;
-    ctx.fillText(`FLOOR ${repo.floor}`, w / 2, h * 0.16);
+    ctx.fillText(t('world.app.floor', { n: repo.floor }), w / 2, h * 0.16);
     ctx.font = `700 ${w * 0.13}px ${SANS}`;
     wrap(ctx, shortName(repo), w * 0.86, 2).forEach((l, i, all) => ctx.fillText(l, w / 2, h * 0.42 + (i - (all.length - 1) / 2) * w * 0.15));
     ctx.font = `500 ${w * 0.06}px ${SANS}`;
     ctx.fillText(repo.fullName.split('/')[0] ?? '', w / 2, h * 0.68);
     ctx.font = `500 ${w * 0.05}px ${SANS}`;
-    wrap(ctx, repo.description || 'built by a team of AI agents', w * 0.84, 2).forEach((l, i) => ctx.fillText(l, w / 2, h * 0.8 + i * w * 0.065));
+    wrap(ctx, repo.description || t('world.poster.builtBy'), w * 0.84, 2).forEach((l, i) => ctx.fillText(l, w / 2, h * 0.8 + i * w * 0.065));
     return;
   }
   ctx.fillStyle = '#fff3d6';
@@ -125,12 +126,12 @@ function drawPoster(ctx: CanvasRenderingContext2D, w: number, h: number, item: D
   ctx.strokeRect(w * 0.05, w * 0.05, w * 0.9, h - w * 0.1);
   ctx.fillStyle = '#9c6644';
   ctx.font = `600 ${w * 0.07}px ${SANS}`;
-  ctx.fillText('🏆 FIRST MERGE', w / 2, h * 0.14);
+  ctx.fillText(t('world.poster.firstMerge'), w / 2, h * 0.14);
   ctx.fillStyle = '#2d3142';
   ctx.font = `700 ${w * 0.24}px ${SANS}`;
   ctx.fillText(firstPr ? `#${firstPr.n}` : '#?', w / 2, h * 0.36);
   ctx.font = `600 ${w * 0.065}px ${SANS}`;
-  wrap(ctx, firstPr?.title || 'The first PR this floor merges goes here', w * 0.8, 4).forEach((l, i) => ctx.fillText(l, w / 2, h * 0.56 + i * w * 0.085));
+  wrap(ctx, firstPr?.title || t('world.poster.firstPrHere'), w * 0.8, 4).forEach((l, i) => ctx.fillText(l, w / 2, h * 0.56 + i * w * 0.085));
   ctx.fillStyle = '#9c6644';
   ctx.font = `500 ${w * 0.05}px ${SANS}`;
   ctx.fillText(shortName(repo), w / 2, h * 0.9);
@@ -203,13 +204,13 @@ function Arcade({ accent }: { accent: string }) {
       ctx.fillStyle = '#ffd166';
       ctx.fillText('CUBEFARM', 128, 34);
       ctx.font = `700 16px monospace`;
-      ['▶ CUBETRIS', '  CABLE SNAKE', '  DESK PET'].forEach((t, i) => {
+      [`▶ ${t('ui.games.tetris').toUpperCase()}`, `  ${t('ui.games.snake').toUpperCase()}`, `  ${t('ui.games.pet').toUpperCase()}`].forEach((line, i) => {
         ctx.fillStyle = i === 0 ? '#7CFFB2' : '#c77dff';
-        ctx.fillText(t, 128, 78 + i * 26);
+        ctx.fillText(line, 128, 78 + i * 26);
       });
       ctx.fillStyle = '#ffffff';
       ctx.font = `700 14px monospace`;
-      ctx.fillText('PRESS  E', 128, 170);
+      ctx.fillText(t('world.arcade.press'), 128, 170);
     },
     [],
   );
@@ -328,13 +329,13 @@ const Placed = memo(function Placed({ slot, item, repo, floor, carrying }: { slo
   const p = placement(slot, item);
   const size = decorSize(item, slot);
   const wall = DECOR_SLOTS.find((d) => d.id === slot)?.kind === 'wall';
-  const name = decorName(item).toLowerCase();
+  const name = decorInSentence(item);
   const ref = useInteractable<THREE.Group>(
     carrying
       ? null
       : item === 'arcade'
-        ? { id: `decor:${slot}`, label: "Play the arcade (your phone's games) · move it from the 📦 decor box", action: { kind: 'decoration', op: 'arcade', slot } }
-        : { id: `decor:${slot}`, label: `Pick up the ${name} to move it`, action: { kind: 'decoration', op: 'take', slot } },
+        ? { id: `decor:${slot}`, label: t('world.decorAct.arcade'), action: { kind: 'decoration', op: 'arcade', slot } }
+        : { id: `decor:${slot}`, label: t('world.decorAct.take', { name }), action: { kind: 'decoration', op: 'take', slot } },
     4.5,
   );
   if (!p) return null;
@@ -359,8 +360,8 @@ function Marker({ slot, item, back }: { slot: string; item: DecorItem; back: boo
   const p = placement(slot, item)!;
   const size = decorSize(item, slot);
   const kind = DECOR_SLOTS.find((d) => d.id === slot)?.kind;
-  const name = decorName(item).toLowerCase();
-  const ref = useInteractable<THREE.Mesh>({ id: `slot:${slot}`, label: back ? `Put the ${name} back here` : `Place the ${name} here`, action: { kind: 'decoration', op: 'place', slot } }, 7);
+  const name = decorInSentence(item);
+  const ref = useInteractable<THREE.Mesh>({ id: `slot:${slot}`, label: back ? t('world.decorAct.back', { name }) : t('world.decorAct.place', { name }), action: { kind: 'decoration', op: 'place', slot } }, 7);
   const h = kind === 'wall' ? size.h : kind === 'rug' ? 0.12 : Math.max(0.3, size.h);
   return (
     <group position={[p.x, p.y, p.z]} rotation={[0, p.rotY, 0]}>
@@ -390,7 +391,7 @@ function Markers({ item, placed, from }: { item: DecorItem; placed: Record<strin
 function DecorBox({ repo, floor, carrying }: { repo: RepoView; floor: FloorProgressView | undefined; carrying: DecorItem | null }) {
   const inside = floor ? Object.keys(floor.owned).reduce((n, item) => n + stored(floor, item as DecorItem), 0) : 0;
   const ref = useInteractable<THREE.Group>(
-    { id: `decor-box:${repo.id}`, label: carrying ? `Put the ${decorName(carrying).toLowerCase()} back in the decor box` : `Open the decor box (${inside} inside) · buy more at the lobby kiosk`, action: { kind: 'decoration', op: 'box' } },
+    { id: `decor-box:${repo.id}`, label: carrying ? t('world.decorAct.stow', { name: decorInSentence(carrying) }) : t('world.decorAct.box', { n: inside }), action: { kind: 'decoration', op: 'box' } },
     3.5,
   );
   const tex = useCanvasTexture(

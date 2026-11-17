@@ -1,5 +1,6 @@
 // The installable app (docs/pocket.md): the service worker the office serves at /sw.js (server/pwa.ts), and Web Push
 // for this device. Push needs a secure context: HTTPS, or localhost on the office's own PC.
+import { t } from '../../shared/i18n';
 import { api } from './api';
 
 /** Registers the worker in a built office (the dev server has none). A new office version replaces it on its own. */
@@ -37,7 +38,7 @@ function sameKey(sub: PushSubscription, key: Uint8Array) {
 /** Asks to show notifications, subscribes with the office's key and tells the office. Throws why not. */
 export async function enablePush(): Promise<void> {
   if (Notification.permission !== 'granted' && (await Notification.requestPermission()) !== 'granted') {
-    throw new Error("Notifications are blocked for the office in this browser's site settings.");
+    throw new Error(t('ui.notify.blocked'));
   }
   const reg = await navigator.serviceWorker.ready;
   const key = fromB64u((await api.pushKey()).publicKey);

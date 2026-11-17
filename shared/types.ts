@@ -4,6 +4,7 @@ import type { ProgressView, RewardView } from './progress.ts';
 
 import type { WeatherSettings, WeatherView, WorldEventSettings } from './outside.ts';
 import type { ThemeSettings } from './themes.ts';
+import type { TradingView } from './trading.ts';
 import type { AgentStyle } from './looks.ts';
 
 export type AgentStatus =
@@ -174,7 +175,7 @@ export type AgentTask = 'issue' | 'qa' | 'fix';
  */
 export type AgentRuntime = 'terminal' | 'sdk';
 
-/** The coding-agent CLI an agent runs in its terminal. The CEO is always Claude Code. */
+/** The coding-agent CLI an agent runs in its terminal. */
 export type AgentCli = 'claude' | 'codex' | 'opencode';
 
 /** A coding-agent CLI the office knows how to run, and whether it's installed on this machine. */
@@ -185,6 +186,33 @@ export interface CliView {
   version: string | null;
   /** Hooks report every tool call and enforce the guard rails; the others report only when a turn ends. */
   integrated: boolean;
+  /** The models this CLI offers here (shared/models.ts); null until the office has asked it. */
+  catalog?: ModelCatalog | null;
+  /** Models its provider refused in a session (rejectionKey → what it said); they don't start until picked again. */
+  rejected?: Record<string, string>;
+}
+
+/** One model a coding agent can run, as the CLI or SDK itself lists it. */
+export interface ModelOption {
+  id: string; // what goes to the CLI (`--model`)
+  label: string;
+  description: string;
+  /** Reasoning efforts the model takes; empty: it has no effort setting. */
+  efforts: EffortLevel[];
+  defaultEffort: EffortLevel | null;
+  /** The full model id an alias stands for (Claude Code: 'opus' → 'claude-opus-5-5'). */
+  resolved?: string;
+  /** Usable, but the CLI leaves it out of its own picker. */
+  hidden?: boolean;
+}
+
+/** A coding agent's models. source: asked the CLI/SDK ('cli'), the CLI's offline list ('bundled'), or the office's own list ('list'). */
+export interface ModelCatalog {
+  source: 'cli' | 'bundled' | 'list';
+  models: ModelOption[];
+  /** Why asking the CLI failed (the catalog is then a fallback, or empty). */
+  error: string | null;
+  fetchedAt: number;
 }
 
 /** Messages on an agent's terminal socket (/ws/term?agent=<id>), server to browser. */
@@ -303,6 +331,7 @@ export interface QaShotView {
 }
 
 export interface SwarmSettings {
+  language: 'de' | 'en';
   sessionLimit: number; // most agent sessions running at once; 0 = no limit
   defaultModel: string;
   defaultEffort: EffortLevel;
@@ -580,6 +609,7 @@ export interface WorldSnapshot {
   voiceKeyHint: string; // its last 4 characters, '' when none
   voiceCache: VoiceCacheView;
   weather: WeatherView; // the real local weather's place and latest reading (Settings → Weather)
+  trading?: TradingView; // the MoneyPrint paper account on the trading wallboard (docs/trading-wallboard.md)
   ticker?: TickerItem[]; // the floors' recent ticker lines, oldest first
   notifyChannels: NotifyChannelsView;
   progress: ProgressView; // coins, decorations and achievements (#210)
@@ -623,6 +653,8 @@ export type ServerEvent =
   | { type: 'voiceKey'; voiceKeySet: boolean; voiceKeyHint: string }
   | { type: 'voiceCache'; voiceCache: VoiceCacheView }
   | { type: 'weather'; weather: WeatherView }
+  /** The trading wallboard's latest read; `history` only when it changed (it's the big part). */
+  | { type: 'trading'; trading: Omit<TradingView, 'history'>; history?: TradingView['history'] }
   | { type: 'ticker'; item: TickerItem }
   | { type: 'notifyChannels'; notifyChannels: NotifyChannelsView }
   | { type: 'notify'; note: NoteView }

@@ -1,3 +1,4 @@
+import { t } from '../../i18n';
 import { memo, useEffect, useMemo, useRef, type RefObject } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { BallCollider, CuboidCollider, RigidBody, useAfterPhysicsStep, useBeforePhysicsStep, type RapierRigidBody } from '@react-three/rapier';
@@ -38,7 +39,7 @@ const Colliders = memo(function Colliders({ table, net }: { table: number; net: 
 /** One end of the table, to press E at: a roomy invisible box over the end, while you aren't playing. */
 function TableEnd({ end }: { end: End }) {
   const playing = useStore((s) => s.held?.kind === 'paddle');
-  const ref = useInteractable<THREE.Mesh>(playing ? null : { id: `pong:${end}`, label: 'Play ping-pong', action: { kind: 'pong', end } }, 3.2);
+  const ref = useInteractable<THREE.Mesh>(playing ? null : { id: `pong:${end}`, label: t('world.toy.pong'), action: { kind: 'pong', end } }, 3.2);
   const x = TABLE.x - dirOf(end) * (TABLE.len / 2 - 0.35);
   return (
     <mesh ref={ref} position={[x, TABLE.top + 0.1, TABLE.z]}>

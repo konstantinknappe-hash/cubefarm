@@ -3,6 +3,7 @@
 // or an env value. The server works each agent's activity out from their log lines (swarm.ts); the client's hover
 // card summarises the log tail with the same functions.
 
+import { t } from './i18n/index.ts';
 import { INSTALL_STEP, type ActivityKind, type AgentActivity, type AgentStatus, type AgentTask, type LogLine } from './types.ts';
 
 export const ACTIVITY_ICONS: Record<ActivityKind, string> = {
@@ -294,7 +295,7 @@ export function lineActivity(line: Pick<LogLine, 'kind' | 'text' | 'tool'>, max 
 /** A log line as one line on the hover card ("✏️ store.ts", "🧪 npm test"); null for lines that aren't actions. */
 export function actionSummary(line: Pick<LogLine, 'kind' | 'text' | 'tool'>, max = 36): string | null {
   const a = lineActivity(line, max);
-  if (a) return `${ACTIVITY_ICONS[a.kind]} ${a.detail || ACTIVITY_LABELS[a.kind]}`;
+  if (a) return `${ACTIVITY_ICONS[a.kind]} ${a.detail || t(`ui.activity.${a.kind}`)}`;
   if (line.kind === 'done') return clipText(redact(line.text), max + 3);
   return null;
 }

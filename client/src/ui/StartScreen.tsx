@@ -1,3 +1,4 @@
+import { useT } from '../i18n';
 import { usePhoneBadge, useStore } from '../store';
 import { requestLook } from '../world/Player';
 import { setMode } from '../pocket/mode';
@@ -9,6 +10,7 @@ import { unlockAudio } from './sfx';
 import { announce } from './announce';
 
 export function StartScreen() {
+  const t = useT();
   const started = useStore((s) => s.started);
   const loaded = useStore((s) => s.loaded);
   const connected = useStore((s) => s.connected);
@@ -27,9 +29,7 @@ export function StartScreen() {
     start();
     unlockAudio();
     requestLook();
-    announce(
-      `You're in the office. Press ${keyName('phone')} for your phone: its Company tab opens the console, the Kanban, a list view of this floor and the accessibility settings. ${keyName('help')} opens help.`,
-    );
+    announce(t('ui.start.announce', { phone: keyName('phone'), help: keyName('help') }));
   };
   const ceo = agents[CEO_ID];
   const staff = Object.values(agents).filter((a) => a.role !== 'ceo').length;
@@ -39,24 +39,25 @@ export function StartScreen() {
       <div className="start-card">
         <div className="start-logo">✻</div>
         <h1>{settings.companyName || 'cubefarm'}</h1>
-        <p className="start-tag">{settings.managerName ? `Welcome back, ${settings.managerName}.` : 'A cartoon office where a team of AI coding agents works through your GitHub issues.'}</p>
+        <p className="start-tag">{settings.managerName ? t('ui.start.welcome', { name: settings.managerName }) : t('ui.start.tagline')}</p>
         <ul className="start-list">
           <li>
-            🏢 {repos.length} project{repos.length === 1 ? '' : 's'}, {staff} {staff === 1 ? 'person' : 'people'} on staff{ceo ? `, and ${ceo.name} in the corner office` : ''}.
+            🏢 {t('ui.start.projects', { count: repos.length })}, {t('ui.start.staff', { count: staff })}
+            {ceo ? t('ui.start.ceo', { name: ceo.name }) : ''}.
           </li>
-          <li>{waiting ? `📱 ${waiting} thing${waiting === 1 ? '' : 's'} waiting on your phone. Press ${phoneKey} once you're in.` : `📱 Press ${phoneKey} anywhere for your phone.`}</li>
+          <li>{waiting ? t('ui.start.waiting', { count: waiting, key: phoneKey }) : t('ui.start.phone', { key: phoneKey })}</li>
           <li>
-            💻 Walk up behind anyone to watch their screen, or press <Key action="interact" /> (or click) on things to use them. <Key action="help" /> for help.
+            💻 {t('ui.start.walk')} <Key action="interact" /> {t('ui.start.use')} <Key action="help" /> {t('ui.start.help')}
           </li>
         </ul>
         <button className="btn btn-big" onClick={enter} disabled={!loaded}>
-          {loaded ? 'Enter the office' : connected ? 'Loading…' : 'Connecting to the swarm server…'}
+          {loaded ? t('ui.start.enter') : connected ? t('ui.start.loading') : t('ui.start.connecting')}
         </button>
         <div className="start-meta">
-          <button className="linkish start-pocket" onClick={() => setMode('pocket')} title="The office without the 3D building: tabs for the company, the CEO chat, the board, the team and approvals">
-            📱 Pocket mode, for phones and touch screens
+          <button className="linkish start-pocket" onClick={() => setMode('pocket')} title={t('ui.start.pocketTitle')}>
+            {t('ui.start.pocket')}
           </button>
-          {demo && <span className="pill pill-demo">DEMO MODE: fake repos, fake agents</span>}
+          {demo && <span className="pill pill-demo">{t('ui.demoMode')}</span>}
           {version && <span className="small">cubefarm {version}</span>}
         </div>
       </div>

@@ -5,6 +5,8 @@ const NOW = 1_800_000_000_000;
 const base = { base: 'main' };
 
 const pull = (p: Partial<MergePull> = {}): MergePull => ({
+  title: 'Wrap the toolbar',
+  reviewDecision: null,
   isDraft: false,
   mergeable: 'MERGEABLE',
   mergeState: 'CLEAN',
@@ -37,6 +39,34 @@ describe('mergeStep', () => {
       do: 'wait',
       note: 'a draft: waiting',
       set: {},
+    });
+  });
+
+  describe('a draft QA passed', () => {
+    const draft = (p: Partial<MergePull> = {}) => pull({ isDraft: true, mergeState: 'DRAFT', ...p });
+
+    it('is marked ready once its head is signed off, green and mergeable', () => {
+      expect(mergeStep(draft(), record(), NOW, base)).toEqual({ do: 'ready', set: { pendingSince: null } });
+      expect(mergeStep(draft({ checks: 'none' }), record(), NOW, base).do).toBe('ready');
+    });
+
+    it('never on being a draft alone: unfinished, held or not yet passed', () => {
+      for (const p of [{ title: 'WIP: wrap the toolbar' }, { title: 'Do not merge: half done' }, { reviewDecision: 'CHANGES_REQUESTED' }]) {
+        expect(mergeStep(draft(p), record(), NOW, base)).toEqual({ do: 'wait', note: 'a draft: waiting', set: {} });
+      }
+      expect(mergeStep(draft(), record({ passedSha: null }), NOW, base).do).toBe('wait');
+    });
+
+    it('goes through the usual gate first: new commits, failing or pending checks, conflicts', () => {
+      expect(mergeStep(draft({ headSha: 'newer' }), record(), NOW, base).do).toBe('requeue');
+      expect(mergeStep(draft({ checks: 'failing', failedChecks: [{ name: 'test', url: null }] }), record(), NOW, base).do).toBe('send-back');
+      expect(mergeStep(draft({ checks: 'pending' }), record(), NOW, base).do).toBe('wait');
+      expect(mergeStep(draft({ mergeable: 'CONFLICTING' }), record(), NOW, base).do).toBe('send-back');
+    });
+
+    it('waits out the retry delay after GitHub refused', () => {
+      expect(mergeStep(draft(), record({ mergeRetryAt: NOW + 1000 }), NOW, base).do).toBe('wait');
+      expect(mergeStep(draft(), record({ mergeRetryAt: NOW - 1 }), NOW, base).do).toBe('ready');
     });
   });
 

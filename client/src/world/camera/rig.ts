@@ -6,6 +6,7 @@
 
 import * as THREE from 'three';
 import { create } from 'zustand';
+import { t as tr } from '../../../../shared/i18n';
 import { CEO_ID } from '../../../../shared/types';
 import { repoOnFloor, useStore } from '../../store';
 import { getA11y, reduceMotion } from '../../ui/a11y';
@@ -338,7 +339,7 @@ export function enterBuilding() {
 /** Trails `target` in third person until a movement key, Esc or Tab. */
 export function follow(target: FollowTarget) {
   if (!camera) return;
-  if (!target.read(rig.seen)) return void useStore.getState().pushToast('info', `${target.label} isn't on this floor right now`);
+  if (!target.read(rig.seen)) return void useStore.getState().pushToast('info', tr('world.follow.notHere', { name: target.label }));
   leaveFirst();
   startFlight(FLY_OUT);
   rig.target = target;
@@ -555,7 +556,7 @@ export function stepRig(dt: number) {
       rig.snap = false;
       if (inp.zoom) zoomView(inp.zoom * dt * 900);
     } else if ((rig.lost += dt) > LOST_S && performance.now() > rig.waitUntil) {
-      useStore.getState().pushToast('info', `🎥 Lost sight of ${t?.label ?? 'them'}: back to you`);
+      useStore.getState().pushToast('info', tr('world.follow.lost', { name: t?.label ?? tr('world.follow.them') }));
       exitView();
       return stepRig(dt);
     }

@@ -2,6 +2,7 @@
 // small to read with the naked eye from the roof, readable through the telescope by day. Pure: where they stand (the
 // nearest blocks, one each way, in clear sight of the roof) and what they say. Units are cityLayout.ts's.
 
+import { t } from '../../../../shared/i18n';
 import type { CityBox, CityLayout } from '../outside/cityLayout';
 
 /** A board's face (w × h) on legs above its building's roof. */
@@ -115,14 +116,12 @@ export interface BoardText {
   fg: string;
 }
 
-const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
-
 /** Four boards' worth: the team at work, merges, the backlog, and the company's own ad. */
 export function boardTexts(n: OfficeNumbers): BoardText[] {
   return [
-    { top: 'AGENTS AT WORK RIGHT NOW', big: `${n.working} / ${n.agents}`, under: `on ${plural(n.floors, 'floor')}`, bg: '#ffd166', fg: '#2b2d42' },
-    { top: 'PULL REQUESTS MERGED', big: String(n.merged), under: `${n.openPrs} open · ${n.inQa} in QA`, bg: '#06d6a0', fg: '#073b4c' },
-    { top: 'OPEN ISSUES', big: String(n.issues), under: n.issues ? 'the backlog awaits' : 'inbox zero!', bg: '#ef476f', fg: '#ffffff' },
-    { top: (n.company || 'cubefarm').toUpperCase(), big: 'SHIP IT', under: 'small PRs, happy reviewers', bg: '#3a86ff', fg: '#ffffff' },
+    { top: t('world.billboard.agents'), big: `${n.working} / ${n.agents}`, under: t('world.billboard.floors', { count: n.floors }), bg: '#ffd166', fg: '#2b2d42' },
+    { top: t('world.billboard.merged'), big: String(n.merged), under: t('world.billboard.open', { open: n.openPrs, qa: n.inQa }), bg: '#06d6a0', fg: '#073b4c' },
+    { top: t('world.billboard.issues'), big: String(n.issues), under: n.issues ? t('world.billboard.awaits') : t('world.billboard.zero'), bg: '#ef476f', fg: '#ffffff' },
+    { top: (n.company || 'cubefarm').toUpperCase(), big: t('world.floor.shipIt'), under: t('world.floor.smallPrs'), bg: '#3a86ff', fg: '#ffffff' },
   ];
 }

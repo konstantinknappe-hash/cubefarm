@@ -3,6 +3,7 @@
 // this tab tells the others about itself. Plain module state read every frame by Presence.tsx, so a pose never
 // re-renders React; the store keeps only the list (store.visitors) for the HUD. window.__swarmPresence is the probe.
 
+import { t } from '../../../../shared/i18n';
 import { EMOTE_EMOJI, FLOOR_CAP } from '../../../../shared/presence';
 import type { EmoteId, PresenceEvent, ServerEvent, VisitorHeld, VisitorPose } from '../../../../shared/types';
 import { sendWs, wsOpens, wsTraffic } from '../../net';
@@ -156,7 +157,7 @@ export function takeEmote(ev: Extract<ServerEvent, { type: 'visitorEmote' }>) {
 
 export function takePing(ev: Extract<ServerEvent, { type: 'visitorPing' }>) {
   const r = remotes.get(ev.id);
-  addPing({ name: r?.name ?? 'Someone', color: r?.color ?? '#ffd166', x: ev.x, y: ev.y, z: ev.z, label: ev.label, mine: false });
+  addPing({ name: r?.name ?? t('world.ping.someone'), color: r?.color ?? '#ffd166', x: ev.x, y: ev.y, z: ev.z, label: ev.label, mine: false });
 }
 
 /** This tab moved to another floor: everyone here is placed afresh from the poses the server sends on arrival. */

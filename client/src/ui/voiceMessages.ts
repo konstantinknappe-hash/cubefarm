@@ -4,6 +4,7 @@
 // The store loads this on the first message to speak, so it isn't in the main bundle. window.__swarmVoice records what was read, for QA and e2e.
 // A CEO message that ends by itself, with nothing else to read, may open the hands-free phone's mic (mic.ts).
 // With captions on, what's said is written out as it's read (captions.ts), in step with the clip or the browser's voice.
+import { t } from '../../../shared/i18n';
 import { speechText } from '../../../shared/speech';
 import type { PhoneMessage, VoiceProvider } from '../../../shared/types';
 import { useStore } from '../store';
@@ -123,7 +124,7 @@ async function read(m: PhoneMessage, replay?: Exclude<ReplayKind, 'gone'>) {
   } catch (err) {
     // A replay whose clip went meanwhile (pruned or cleared) says so; the phone's ▶ follows the server's list.
     if (replay) {
-      if (!now.rec) useStore.getState().pushToast('info', replay === 'clip' ? '🔇 Audio no longer saved' : "🔇 The browser couldn't speak this message");
+      if (!now.rec) useStore.getState().pushToast('info', replay === 'clip' ? t('ui.voice.noAudio') : t('ui.voice.cantSpeak'));
       return;
     }
     // No key, ElevenLabs being down, no voice in this browser: the message still rings, just without words.

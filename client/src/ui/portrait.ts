@@ -160,6 +160,21 @@ export function drawPortrait(ctx: CanvasRenderingContext2D, s: number, agent: Pi
     ctx.fill();
     ctx.stroke();
     ellipse(ctx, 80, hy - 42, 7, 7, '#ffffff');
+  } else if (look.headwear === 'propeller') {
+    ['#e63946', '#ffd166', '#118ab2', '#06d6a0'].forEach((c, i) => {
+      ctx.beginPath();
+      ctx.moveTo(80, hy - 14);
+      ctx.ellipse(80, hy - 14, 31, 24, 0, Math.PI * (1 + i / 4), Math.PI * (1 + (i + 1) / 4));
+      ctx.closePath();
+      ctx.fillStyle = c;
+      ctx.fill();
+    });
+    ctx.beginPath();
+    ctx.ellipse(80, hy - 14, 31, 24, 0, Math.PI, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = '#1f1d2b';
+    ctx.fillRect(78, hy - 46, 4, 9);
+    ellipse(ctx, 80, hy - 47, 18, 4, '#e63946');
   } else if (look.headwear === 'cap') {
     ctx.beginPath();
     ctx.ellipse(80, hy - 14, 31, 22, 0, Math.PI, Math.PI * 2);

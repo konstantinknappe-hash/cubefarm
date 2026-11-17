@@ -1,5 +1,6 @@
 // Decorations on an office floor (#210), the pure side: how big each item is, where it stands in its slot, its
 // collider, and which slots a held item can go in. Decorations.tsx draws them; layout.ts says where the slots are.
+import { t } from '../../../../shared/i18n';
 import { catalogueItem, DECOR_SLOTS, type DecorItem, type DecorKind } from '../../../../shared/progress';
 import { DECOR_SLOT_AT, type DecorSpot, type Rect } from '../layout';
 
@@ -31,22 +32,7 @@ const SOLID: Partial<Record<DecorItem, { w: number; d: number }>> = { plant: { w
 export const spotOf = (slot: string): DecorSpot | undefined => DECOR_SLOT_AT[slot];
 
 /** Where a slot is, in words, for the decor box's list. */
-export const SLOT_NAMES: Record<string, string> = {
-  'w-west': 'west wall, south of the window',
-  'w-south-w': 'south wall, over the blasters',
-  'w-south-e': 'south wall, by the hoop',
-  'w-north-e': 'north wall, past the "ship it" sign',
-  'w-kitchen': 'over the kitchenette',
-  'f-ne': 'north-east corner',
-  'f-se': 'south-east corner',
-  'f-sw': 'by the couch',
-  'f-west': 'west wall, by the door',
-  'b-west': 'west wall',
-  'b-lounge': 'the lounge',
-  'b-south': 'south wall, east of the elevator',
-  'r-lounge': 'under the ping-pong table',
-  'r-entry': 'in front of the elevator',
-};
+export const slotName = (slot: string) => (DECOR_SLOTS.some((s) => s.id === slot) ? t(`world.slot.${slot.replace(/-(\w)/g, (_, c: string) => c.toUpperCase())}`) : slot);
 
 export function decorSize(item: DecorItem, slot?: string): DecorSize {
   if (item === 'rug') {

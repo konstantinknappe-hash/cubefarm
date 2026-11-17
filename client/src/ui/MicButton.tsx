@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef } from 'react';
+import { t } from '../i18n';
 import { useStore } from '../store';
 import { finishListening, keepListening, listen, micProblem, registerTarget, stopListening, useMic, type MicTarget, type MicView } from './mic';
 import { TAP_MS } from './micKeys';
@@ -10,12 +11,12 @@ import { useKeyName } from './controls';
 
 /** What the bubble over the 🎙 says. */
 function statusLine(view: MicView, mine: boolean, chiming: boolean): string {
-  if (!mine) return chiming ? '🎧 Listening in a moment…' : '';
-  if (view.state === 'transcribing') return 'Turning your words into text…';
+  if (!mine) return chiming ? t('ui.mic.soon') : '';
+  if (view.state === 'transcribing') return t('ui.mic.transcribing');
   if (view.state !== 'listening') return '';
-  if (!view.live) return 'Starting the mic…';
-  if (view.mode === 'handsfree') return '🎧 Listening… just talk';
-  return view.mode === 'tap' ? 'Listening… stop talking or tap 🎙️ to finish' : 'Listening… let go to finish';
+  if (!view.live) return t('ui.mic.starting');
+  if (view.mode === 'handsfree') return t('ui.mic.handsfree');
+  return view.mode === 'tap' ? t('ui.mic.tap') : t('ui.mic.hold');
 }
 
 interface Props {
@@ -87,7 +88,7 @@ export function MicButton({ kind, value, onChange, onSend, disabled }: Props) {
   };
 
   const status = statusLine(mic, mine, chiming);
-  const title = why || (on ? 'Listening: Esc stops' : `Hold to talk (or hold ${talkKey}); tap to talk until you stop`);
+  const title = why || (on ? t('ui.mic.escStops') : t('ui.mic.title', { key: talkKey }));
 
   return (
     <span className="mic">
@@ -106,7 +107,7 @@ export function MicButton({ kind, value, onChange, onSend, disabled }: Props) {
         type="button"
         ref={ref}
         className={`mic-btn ${(on && !warming) || chiming ? 'mic-on' : ''} ${warming || state === 'transcribing' ? 'mic-busy' : ''} ${why ? 'mic-cant' : ''}`}
-        aria-label={on ? 'Stop listening' : 'Talk instead of type'}
+        aria-label={on ? t('ui.mic.stopListening') : t('ui.mic.talk')}
         aria-pressed={on}
         title={title}
         disabled={disabled}

@@ -17,7 +17,7 @@ export interface SessionOptions {
   prompt: string;
   systemAppend: string;
   model: string; // e.g. 'claude-opus-5-5'
-  effort: EffortLevel;
+  effort: EffortLevel | ''; // '' = the model takes no effort setting
   browserTesting: boolean;
   additionalDirectories: string[]; // read-only reference clones of linked repos
   role: AgentRole;
@@ -348,7 +348,7 @@ export function startSession(opts: SessionOptions, callbacks: SessionCallbacks):
     abortController: abort,
     env,
     model: opts.model || undefined,
-    effort: opts.effort,
+    effort: opts.effort || undefined,
     // The manager's own setup (settings, skills, plugins, MCP servers, connectors), plus the office's servers below.
     settingSources: ['user', 'project', 'local'],
     systemPrompt: { type: 'preset', preset: 'claude_code', append: opts.systemAppend },

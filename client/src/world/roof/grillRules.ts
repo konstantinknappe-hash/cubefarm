@@ -2,6 +2,8 @@
 // over meanwhile), then it's ready to take in a bun; left on too long it chars, and it's still edible. Grill.tsx draws and
 // plays it. Times are seconds on any clock.
 
+import { t } from '../../../../shared/i18n';
+
 export type GrillState = 'idle' | 'cooking' | 'ready' | 'charred';
 
 /** Cooked `cook` seconds after it goes on; charred `char` seconds after that. A sausage in a bun is three bites. */
@@ -53,7 +55,7 @@ export function pressGrill(g: Grill, now: number, handsFull: boolean): { op: Gri
 
 /** What E at the grill says. */
 export function grillLabel(s: GrillState): string {
-  if (s === 'idle') return 'Grill a sausage';
-  if (s === 'cooking') return 'Turn the sausage';
-  return s === 'charred' ? 'Take the (charred) sausage' : 'Take the sausage';
+  if (s === 'idle') return t('world.grill.start');
+  if (s === 'cooking') return t('world.grill.turn');
+  return s === 'charred' ? t('world.grill.takeCharred') : t('world.grill.take');
 }

@@ -39,7 +39,7 @@ describe('qaOutcome', () => {
     expect(qaOutcome(true, last(), CONFLICTING)).toBe('passed');
     expect(qaOutcome(true, last({ mergeFixes: MAX_MERGE_FIXES }), CONFLICTING)).toBe('passed');
     const rec = { passedSha: 'a'.repeat(40), mergeFixes: 0, pendingSince: null, mergeRetryAt: null, alerted: false, rerunSha: null, rerunAt: null };
-    const pr = { ...CONFLICTING, isDraft: false, headSha: rec.passedSha, checks: 'passing' as const, failedChecks: [], pendingChecks: [] };
+    const pr = { ...CONFLICTING, title: 'Fix it', reviewDecision: null, isDraft: false, headSha: rec.passedSha, checks: 'passing' as const, failedChecks: [], pendingChecks: [] };
     expect(mergeStep(pr, rec, 0, { base: 'main' })).toMatchObject({ do: 'send-back', reason: 'conflict', needsHuman: false });
   });
 });

@@ -1,5 +1,6 @@
 // Desktop notifications (docs/pocket.md): the server's 'notify' events, shown by an office tab the manager can't see
 // right now. Web Push (pwa.ts) covers devices without the office open; both tag a note by its id, so it shows once.
+import { t } from '../../shared/i18n';
 import type { NoteView } from '../../shared/types';
 
 export interface DesktopCheck {
@@ -24,7 +25,7 @@ export function showDesktopNote(note: NoteView, enabled: boolean) {
 
 /** Settings' Test: a notification right now, tab visible or not. */
 export function showTestNote() {
-  show({ id: `test-${Date.now()}`, event: 'test', title: '🔔 Test from cubefarm', body: 'Desktop notifications work in this browser.', at: Date.now(), url: '/' });
+  show({ id: `test-${Date.now()}`, event: 'test', title: t('ui.notify.testTitle'), body: t('ui.notify.testBody'), at: Date.now(), url: '/' });
 }
 
 function show(note: NoteView) {

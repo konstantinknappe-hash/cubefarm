@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { t } from '../../i18n';
 import { agentsOnRepo, coversView, useStore } from '../../store';
 import { deskPosition, deskRotation, isEastDesk } from '../layout';
 import { say } from '../people';
@@ -130,7 +131,7 @@ export default function Valentines({ kind, repoId }: ThemeProps) {
   }, [sendHeart]);
 
   useEffect(() => {
-    useThemeRuntime.setState({ status: '💘 Happy Valentine’s Day' + (stickies.length ? ` · ${stickies.length} heart${stickies.length === 1 ? '' : 's'} on monitors here` : '') });
+    useThemeRuntime.setState({ status: t('world.valentine.status') + (stickies.length ? t('world.valentine.hearts', { count: stickies.length }) : '') });
   }, [stickies.length]);
   useEffect(() => () => useThemeRuntime.setState({ status: null }), []);
   useEffect(() => addProbe({ heart: () => sendHeart(), hearts: () => stickies.map((s) => `${s.from}→${s.to.id}`) }), [sendHeart, stickies]);

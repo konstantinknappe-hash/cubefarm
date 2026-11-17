@@ -71,4 +71,6 @@ Keep one line per fork-specific change: its PR, what it does, and which upstream
 
 - [PR #8](https://github.com/konstantinknappe-hash/cubefarm/pull/8): adds `AGENTS.md` and this fork guide; hooks into upstream `CLAUDE.md` only through the appended `## Fork` section.
 
+- Lokalisierungsgrundgerüst (Issue #9): [Aufbau und Glossar](i18n.md); kleine Hooks in Einstellungen, Store, Client-Start, HTML, Bestätigungsdialog und E2E-Helfern.
+
 Last synced with upstream: not yet recorded. After each sync, record the upstream commit, date and sync PR here.

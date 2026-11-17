@@ -24,6 +24,7 @@ import { ritualLook } from './ritualLook';
 import { COFFEE_TABLE, lunchOf, parseRitualParam, RITUALS, type Ritual } from './ritualSchedule';
 import { CABIN } from './socials';
 import { merged } from './shapes';
+import { t } from '../i18n';
 import { toon } from './materials';
 
 let active: OfficeRitualRunner | LobbyRitualRunner | null = null;
@@ -120,7 +121,7 @@ const COURIER: Agent = {
 
 /** Someone visiting the floor, drawn from inside the elevator cabin (their "chair") while ritualRunner.ts walks them. */
 function Visitor({ agent, ceo = false, carrying, scale }: { agent: Agent; ceo?: boolean; carrying?: ReactNode; scale?: number }) {
-  const ref = useInteractable<THREE.Group>(ceo ? { id: 'ceo-visit', label: `Text ${agent.name} (CEO) on your phone`, action: { kind: 'phone', tab: 'chat' } } : null, 3.2);
+  const ref = useInteractable<THREE.Group>(ceo ? { id: 'ceo-visit', label: t('world.ceo.text', { name: agent.name }), action: { kind: 'phone', tab: 'chat' } } : null, 3.2);
   return (
     <group ref={ref} position={[CABIN.x, 0, CABIN.z]}>
       <Character agent={agent} carrying={carrying} scale={scale}>

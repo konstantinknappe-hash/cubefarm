@@ -212,6 +212,11 @@ export async function mergePull(fullName: string, number: number, method: 'squas
   }
 }
 
+/** Mark a draft PR ready for review. */
+export async function markReady(fullName: string, number: number): Promise<void> {
+  await gh(['pr', 'ready', String(number), '-R', fullName], { timeoutMs: 60_000 });
+}
+
 /** Merge the base branch into a PR's branch on GitHub, for repos that only merge up-to-date branches. */
 export async function updateBranch(fullName: string, number: number): Promise<void> {
   await gh(['pr', 'update-branch', String(number), '-R', fullName], { timeoutMs: 60_000 });

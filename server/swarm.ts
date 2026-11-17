@@ -1,3 +1,4 @@
+import { createI18n, isLanguage, type Params, type TranslationKey } from '../shared/i18n/index.ts';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import crypto from 'node:crypto';
@@ -48,13 +49,14 @@ import { Notifier } from './notifier.ts';
 import { clip, plainText, stuckAgents } from './notify.ts';
 import { DEFAULT_NOTIFY, notifySettings, officeUrl } from '../shared/notify.ts';
 import { agentActivity, lineActivity, sameActivity, type SeenActivity } from '../shared/activity.ts';
+import { TradingService, tradingConfig } from './trading.ts';
 import { WeatherService } from './weather.ts';
 import { blockers, holdUps, waitsMessage } from '../shared/issues.ts';
 import { dayKey, journalFrame, legacyAgent, legacyRequest } from '../shared/journal.ts';
 import { cleanStyle, HAIR_COLORS, SKIN_TONES, type AgentStyle } from '../shared/looks.ts';
 import { achievementDef, type ProgressView } from '../shared/progress.ts';
 import { parsePongResult, PONG_PLAYER, recordGame } from '../shared/pong.ts';
-import { effectiveModel } from '../shared/models.ts';
+import { describeModelProblem, effectiveModel, effortsFor, fitEffort, modelProblem, modelRejection, rejectionKey, type ModelProblem } from '../shared/models.ts';
 import { DEFAULT_WEATHER, DEFAULT_WORLD_EVENTS, weatherSettings, worldEventSettings } from '../shared/outside.ts';
 import { DEFAULT_THEME_SETTINGS, dueGreeting, themeSettings } from '../shared/themes.ts';
 import { CEO_ID, DEFAULT_DOG_NAME, DEFAULT_MAX_AGENTS, FLOOR_SEATS, INSTALL_STEP } from '../shared/types.ts';
@@ -211,6 +213,7 @@ interface Persisted {
   held: HeldIssue[];
   progress: LedgerState; // coins, decorations, achievements and careers (ledger.ts)
   pong: Record<string, PongRow[]>; // each floor's ping-pong leaderboard, by repo id
+  rejectedModels: Record<string, string>; // rejectionKey → what the provider said: not started again until the manager picks it again
 }
 
 interface Shot {
@@ -229,6 +232,7 @@ interface AgentRuntime {
   shots: Shot[]; // every screenshot of the current session (QA evidence)
   terminal: AgentTerminal | null; // their terminal, once they've run in the terminal runtime
   qaResume?: { cwd: string; systemAppend: string } | null; // the QA run's one resume for a missing report, until used
+  sessionModel?: { cli: AgentCli; model: string }; // what the running session asked for, to recognise its refusal
 }
 
 interface RepoRuntime {
@@ -272,18 +276,120 @@ const FLOOR_COLORS = ['#ff8a5b', '#4fb3e8', '#8fd14f', '#c77dff', '#ffc93c', '#f
 const SHIRTS = ['#e63946', '#457b9d', '#2a9d8f', '#f4a261', '#9b5de5', '#f15bb5', '#00bbf9', '#06d6a0', '#ffbe0b', '#8338ec', '#fb5607', '#3a86ff'];
 const HAIR = HAIR_COLORS;
 const SKIN = SKIN_TONES;
-// New agents are named after computing pioneers, then fictional detectives.
+// German agent names and office wordplay.
 const NAMES = [
-  'Ada', 'Linus', 'Grace', 'Alan', 'Margaret', 'Dennis', 'Barbara', 'Ken', 'Radia', 'Guido', 'Hedy', 'Tim', 'Katherine',
-  'Bjarne', 'Frances', 'Edsger', 'Anita', 'Donald', 'Sophie', 'Yukihiro', 'Jean', 'Niklaus', 'Karen', 'Brendan',
-  'Sherlock', 'Marple', 'Poirot', 'Nancy', 'Columbo', 'Fletcher', 'Watson', 'Morse', 'Holmes', 'Maigret',
+  'Uta',
+  'Frank',
+  'Chris',
+  'Fred',
+  'Gerd',
+  'Volker Racho',
+  'Rainer Winkler',
+  'Torsten',
+  'Uwe',
+  'Brunhilde',
+  'Andreas',
+  'Günther',
+  'Gisela',
+  'Horst',
+  'Waltraud',
+  'Dieter',
+  'Ingeborg',
+  'Rüdiger',
+  'Manfred',
+  'Edeltraud',
+  'Wolfgang',
+  'Bärbel',
+  'Herbert',
+  'Sieglinde',
+  'Erwin',
+  'Hildegard',
+  'Klaus',
+  'Gertrud',
+  'Bernd',
+  'Helga',
+  'Jürgen',
+  'Irmgard',
+  'Heinz',
+  'Renate',
+  'Waldemar',
+  'Brigitte',
+  'Siegfried',
+  'Elke',
+  'Hartmut',
+  'Ursula',
+  'Lothar',
+  'Heidrun',
+  'Roswitha',
+  'Detlef',
+  'Christel',
+  'Norbert',
+  'Hannelore',
+  'Rolf',
+  'Gudrun',
+  'Joachim',
+  'Traudel',
+  'Wilfried',
+  'Erika',
+  'Klaus-Dieter',
+  'Ernst',
+  'Margot',
+  'Achim',
+  'Anneliese',
+  'Günter',
+  'Heike',
+  'Egon',
+  'Friedhelm',
+  'Petra',
+  'Sigrid',
+  'Rainer Zufall',
+  'Ernst Haft',
+  'Axel Schweiß',
+  'Klaus Trophobie',
+  'Frank Reich',
+  'Peter Silie',
+  'Kai Ahnung',
+  'Willi Wichtig',
+  'Herta Wurst',
+  'Rolf Laden',
+  'Günther Genehmigung',
+  'Uta Umsatz',
+  'Fred Feierabend',
+  'Volker Kontrolle',
+  'Gerd Geduld',
+  'Rainer Wahnsinn',
+  'Klaus Kleber',
+  'Bernd Bürokratie',
+  'Horst Schlemmer',
+  'Uwe Unterlagen',
+  'Dieter Drucker',
+  'Herbert Haftung',
+  'Manfred Mittagspause',
+  'Rüdiger Rückfrage',
+  'Siegfried Sicherheitskopie',
+  'Erwin Excel',
+  'Brunhilde Buchhaltung',
+  'Waltraud Warteschleife',
+  'Hildegard Hotline',
+  'Gisela Gehaltsabrechnung',
+  'Edeltraud Eskalation',
+  'Ingeborg Insolvenz',
+  'Helga Homeoffice',
+  'Gertrud Geschäftsführung',
+  'Renate Rendite',
+  'Roswitha Rechnung',
+  'Ursula Überstunden',
+  'Bärbel Betriebsrat',
+  'Fred Flatrate',
+  'Klaus Krawatte',
+  'Volker Vollzug',
 ];
 
 // Names that get the feminine character look: everyone in the name pool above, plus common first names
 // for agents the manager names themselves. The manager can always change an agent's look in the console.
 const FEMININE_NAMES = new Set(
   (
-    'ada grace margaret barbara radia hedy katherine frances anita sophie jean karen marple nancy fletcher ' +
+    'uta brunhilde gisela waltraud ingeborg edeltraud bärbel sieglinde hildegard gertrud helga irmgard renate brigitte elke ursula heidrun roswitha christel hannelore gudrun traudel erika margot anneliese heike petra sigrid herta ada grace margaret barbara radia hedy katherine frances anita sophie jean karen marple nancy fletcher ' +
     'alice amanda amelia amy ana anna anne aisha astrid ava bella beth carla caroline charlotte chloe claire clara ' +
     'diana elena elizabeth ella ellie emily emma eva fatima fiona freya georgia hannah harper helen holly ingrid iris ' +
     'isabella ivy jane jasmine jessica julia kate laura leah leila lena lily linda lisa lucy maria marie mary maya mei ' +
@@ -453,6 +559,7 @@ export { HttpError };
 export class Swarm {
   private state: Persisted = {
     settings: {
+      language: 'de',
       sessionLimit: 0,
       defaultModel: DEFAULT_MODEL,
       defaultEffort: 'medium',
@@ -489,6 +596,7 @@ export class Swarm {
     held: [],
     progress: emptyLedger(),
     pong: {},
+    rejectedModels: {},
   };
   /**
    * The CEO's office tools. Every session gets its own server: one can only be connected to one session at a time, so
@@ -556,6 +664,8 @@ export class Swarm {
   readonly voice: Voice;
   /** The real local weather (Settings → Weather), read by the server so it's cached and survives a restart. */
   readonly weather: WeatherService;
+  /** The trading wallboard's read-only MoneyPrint feed (docs/trading-wallboard.md); the mock when none is configured. */
+  readonly trading: TradingService;
   /** What the office looked like over the last week, for the time-lapse replay. The demo keeps its own. */
   readonly journal: Journal;
   private readonly envSecrets = envSecrets(process.env);
@@ -564,6 +674,14 @@ export class Swarm {
   private toldStuck = new Set<string>(); // `${agentId}:${endedAt}`: agents in an error the manager was notified about
 
   constructor(private backend: Backend) {
+    const trading = tradingConfig(process.env);
+    if (trading.problem) console.warn(trading.problem);
+    this.trading = new TradingService({
+      config: trading,
+      file: backend.demo ? null : path.join(HOME_DIR, 'trading-history.json'),
+      changed: ({ history, ...rest }, historyChanged) => this.broadcast({ type: 'trading', trading: rest, ...(historyChanged ? { history } : {}) }),
+      log: (line) => console.warn(line),
+    });
     this.weather = new WeatherService({
       api: backend.weather,
       file: path.join(HOME_DIR, backend.demo ? 'demo-weather.json' : 'weather.json'),
@@ -667,8 +785,10 @@ export class Swarm {
         held: loaded.held ?? [],
         progress: loadLedger(loaded.progress),
         pong: loaded.pong && typeof loaded.pong === 'object' ? loaded.pong : {},
+        rejectedModels: loaded.rejectedModels && typeof loaded.rejectedModels === 'object' ? loaded.rejectedModels : {},
       };
       for (const m of this.state.messages) this.messageSeq = Math.max(this.messageSeq, m.id + 1);
+      if (!isLanguage(this.state.settings.language)) this.state.settings.language = 'de';
       if (!EFFORTS.includes(this.state.settings.defaultEffort)) this.state.settings.defaultEffort = 'medium';
       if (this.state.settings.runtime !== 'sdk') this.state.settings.runtime = 'terminal';
       if (!isCli(this.state.settings.defaultCli)) this.state.settings.defaultCli = 'claude';
@@ -708,6 +828,7 @@ export class Swarm {
     }
     await this.voice.init();
     await this.weather.init();
+    void this.trading.init(); // its first read may wait on MoneyPrint: the office doesn't
     await this.notifier.init();
     for (const r of this.state.repos) if (r.localPath) this.backend.setLocalPath(r.fullName, r.localPath);
     const interrupted: PersistedAgent[] = [];
@@ -800,13 +921,7 @@ export class Swarm {
     setInterval(() => this.emitOps(), OPS_TICK_MS); // the clock moves the numbers too: the last hour, today, errors turning into alarms
     setInterval(() => this.notifyStuck(), 60_000);
     setInterval(() => this.watchdogTick(), WATCHDOG_MS);
-    void this.backend
-      .detectClis()
-      .then((clis) => {
-        this.clis = clis;
-        this.broadcast({ type: 'clis', clis });
-      })
-      .catch((err) => console.warn('could not look for agent CLIs', err));
+    void this.refreshModels().catch((err) => console.warn('could not look for agent CLIs', err));
     await this.journal.start();
     // A fresh demo office has yesterday to replay too.
     if (this.backend.demo) void this.journal.hasPastDays().then((has) => (has ? undefined : this.journalSample())).catch((err) => console.warn('could not write the sample day', err));
@@ -1042,10 +1157,11 @@ export class Swarm {
       usage: this.usageNow(),
       ops: this.opsNow(),
       doctor: this.doctorView(),
-      clis: this.clis,
+      clis: this.clisView(),
       ...this.voice.keyView(),
       voiceCache: this.voice.cacheInfo(),
       weather: this.weather.current(),
+      trading: this.trading.current(),
       ticker: this.ticker.recent(),
       notifyChannels: this.notifier.channelsView(),
       version: VERSION,
@@ -1514,6 +1630,21 @@ export class Swarm {
       this.setQa(rec, { passedSha: details.headSha });
       return false;
     }
+    if (step.do === 'ready') {
+      // QA passed the draft's head and GitHub's checks are green: undraft it; the next sync merges it as usual.
+      try {
+        await this.backend.markReady(repo.fullName, pr.number);
+      } catch (err) {
+        const error = oneLine(err).replace(/^gh .*? failed: /, '');
+        rec.mergeRetryAt = Date.now() + MERGE_RETRY_MS;
+        if (!rec.alerted) {
+          rec.alerted = true;
+          this.postMessage('office', `⚠️ PR #${pr.number} on ${repo.fullName} passed QA and its checks, but GitHub won't mark the draft ready for review: ${error}. The office retries every ${MERGE_RETRY_MS / 60_000} minutes.`);
+        }
+        return this.mergeNote(rec, `could not mark the draft ready: ${error}`);
+      }
+      return this.mergeNote(rec, 'marked ready for review');
+    }
     if (step.do !== 'merge') return false;
     this.mergeNote(rec, 'merging…');
     let error = '';
@@ -1687,6 +1818,7 @@ export class Swarm {
    * through a restart (the terminal keeper holds them for the next start) and stop when the office quits.
    */
   async shutdown(restart = false): Promise<void> {
+    this.trading.stop();
     await this.writeState().catch((err) => console.warn('could not save the state', err));
     await this.journal.close().catch((err) => console.warn('could not write the journal', err));
     await this.backend.releaseClis(restart); // before the terminals are saved: whatever they print next waits in the keeper
@@ -2022,6 +2154,7 @@ export class Swarm {
     const name = opts.name?.trim().slice(0, 24) || this.freeName();
     const cli = isCli(opts.cli) ? opts.cli : '';
     if (cli && !this.cliReady(cli)) throw new HttpError(400, `${cliLabel(cli)} isn't installed on this computer.`);
+    if (opts.model?.trim()) this.checkModel(this.hireCli(cli), opts.model);
     const id = opts.id && !this.state.agents.some((a) => a.id === opts.id) ? opts.id : crypto.randomUUID();
     const agent: PersistedAgent = {
       id,
@@ -2035,7 +2168,7 @@ export class Swarm {
       hair: opts.appearance?.hair ?? pick(HAIR),
       skin: opts.appearance?.skin ?? pick(SKIN),
       style: null,
-      model: opts.model ?? '',
+      model: opts.model?.trim() ?? '',
       effort: EFFORTS.includes(opts.effort as EffortLevel) ? (opts.effort as EffortLevel) : '',
       cli,
       machine: machineName(id),
@@ -2073,7 +2206,10 @@ export class Swarm {
   /** A name from the pool that no agent or waiting candidate has. */
   private freeName() {
     const taken = new Set([...this.state.agents.map((a) => a.name), ...this.state.requests.filter((r) => r.status === 'pending').map((r) => r.name)]);
-    return NAMES.find((n) => !taken.has(n)) || `Agent ${this.state.agents.length + 1}`;
+    const available = NAMES.filter((n) => !taken.has(n));
+    return available.length
+      ? available[Math.floor(Math.random() * available.length)]
+      : `Agent ${this.state.agents.length + 1}`;
   }
 
   /** The coding agent is installed here (or the office hasn't looked yet: then the session says so if it isn't). */
@@ -2081,13 +2217,120 @@ export class Swarm {
     return !this.clis.length || this.clis.some((c) => c.id === cli && c.installed);
   }
 
-  updateAgent(id: string, patch: { name?: string; model?: string; effort?: string; cli?: string; look?: string; color?: string; hair?: string; style?: unknown }) {
-    const a = this.agent(id);
-    if (patch.cli !== undefined && a.role !== 'ceo') {
-      const cli = isCli(patch.cli) ? patch.cli : '';
-      if (cli && !this.cliReady(cli)) throw new HttpError(400, `${cliLabel(cli)} isn't installed on this computer.`);
-      a.cli = cli;
+  // ---------- models ----------
+
+  /** The CLIs, each with its model catalog and the models its provider refused. */
+  private clisView(): CliView[] {
+    const rejected = Object.entries(this.state.rejectedModels);
+    return this.clis.map((c) => ({ ...c, rejected: Object.fromEntries(rejected.filter(([k]) => k.startsWith(`${c.id}:`))) }));
+  }
+
+  private emitClis() {
+    this.broadcast({ type: 'clis', clis: this.clisView() });
+  }
+
+  /** Ask each installed CLI which models it offers (at startup, and when the manager asks again). */
+  async refreshModels(): Promise<CliView[]> {
+    this.clis = await this.backend.detectClis();
+    await Promise.all(this.clis.filter((c) => c.installed).map(async (c) => (c.catalog = await this.backend.listModels(c.id))));
+    this.toldModel.clear();
+    this.emitClis();
+    return this.clisView();
+  }
+
+  private catalogFor(cli: AgentCli) {
+    return this.clis.find((c) => c.id === cli)?.catalog ?? null;
+  }
+
+  private tr(key: TranslationKey, params: Params = {}) {
+    return createI18n(this.state.settings.language).t(key, params);
+  }
+
+  private describe(p: ModelProblem) {
+    return describeModelProblem(p, (k, x) => this.tr(k, x), cliLabel);
+  }
+
+  /** The coding agent an agent's next session runs (the Agent SDK runtime is always Claude Code). */
+  private plannedCli(a: PersistedAgent, cli: AgentCli | '' = a.cli): AgentCli {
+    if (this.state.settings.runtime !== 'terminal' || !this.backend.terminals) return 'claude';
+    return cli || this.state.settings.defaultCli;
+  }
+
+  /** The coding agent a new agent will run: their own pick, else the office default (the Agent SDK runtime: Claude Code). */
+  private hireCli(cli: AgentCli | ''): AgentCli {
+    return this.state.settings.runtime === 'terminal' && this.backend.terminals ? cli || this.state.settings.defaultCli : 'claude';
+  }
+
+  /**
+   * A model picked for an agent or the office: refused when the coding agent doesn't offer it. The manager picking
+   * one its provider refused before (`manager`) is their go-ahead to try it again; the CEO's picks never are.
+   */
+  private checkModel(cli: AgentCli, model: string, manager = false) {
+    const m = model.trim();
+    if (!m) return;
+    if (manager && this.state.rejectedModels[rejectionKey(cli, m)] !== undefined) {
+      delete this.state.rejectedModels[rejectionKey(cli, m)];
+      this.emitClis();
     }
+    const p = modelProblem(cli, m, this.catalogFor(cli), this.state.rejectedModels);
+    if (p) throw new HttpError(400, this.describe(p));
+  }
+
+  /** The manager wants a refused model tried again, unchanged. */
+  retryModel(cli: string, model: string) {
+    if (!isCli(cli) || this.state.rejectedModels[rejectionKey(cli, model)] === undefined) throw new HttpError(404, 'That model is not blocked.');
+    delete this.state.rejectedModels[rejectionKey(cli, model)];
+    this.save();
+    this.emitClis();
+    setTimeout(() => this.schedule(), 0);
+  }
+
+  /** Models already told about (by rejectionKey), so a blocked one toasts once rather than on every tick. */
+  private toldModel = new Set<string>();
+
+  /**
+   * Their next session's model can't run (the CLI doesn't offer it, or its provider refused it): they get no work until
+   * the manager picks another one, rather than start into the same error again. Nothing switches models by itself.
+   */
+  private modelBlocked(a: PersistedAgent) {
+    if (a.role === 'ceo') return false;
+    const cli = this.plannedCli(a);
+    const p = modelProblem(cli, this.modelFor(a, cli), this.catalogFor(cli), this.state.rejectedModels);
+    if (!p) return false;
+    const key = rejectionKey(p.cli, p.model);
+    if (!this.toldModel.has(key)) {
+      this.toldModel.add(key);
+      this.toast('error', this.tr('models.blocked', { problem: this.describe(p) }));
+    }
+    return true;
+  }
+
+  /** A failed session whose output says the provider refused its model: remember it so no one starts on it again. */
+  private noteRejection(a: PersistedAgent, used: { cli: AgentCli; model: string }, result: SessionResult) {
+    if (!used.model) return; // the CLI's own default: nothing to pick instead in the office
+    const said =
+      modelRejection([...result.errors, result.text].join('\n'), used.model) ??
+      modelRejection(this.agentRt.get(a.id)?.terminal?.screen() ?? '', used.model, true);
+    if (!said) return;
+    const key = rejectionKey(used.cli, used.model);
+    if (this.state.rejectedModels[key] !== undefined) return;
+    this.state.rejectedModels[key] = said;
+    this.toldModel.add(key);
+    const text = this.describe({ kind: 'rejected', cli: used.cli, model: used.model, detail: said });
+    this.appendLog(a, [{ kind: 'error', text: `✗ ${text}` }]);
+    this.postMessage('office', this.tr('models.rejectedMessage', { problem: text }));
+    this.emitClis();
+  }
+
+  updateAgent(id: string, patch: { name?: string; model?: string; effort?: string; cli?: string; look?: string; color?: string; hair?: string; style?: unknown }, by: 'manager' | 'ceo' = 'manager') {
+    const a = this.agent(id);
+    const cli = patch.cli !== undefined ? (isCli(patch.cli) ? patch.cli : '') : a.cli;
+    const cliChanged = this.plannedCli(a) !== this.plannedCli(a, cli);
+    if (cli !== a.cli && cli && !this.cliReady(cli)) throw new HttpError(400, `${cliLabel(cli)} isn't installed on this computer.`);
+    if (patch.model !== undefined) this.checkModel(this.plannedCli(a, cli), String(patch.model), by === 'manager'); // before anything changes
+    a.cli = cli;
+    if (cliChanged && patch.model === undefined) a.model = '';
+    if (cliChanged && patch.effort === undefined) a.effort = '';
     if (patch.name?.trim() && patch.name.trim() !== a.name) {
       a.name = patch.name.trim().slice(0, 24);
       a.look = lookFor(a.name);
@@ -2234,7 +2477,7 @@ export class Swarm {
    */
   private sessionRuntime(a: PersistedAgent, resume?: string): { terminal?: AgentTerminal; cli?: AgentCli; label?: string; resumeSessionId?: string } {
     const inTerminal = this.state.settings.runtime === 'terminal' && this.backend.terminals;
-    let cli: AgentCli = a.role === 'ceo' ? 'claude' : a.cli || this.state.settings.defaultCli;
+    let cli: AgentCli = inTerminal ? a.cli || this.state.settings.defaultCli : 'claude';
     if (resume && a.sessionCli && a.sessionCli !== cli) {
       if (inTerminal) cli = a.sessionCli;
       else if (a.sessionCli !== 'claude') resume = undefined;
@@ -2247,6 +2490,11 @@ export class Swarm {
   /** The model to ask for (the Agent SDK runs Claude Code). '' lets another coding agent use its own default. */
   private modelFor(a: PersistedAgent, cli: AgentCli | undefined) {
     return effectiveModel(a.model, cli ?? 'claude', this.state.settings, DEFAULT_MODEL);
+  }
+
+  /** Keep a saved Claude CEO model from being passed to a different CLI after a provider switch. */
+  private ceoModelFor(a: PersistedAgent, cli: AgentCli) {
+    return effectiveModel(a.model, cli, this.state.settings, CEO_MODEL);
   }
 
   // ---------- terminals ----------
@@ -2481,6 +2729,8 @@ export class Swarm {
     a.status = 'working';
     this.activity.set(a.id, Date.now());
     const how = this.sessionRuntime(a, resumeSessionId);
+    const used = { cli: how.cli ?? 'claude', model: this.modelFor(a, how.cli) };
+    rt.sessionModel = used;
     this.emitAgent(a);
     const active = (entries: LogEntry[]) => {
       if (entries.some((e) => e.kind !== 'manager')) this.activity.set(a.id, Date.now());
@@ -2490,8 +2740,9 @@ export class Swarm {
         cwd,
         prompt,
         systemAppend,
-        model: this.modelFor(a, how.cli),
-        effort: a.effort || this.state.settings.defaultEffort,
+        model: used.model,
+        // Only an effort the model takes (none for a model without one), never above the one asked for.
+        effort: fitEffort(a.effort || this.state.settings.defaultEffort, effortsFor(used.cli, used.model, this.catalogFor(used.cli))),
         browserTesting: repo.browserTesting,
         additionalDirectories: this.linkedRepos(repo).map((r) => this.backend.mainDir(r.fullName)),
         role: a.role,
@@ -2558,6 +2809,7 @@ export class Swarm {
     // Dev servers the agent forgot to stop would otherwise keep its port and lock its desk folder.
     void this.releaseDesk(a, repo).catch(() => undefined);
     if (result.interrupted) this.interrupted(a);
+    else if (!result.ok && rt.sessionModel) this.noteRejection(a, rt.sessionModel, result);
 
     if (this.dropping.has(a.id)) this.dropTask(a, '↺ Cleared desk. Ready for new work.'); // stopped: its issue or PR closed
     else if (a.task === 'qa') await this.onQaFinished(a, repo, result);
@@ -3180,6 +3432,9 @@ export class Swarm {
 
   updateSettings(patch: Partial<SwarmSettings>) {
     const s = this.state.settings;
+    if ('language' in patch && !isLanguage(patch.language)) throw new HttpError(400, createI18n(s.language).t('core.settings.invalidLanguage'));
+    if (patch.defaultModel !== undefined) this.checkModel(isCli(patch.defaultCli) ? patch.defaultCli : s.defaultCli, String(patch.defaultModel), true); // before anything changes
+    if (patch.language !== undefined) s.language = patch.language;
     if (patch.sessionLimit !== undefined) s.sessionLimit = Math.max(0, Math.round(Number(patch.sessionLimit)) || 0);
     // The default model belongs to the default coding agent: a new agent starts on its own default.
     if (isCli(patch.defaultCli) && patch.defaultCli !== s.defaultCli) {
@@ -3251,7 +3506,7 @@ export class Swarm {
    * else instead of waiting for the manager to reset them.
    */
   private isFree(a: PersistedAgent) {
-    return FREE.includes(a.status) || (a.status === 'error' && Date.now() - (a.endedAt ?? 0) >= ERROR_COOLDOWN_MS);
+    return (FREE.includes(a.status) || (a.status === 'error' && Date.now() - (a.endedAt ?? 0) >= ERROR_COOLDOWN_MS)) && !this.modelBlocked(a);
   }
 
   /** A floor's agents who can take work now, by desk. */
@@ -3819,8 +4074,8 @@ export class Swarm {
         cwd: CEO_DIR,
         prompt: ceoJobPrompt(job, floor, triage),
         systemAppend: ceoSystemPrompt(this.ceoPromptInput(a)),
-        model: a.model || CEO_MODEL,
-        effort: a.effort || CEO_EFFORT,
+        model: this.ceoModelFor(a, how.cli ?? 'claude'),
+        effort: a.effort || (how.cli === 'codex' || how.cli === 'opencode' ? this.state.settings.defaultEffort : CEO_EFFORT),
         browserTesting: false,
         additionalDirectories: this.state.repos.filter((r) => this.repoRt.get(r.id)?.cloneStatus === 'ready').map((r) => this.backend.mainDir(r.fullName)),
         role: 'ceo',
@@ -3836,7 +4091,7 @@ export class Swarm {
         },
         sessionId: (id) => {
           a.sessionId = id;
-          a.sessionCli = id ? 'claude' : null;
+          a.sessionCli = id ? how.cli ?? 'claude' : null;
         },
         browserUrl: () => undefined,
         screenshot: () => undefined,
@@ -4729,6 +4984,7 @@ export class Swarm {
     if (!reason) throw new Error('Say why: the manager reads the reason.');
     const cli: AgentCli | '' = isCli(x.cli) ? x.cli : '';
     if (cli && !this.cliReady(cli)) throw new Error(`${cliLabel(cli)} isn't installed here. Installed: ${this.clis.filter((c) => c.installed).map((c) => c.id).join(', ') || 'none'}.`);
+    if (x.model?.trim()) this.checkModel(this.hireCli(cli), x.model);
     const max = this.state.settings.maxAgents;
     const team = this.teamNow(repo);
     const before = plannedSize(team);
@@ -4811,11 +5067,11 @@ export class Swarm {
   /** What an agent runs, defaults resolved, for the CEO. */
   private agentSetup(a: PersistedAgent) {
     const ceo = a.role === 'ceo';
-    const cli = ceo ? 'claude' : a.cli || this.state.settings.defaultCli;
+    const cli = this.plannedCli(a);
     return {
       codingAgent: cli,
-      model: ceo ? a.model || CEO_MODEL : this.modelFor(a, cli) || 'the coding agent default',
-      effort: a.effort || (ceo ? CEO_EFFORT : this.state.settings.defaultEffort),
+      model: ceo ? this.ceoModelFor(a, cli) || 'the coding agent default' : this.modelFor(a, cli) || 'the coding agent default',
+      effort: a.effort || (ceo && cli === 'claude' ? CEO_EFFORT : this.state.settings.defaultEffort),
     };
   }
 
@@ -4942,7 +5198,7 @@ export class Swarm {
     const a = this.agentByRef(x.agent_id);
     if (a.role === 'ceo') throw new Error("That's you: the manager sets the CEO up.");
     if (x.cli === undefined && x.model === undefined && x.effort === undefined) throw new Error('Nothing to change: pass cli, model, effort or a mix.');
-    this.updateAgent(a.id, { cli: x.cli, model: x.model, effort: x.effort });
+    this.updateAgent(a.id, { cli: x.cli, model: x.model, effort: x.effort }, 'ceo');
     const setup = this.setupLabel(a) || 'the office defaults';
     this.appendLog(a, [{ kind: 'system', text: `⚙️ ${this.ceo().name} set ${a.name} up with ${setup}.` }]);
     return `${a.name} runs ${setup} from their next task.`;

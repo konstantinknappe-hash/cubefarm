@@ -3,6 +3,7 @@
 // Pure, with no Claude calls: a phrasebook of templates filled in with real numbers and file names, picked with some
 // variety and never the same line twice in a row. Chatter.tsx decides who says what, and when.
 
+import { getLanguage } from '../../../shared/i18n';
 import type { LogLine } from '../../../shared/types';
 
 /** What someone is busy with, from their latest tool call. */
@@ -108,25 +109,91 @@ const QUIPS: Record<GreetMood, readonly string[]> = {
   ceo: ['Hello, {manager}!', 'Ah, {manager}! Big plans today', 'Hi! Text me any time (P)'],
 };
 
+// ---------- the German phrasebook ----------
+
+const LINES_DE: typeof LINES = {
+  start: ['Bin dran: #{issue}!', 'Ich fange mit #{issue} an', 'Oh, #{issue} klingt spannend', 'So, #{issue}. Los geht’s!'],
+  prOpened: ['PR #{pr} ist bereit für die QA', 'PR #{pr} eröffnet 🚀', '#{pr} kann getestet werden!'],
+  askQa: ['{tester}, schaust du dir #{pr} an?', '{tester}, #{pr} gehört dir', 'Sei nett zu #{pr}, {tester}!'],
+  qaStart: ['Bin dran!', 'Mal sehen, was #{pr} kann…', 'Teste jetzt #{pr} 🔍'],
+  qaPassed: ['#{pr} sieht gut aus ✅', 'Bestanden! #{pr} ist bereit', 'Keine Bugs in #{pr} ✅'],
+  qaFailed: ['Bug in #{pr} gefunden 🐛', '#{pr} ist noch nicht ganz so weit', '#{pr} braucht noch einen Blick 🐛'],
+  fixing: ['Dann zurück zu #{pr}…', 'Okay, ich behebe #{pr}', 'Hoppla. Bin dran!'],
+  fixPushed: ['Bug gefunden!', 'Fix für #{pr} gepusht', 'So, #{pr} ist repariert'],
+  testsGreen: ['Tests sind grün! ✅', 'Alle Tests bestanden ✅', 'Alles grün!'],
+  testsRed: ['Mist, ein roter Test', 'Hm, ein Test schlägt fehl…', 'Warum schlägt das fehl?'],
+  conflict: ['Mist, ein Merge-Konflikt in {file}', 'Merge-Konflikt bei #{pr}…', 'Wer hat noch {file} angefasst?!', 'Mist, ein Merge-Konflikt'],
+  ciSlow: ['Die CI ist heute so langsam…', 'Warte immer noch auf die CI für #{pr}', 'Komm schon, CI…'],
+  ciRed: ['CI ist rot bei #{pr} 😬', 'CI bei #{pr} fehlgeschlagen?!'],
+  merged: ['#{pr} ist live! 🎉', '#{pr} ist gemergt!', 'Juhu, #{pr} ist drin!'],
+  congrats: ['Gut gemacht, {to}!', 'Gut gemacht!', 'Starke Arbeit an #{pr}, {to}!'],
+  error: ['Hm, das stimmt nicht…', 'Oh-oh.', 'Tja, das ist kaputt'],
+  coffee: ['Kaffeezeit ☕', 'Ich brauche einen Kaffee', 'Will jemand Kaffee?', 'Bin gleich zurück, Kaffee!'],
+  visit: ['Wie läuft #{issue}, {host}?', 'Oh, was ist das, {host}?', 'Brauchst du Hilfe, {host}?'],
+  ceo: ['Große Pläne heute!', 'Ab damit!', 'Was für ein Team', 'So viele Ideen…'],
+  ceoVisit: ['Hallo Team! Wie läuft’s?', 'Sieht gut aus, alle zusammen!', 'Weiter so, Team!', 'Bin nur auf der Durchreise!'],
+};
+
+const CEO_BUSY_DE = ['Plane den nächsten Sprint…', 'Viel zu tun…', 'Schaue mir die Etagen an…'];
+
+const WORK_DE: typeof WORK = {
+  read: ['Lese {detail}…', 'So funktioniert also {detail}', 'Hm, {detail}…', 'Lese den Code…'],
+  search: ['Wo ist {detail}…', 'Suche {detail}', 'Wo ist das hin…', 'Ich weiß, es war hier irgendwo'],
+  edit: ['Bearbeite {detail}', 'Nur eine kleine Änderung an {detail}', 'Fast fertig mit {detail}', 'Tippe, tippe…'],
+  test: ['Tests laufen…', 'Daumen drücken…', 'Tests, bitte besteht', 'Komm schon, grün…'],
+  build: ['Baue…', 'Mal sehen, ob es baut', 'Kompiliere…'],
+  browse: ['Klicke mich durch die App 🌐', 'Ich probier’s im Browser', 'Sieht gut aus auf dem Bildschirm!', 'Funktioniert dieser Knopf?', 'Teste es auf dem Handy 📱'],
+  git: ['Committe…', 'Pushe meinen Branch', 'Git, sei nett', 'Schreibe die Commit-Nachricht…'],
+  think: ['Hm, lass mich nachdenken…', 'Denke nach…', 'Was wäre, wenn…', 'Mache einen Plan…'],
+};
+
+const CHAT_DE: typeof CHAT = {
+  '☕': ['Kaffee? ☕', 'Der Kaffee ist super ☕', 'Dritter Kaffee heute ☕', 'Wer hat die Kanne leer gemacht? ☕', 'Entkoffeiniert? Niemals ☕'],
+  '😂': ['Auf meinem Rechner läuft’s 😂', 'Wer hat diese Variable benannt? 😂', 'Schon mal aus- und wieder eingeschaltet? 😂', 'Das ist kein Bug, das ist ein Feature 😂', 'Nur noch ein Refactoring 😂'],
+  '🚀': ['Alle sind so beschäftigt 🚀', 'Viel los heute auf der Etage 🚀', 'Wir liefern ganz schön viel! 🚀', 'So viele PRs heute 🚀'],
+  '🎉': ['Hast du gesehen, dass #{pr} gemergt ist? 🎉', '#{pr} ist live! 🎉', 'Noch ein Merge! 🎉', 'Schon wieder der Gong! 🎉'],
+  '🐛': ['Die QA hat einen Bug in #{pr} gefunden 🐛', 'Armer #{pr} 🐛', 'Heute überall Bugs 🐛', 'Zerquetsch den Bug! 🐛'],
+};
+
+const COOLER_COFFEE_DE = ['Kaffee?', 'Kaffee? ☕', 'Magst du einen Kaffee?'];
+
+const HI_DE = ['Hallo!', 'Hey, {manager}!', 'Oh, hallo!', 'Hi!'];
+const QUIPS_DE: typeof QUIPS = {
+  shipped: ['Hallo! #{pr} ist gerade live gegangen 🎉', 'Hey! Hast du gesehen, dass #{pr} gemergt ist?'],
+  inQa: ['Hallo! #{pr} ist bei der QA', 'Hey! Warte auf die QA für #{pr}'],
+  fixing: ['Hallo! Ich behebe #{pr}', 'Hey! #{pr} braucht einen Fix'],
+  working: ['Hallo! Bin mit #{issue} beschäftigt', 'Hey! #{issue} macht Fortschritte'],
+  testing: ['Hallo! Teste #{pr} 🔍', 'Hey! #{pr} liegt auf meinem Prüfstand'],
+  free: ['Hallo! Hast du was für mich?', 'Hey {manager}! Brauchst du was?', 'Hallo! Mache gerade Pause ☕'],
+  ceo: ['Hallo, {manager}!', 'Ah, {manager}! Große Pläne heute', 'Hallo! Schreib mir jederzeit (P)'],
+};
+
+/** The phrasebook in the office's language. */
+const book = () =>
+  getLanguage() === 'de'
+    ? { lines: LINES_DE, ceoBusy: CEO_BUSY_DE, work: WORK_DE, chat: CHAT_DE, coolerCoffee: COOLER_COFFEE_DE, hi: HI_DE, quips: QUIPS_DE, hello: 'Hallo!' }
+    : { lines: LINES, ceoBusy: CEO_BUSY, work: WORK, chat: CHAT, coolerCoffee: COOLER_COFFEE, hi: HI, quips: QUIPS, hello: 'Hi!' };
+
 /** The blanks a line can fill in. */
 type Blanks = Partial<Record<'pr' | 'issue' | 'file' | 'tester' | 'to' | 'host' | 'detail' | 'manager', string | number | null>>;
 
 /** The templates for an event, and what fills them in. */
 function templates(e: ChatterEvent, rand: () => number): { lines: readonly string[]; blanks: Blanks } {
+  const b = book();
   switch (e.kind) {
     case 'work':
-      return { lines: WORK[e.work], blanks: { detail: e.detail } };
+      return { lines: b.work[e.work], blanks: { detail: e.detail } };
     case 'chat':
-      return { lines: e.topic === '☕' && e.venue === 'cooler' ? COOLER_COFFEE : CHAT[e.topic], blanks: { pr: e.pr } };
+      return { lines: e.topic === '☕' && e.venue === 'cooler' ? b.coolerCoffee : b.chat[e.topic], blanks: { pr: e.pr } };
     case 'greet': {
       const quip = e.mood === 'ceo' || rand() < 0.65;
-      return { lines: quip ? QUIPS[e.mood] : HI, blanks: { manager: e.manager || null, pr: e.pr, issue: e.issue } };
+      return { lines: quip ? b.quips[e.mood] : b.hi, blanks: { manager: e.manager || null, pr: e.pr, issue: e.issue } };
     }
     case 'ceo':
-      return { lines: e.busy ? CEO_BUSY : LINES.ceo, blanks: {} };
+      return { lines: e.busy ? b.ceoBusy : b.lines.ceo, blanks: {} };
     default: {
       const { kind: _kind, ...blanks } = e;
-      return { lines: LINES[e.kind], blanks: blanks as Blanks };
+      return { lines: b.lines[e.kind], blanks: blanks as Blanks };
     }
   }
 }
@@ -151,7 +218,7 @@ export function chatterLine(e: ChatterEvent, rand: () => number = Math.random, l
   const { lines, blanks } = templates(e, rand);
   const filled = lines.map((t) => fill(t, blanks)).filter((l): l is string => l !== null);
   // Every template needed a blank we don't have: a plain hello, or a thoughtful noise.
-  const options = filled.length ? filled : [e.kind === 'greet' ? 'Hi!' : 'Hmm…'];
+  const options = filled.length ? filled : [e.kind === 'greet' ? book().hello : 'Hmm…'];
   const mine = options.length > 1 ? options.filter((l) => l !== last) : options;
   const unheard = mine.filter((l) => !heard.includes(l));
   const fresh = unheard.length ? unheard : mine;

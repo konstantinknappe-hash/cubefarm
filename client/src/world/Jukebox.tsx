@@ -15,6 +15,7 @@ import { HALF_D, JUKEBOX } from './layout';
 import { themeSongs } from './themes/active';
 import { markBloom } from './gfx/bloomMarks';
 import { glow, toon } from './materials';
+import { t } from '../i18n';
 import { Ball, Box, Cyl } from './Toon';
 
 // Every floor's jukebox: it plays through the playlist (jukeboxSongs.ts) by itself, each floor starting on its own song.
@@ -359,27 +360,27 @@ export function Jukebox({ x, floor }: { x: number; floor: number }) {
     () => (ctx: CanvasRenderingContext2D) =>
       view.on
         ? drawDisplay(ctx, song.color, view.vol, [
-            { text: focus ? '♪ FOCUS STATION ♪' : '♪ NOW PLAYING ♪', size: 30, weight: 700 },
+            { text: focus ? t('world.jukebox.focusStation') : t('world.jukebox.nowPlaying'), size: 30, weight: 700 },
             { text: song.title, size: 58, weight: 800 },
             { text: song.artist, size: 38, weight: 600 },
           ])
         : drawDisplay(ctx, '#495057', view.vol, [
             { text: 'JUKEBOX', size: 66, weight: 800 },
-            { text: focus ? `Focus · press ${use} to play` : `press ${use} to play`, size: 40, weight: 600 },
+            { text: focus ? t('world.jukebox.focusPress', { key: use }) : t('world.jukebox.press', { key: use }), size: 40, weight: 600 },
           ]),
     [view.on, view.vol, song, focus, use],
   );
 
-  const volume = `volume ${view.vol} of ${MAX_MUSIC_LEVEL}`;
-  const nextLabel = focus ? `Next focus song · now playing ${song.title}` : `Next song · now playing ${song.title}`;
-  const picker = useInteractable<THREE.Group>({ id: 'jukebox:next', label: view.on ? nextLabel : 'Play the jukebox', action: { kind: 'jukebox', op: 'next' } }, 3);
-  const power = useInteractable<THREE.Group>({ id: 'jukebox:power', label: view.on ? 'Stop the music' : 'Play music', action: { kind: 'jukebox', op: 'toggle' } }, 3);
+  const volume = t('world.jukebox.volume', { vol: view.vol, max: MAX_MUSIC_LEVEL });
+  const nextLabel = focus ? t('world.jukebox.nextFocus', { title: song.title }) : t('world.jukebox.next', { title: song.title });
+  const picker = useInteractable<THREE.Group>({ id: 'jukebox:next', label: view.on ? nextLabel : t('world.jukebox.play'), action: { kind: 'jukebox', op: 'next' } }, 3);
+  const power = useInteractable<THREE.Group>({ id: 'jukebox:power', label: view.on ? t('world.jukebox.stop') : t('world.jukebox.playMusic'), action: { kind: 'jukebox', op: 'toggle' } }, 3);
   const station = useInteractable<THREE.Group>(
-    { id: 'jukebox:station', label: focus ? 'All songs · the Focus station is on (lo-fi & ambient)' : 'Focus station · lo-fi & ambient only', action: { kind: 'jukebox', op: 'station' } },
+    { id: 'jukebox:station', label: focus ? t('world.jukebox.allSongs') : t('world.jukebox.focusOnly'), action: { kind: 'jukebox', op: 'station' } },
     3,
   );
-  const louder = useInteractable<THREE.Group>({ id: 'jukebox:vol+', label: `Louder · ${volume}`, action: { kind: 'jukebox', op: 'vol+' } }, 3);
-  const softer = useInteractable<THREE.Group>({ id: 'jukebox:vol-', label: `Softer · ${volume}`, action: { kind: 'jukebox', op: 'vol-' } }, 3);
+  const louder = useInteractable<THREE.Group>({ id: 'jukebox:vol+', label: t('world.jukebox.louder', { volume }), action: { kind: 'jukebox', op: 'vol+' } }, 3);
+  const softer = useInteractable<THREE.Group>({ id: 'jukebox:vol-', label: t('world.jukebox.softer', { volume }), action: { kind: 'jukebox', op: 'vol-' } }, 3);
 
   useFrame(() => {
     const t = nowPlaying();

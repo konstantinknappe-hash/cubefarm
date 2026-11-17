@@ -2,6 +2,7 @@ import { memo, useEffect, useMemo, useRef, useState, useSyncExternalStore } from
 import { useFrame, useThree } from '@react-three/fiber';
 import { Billboard } from '@react-three/drei';
 import { BILLBOARD } from './viewTags';
+import { t } from '../i18n';
 import * as THREE from 'three';
 import { useStore, type Agent } from '../store';
 import { loadScreenshot } from '../screenshot';
@@ -168,8 +169,8 @@ function VacantMonitor({ accent, full }: { accent: string; full: number }) {
       ctx.fillRect(0, 0, 640, 384);
       drawSign(ctx, 640, 384, [
         { text: '🪑', size: 70 },
-        { text: 'VACANT', size: 70, color: '#ffd6a5' },
-        { text: full ? `Team is full (${full})` : `press ${use} or click to add an agent`, size: 36, color: '#a9adc6', weight: 500 },
+        { text: t('world.desk.vacant'), size: 70, color: '#ffd6a5' },
+        { text: full ? t('world.desk.full', { n: full }) : t('world.desk.add', { key: use }), size: 36, color: '#a9adc6', weight: 500 },
       ], 'rgba(0,0,0,0)');
     },
     [full, use],
@@ -256,7 +257,7 @@ function LetGoEnvelope({ agentId, name }: { agentId: string; name: string }) {
 }
 
 function Envelope({ requestId, name }: { requestId: string; name: string }) {
-  const ref = useInteractable<THREE.Group>({ id: `letgo-${requestId}`, label: `Read the CEO's note about ${name}`, action: { kind: 'interview', requestId } }, 3.6);
+  const ref = useInteractable<THREE.Group>({ id: `letgo-${requestId}`, label: t('world.desk.letGoNote', { name }), action: { kind: 'interview', requestId } }, 3.6);
   const marker = useRef<THREE.Group>(null);
   const tex = useCanvasTexture(
     128,
@@ -322,20 +323,20 @@ export const Desk = memo(function Desk({
 }) {
   // Aiming at the person themselves, while they've nothing to do, says hi instead (Chatter.tsx).
   const agentId = agent?.id;
-  const desk = agent?.role === 'ceo' ? 'to open it' : 'for their terminal';
+  const desk = agent?.role === 'ceo' ? t('world.desk.toOpen') : t('world.desk.forTerminal');
   const greeting = useMemo(() => (agentId ? greetPick(agentId, desk) : undefined), [agentId, desk]);
   const ref = useInteractable<THREE.Group>(
     agent
       ? {
           id: `agent-${agent.id}`,
-          label: agent.role === 'ceo' ? `Open ${agent.name}'s desk (CEO) · P texts them from anywhere` : `View ${agent.name}'s terminal · ⚙️ Setup inside`,
+          label: agent.role === 'ceo' ? t('world.desk.ceoLabel', { name: agent.name }) : t('world.desk.label', { name: agent.name }),
           action: { kind: 'terminal', agentId: agent.id },
         }
       : full || spare
         ? null
         : {
             id: `vacant-${repoId}-${position.join()}`,
-            label: 'Add an agent at this desk',
+            label: t('world.desk.addLabel'),
             action: { kind: 'hire', repoId },
           },
     3.6,

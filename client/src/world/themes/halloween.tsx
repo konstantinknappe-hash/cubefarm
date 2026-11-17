@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { markBloom } from '../gfx/bloomMarks';
+import { t } from '../../i18n';
 import { useStore } from '../../store';
 import { outsideHearing } from '../../ui/outsideMix';
 import { listenerAt, noise, tone } from '../../ui/sfx';
@@ -233,9 +234,9 @@ function Gravestone({ at }: { at: Spot[] }) {
       ctx.font = `700 150px ${SANS}`;
       ctx.fillText('RIP', 256, 150);
       ctx.font = `700 76px ${SANS}`;
-      ctx.fillText('flaky e2e', 256, 290);
+      ctx.fillText(t('world.halloween.flaky'), 256, 290);
       ctx.font = `500 44px ${SANS}`;
-      ctx.fillText('it passed locally', 256, 390);
+      ctx.fillText(t('world.halloween.locally'), 256, 390);
     },
     [],
   );
@@ -264,7 +265,7 @@ const WRAPPERS = ['#ff7b00', '#9d4edd', '#06d6a0', '#ef476f', '#ffd166', '#4cc9f
 function takeCandy(at?: Spot) {
   candies++;
   crinkle(at ? { x: at.x, y: at.y + 0.1, z: at.z } : undefined);
-  useStore.getState().pushToast('info', `🍬 You took ${CANDY[(candies - 1) % CANDY.length]} (${candies} so far). Happy Halloween!`);
+  useStore.getState().pushToast('info', t('world.halloween.candy', { candy: t(`world.halloween.candy${(candies - 1) % CANDY.length}`), n: candies }));
 }
 
 function CandyBowl({ at }: { at: Spot[] }) {
@@ -290,7 +291,7 @@ function CandyBowl({ at }: { at: Spot[] }) {
   return (
     <>
       {at.map((s) => (
-        <Hotspot key={s.id} id="candy" label="Take a candy 🍬" position={[s.x, s.y, s.z]} rotationY={s.rotY}>
+        <Hotspot key={s.id} id="candy" label={t('world.halloween.take')} position={[s.x, s.y, s.z]} rotationY={s.rotY}>
           <mesh geometry={geo} material={paintedToonDouble()} castShadow />
         </Hotspot>
       ))}

@@ -1,3 +1,4 @@
+import { t } from '../../i18n';
 import { memo, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { BallCollider, CapsuleCollider, CuboidCollider, interactionGroups, Physics, RigidBody, useAfterPhysicsStep, useBeforePhysicsStep, useRapier, type RapierCollider, type RapierRigidBody } from '@react-three/rapier';
@@ -199,7 +200,7 @@ const LOOSE = {}; // a ball nobody holds: no tags (a held one is hidden from pho
 /** A ball's looks, and the handle you aim at to pick it up. Only this re-renders when the ball is picked up. */
 function Grip({ def }: { def: BallDef }) {
   const held = useStore((s) => s.held?.kind === 'ball' && s.held.id === def.id);
-  const ref = useInteractable<THREE.Group>(held ? null : { id: `toy:${def.id}`, label: 'Pick up ball', action: { kind: 'pickup', toyId: def.id } }, PICKUP_RANGE);
+  const ref = useInteractable<THREE.Group>(held ? null : { id: `toy:${def.id}`, label: t('world.toy.pickBall'), action: { kind: 'pickup', toyId: def.id } }, PICKUP_RANGE);
   // Pinned between you and a wall, a carried ball can end up round the camera: hide it rather than show its inside.
   useFrame(({ camera }) => {
     const g = ref.current;

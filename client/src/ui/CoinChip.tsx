@@ -1,6 +1,7 @@
 // The HUD's coins (#210): this floor's (the whole office's in the lobby), counting a merge's coins in as they land.
 // A merge on another floor plings softly from here; the floor's own coin burst plings where it happens.
 import { useEffect, useState } from 'react';
+import { t } from '../i18n';
 import { repoOnFloor, useStore } from '../store';
 import { pling, watchCoffees } from '../world/decor/actions';
 import { onReward } from '../world/decor/rewards';
@@ -31,7 +32,7 @@ export function CoinChip() {
     return () => clearTimeout(t);
   }, [gain]);
   return (
-    <button className="pill coin-pill" title="Coins: merges earn them, the lobby kiosk spends them on decorations" onClick={() => openOverlay({ kind: 'catalogue', repoId: repoOnFloor(useStore.getState().repos, useStore.getState().floor)?.id })}>
+    <button className="pill coin-pill" title={t('ui.coins.title')} onClick={() => openOverlay({ kind: 'catalogue', repoId: repoOnFloor(useStore.getState().repos, useStore.getState().floor)?.id })}>
       🪙 {coins}
       {gain && (
         <span key={gain.at} className="coin-gain">

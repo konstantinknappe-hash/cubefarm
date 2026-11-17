@@ -1,6 +1,7 @@
 // Photo mode's controls, loaded on first use: the settings the panel and the scene share, going in and coming out
 // (everything it touches is put back exactly), the free camera, shots and clips. PhotoScene.tsx does the drawing.
 import { create } from 'zustand';
+import { t } from '../../../shared/i18n';
 import { useStore } from '../store';
 import { soundStream } from '../ui/sfx';
 import { holdGongRuns } from '../world/gongRunner';
@@ -175,7 +176,7 @@ export function overlayOptions(guides: boolean): OverlayOptions {
 export function focusCenter() {
   const d = bridge?.focusCenter() ?? null;
   if (d === null) {
-    note('Nothing in the middle of the view to focus on.');
+    note(t('ui.photo.noFocus'));
     return null;
   }
   update({ dof: true, focus: Math.round(d * 10) / 10 });
@@ -193,11 +194,11 @@ export async function takeShot(scale: ShotScale = usePhoto.getState().scale) {
     const item = addToGallery(r.png, { kind: 'shot', name, width: r.width, height: r.height, seconds: null }, r.thumb);
     download(item.url, name);
     const copied = await copyImage(r.png);
-    const shrunk = r.scale < scale ? ` (${scale}× was too big for the browser, so ${Math.round(r.scale * 10) / 10}×)` : '';
-    note(`📸 Saved ${name}, ${r.width}×${r.height}${shrunk}${copied ? ', and copied it' : ''}`);
+    const shrunk = r.scale < scale ? t('ui.photo.shrunk', { scale, got: Math.round(r.scale * 10) / 10 }) : '';
+    note(`${t('ui.photo.saved', { name, w: r.width, h: r.height })}${shrunk}${copied ? t('ui.photo.copied') : ''}`);
     return { name, width: r.width, height: r.height, bytes: r.png.size, copied };
   } catch (err) {
-    note(`The shot failed: ${err instanceof Error ? err.message : String(err)}`, 'error');
+    note(t('ui.photo.shotFailed', { why: err instanceof Error ? err.message : String(err) }), 'error');
     return null;
   } finally {
     usePhoto.setState({ busy: null });
@@ -212,14 +213,14 @@ export function startRecording(): Promise<ClipResult | null> {
   const canvas = officeCanvas();
   const support = clipSupport(canvas);
   if (!support.ok || !canvas) {
-    note(support.ok ? 'The 3D view is not ready.' : support.why, 'error');
+    note(support.ok ? t('ui.photo.notReady') : support.why, 'error');
     return Promise.resolve(null);
   }
   const s = usePhoto.getState();
   try {
     clip = startClip({ source: canvas, fps: s.fps, seconds: s.clipSeconds, overlay: overlayOptions(false), audio: soundStream(), type: support.type, onLimit: () => void stopRecording() });
   } catch (err) {
-    note(`Recording could not start: ${err instanceof Error ? err.message : String(err)}`, 'error');
+    note(t('ui.photo.recFailed', { why: err instanceof Error ? err.message : String(err) }), 'error');
     return Promise.resolve(null);
   }
   usePhoto.setState({ recording: { started: performance.now(), limit: s.clipSeconds, fps: s.fps }, note: null });
@@ -242,9 +243,9 @@ export async function stopRecording(): Promise<ClipResult | null> {
     const item = addToGallery(blob, { kind: 'clip', name, width: c.width, height: c.height, seconds });
     download(item.url, name);
     result = { name, bytes: blob.size, seconds, type: blob.type, width: c.width, height: c.height };
-    note(`🎬 Saved ${name}, ${Math.round(seconds)} s at ${c.width}×${c.height}`);
+    note(t('ui.photo.clipSaved', { name, s: Math.round(seconds), w: c.width, h: c.height }));
   } catch (err) {
-    note(`The clip failed: ${err instanceof Error ? err.message : String(err)}`, 'error');
+    note(t('ui.photo.clipFailed', { why: err instanceof Error ? err.message : String(err) }), 'error');
   } finally {
     usePhoto.setState({ busy: null });
   }

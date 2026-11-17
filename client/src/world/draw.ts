@@ -1,3 +1,4 @@
+import { formatTime, t } from '../../../shared/i18n';
 import type { LogLine, PreviewStatus, PreviewView, RepoView } from '../../../shared/types';
 import type { Agent, KanbanCard, KanbanColumns } from '../store';
 import { testingLabel } from '../qaCard';
@@ -58,15 +59,15 @@ const TERM = {
 };
 
 const SPINNER = ['·', '✢', '✳', '✶', '✻', '✽', '✻', '✶', '✳', '✢'];
-const VERBS = ['Crafting', 'Pondering', 'Tinkering', 'Brewing', 'Noodling', 'Scheming', 'Assembling', 'Percolating'];
+const VERBS = ['crafting', 'pondering', 'tinkering', 'brewing', 'noodling', 'scheming', 'assembling', 'percolating'];
 
 export function toolVerb(tool: string | null): string {
   if (!tool) return '';
-  if (tool.startsWith('mcp__playwright__')) return 'Browsing';
-  if (tool === 'Bash' || tool === 'PowerShell') return 'Running';
-  if (tool === 'Edit' || tool === 'Write' || tool === 'MultiEdit') return 'Editing';
-  if (tool === 'Read' || tool === 'Grep' || tool === 'Glob') return 'Reading';
-  if (tool === 'WebFetch' || tool === 'WebSearch') return 'Researching';
+  if (tool.startsWith('mcp__playwright__')) return t('world.verb.browsing');
+  if (tool === 'Bash' || tool === 'PowerShell') return t('world.verb.running');
+  if (tool === 'Edit' || tool === 'Write' || tool === 'MultiEdit') return t('world.verb.editing');
+  if (tool === 'Read' || tool === 'Grep' || tool === 'Glob') return t('world.verb.reading');
+  if (tool === 'WebFetch' || tool === 'WebSearch') return t('world.verb.researching');
   return tool;
 }
 
@@ -99,16 +100,16 @@ export function drawTerminal(
   ctx.textBaseline = 'middle';
   const job =
     agent.status === 'idle'
-      ? 'idle'
+      ? t('world.term.idle')
       : agent.role === 'ceo'
-        ? (agent.issueTitle ?? 'running the company').toLowerCase()
+        ? (agent.issueTitle ?? t('world.term.company')).toLowerCase()
         : agent.task === 'qa'
-          ? `testing PR #${agent.prNumber}`
+          ? t('world.term.testing', { n: agent.prNumber ?? '?' })
           : agent.task === 'fix'
-            ? `fixing PR #${agent.prNumber}`
+            ? t('world.term.fixing', { n: agent.prNumber ?? '?' })
             : agent.issueNumber
-              ? `issue #${agent.issueNumber}`
-              : 'idle';
+              ? t('world.term.issue', { n: agent.issueNumber })
+              : t('world.term.idle');
   const host = agent.role === 'ceo' ? 'hq' : 'swarm';
   const title = `${agent.name.toLowerCase()}@${host} — ${job} — ${program}`;
   ctx.fillText(title, 84, barH / 2 + 1);
@@ -159,7 +160,7 @@ export function drawTerminal(
 
   if (agent.status === 'working' || agent.status === 'preparing') {
     const frame = Math.floor(now / 120) % SPINNER.length;
-    const verb = agent.status === 'preparing' ? (agent.currentTool ?? 'Setting up worktree') : toolVerb(agent.currentTool) || VERBS[Math.floor(now / 6000) % VERBS.length];
+    const verb = agent.status === 'preparing' ? (agent.currentTool ?? t('world.term.setup')) : toolVerb(agent.currentTool) || t(`world.verb.${VERBS[Math.floor(now / 6000) % VERBS.length]}`);
     const secs = agent.startedAt ? Math.max(0, Math.floor((officeNow() - agent.startedAt) / 1000)) : 0;
     const mm = Math.floor(secs / 60);
     ctx.fillStyle = '#ff9e64';
@@ -171,23 +172,23 @@ export function drawTerminal(
 }
 
 function drawScreensaver(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, agent: Agent, now: number) {
-  const t = now / 1000;
+  const time = now / 1000;
   const g = ctx.createLinearGradient(x, y, x + w, y + h);
   g.addColorStop(0, '#26264a');
   g.addColorStop(1, '#3b2a55');
   ctx.fillStyle = g;
   ctx.fillRect(x, y, w, h);
-  const bx = x + w / 2 + Math.sin(t * 0.7) * w * 0.25;
-  const by = y + h / 2 + Math.cos(t * 0.9) * h * 0.18;
+  const bx = x + w / 2 + Math.sin(time * 0.7) * w * 0.25;
+  const by = y + h / 2 + Math.cos(time * 0.9) * h * 0.18;
   ctx.textAlign = 'center';
   ctx.font = `64px ${SANS}`;
   ctx.fillText('✻', bx, by - 20);
   ctx.fillStyle = '#ffd6a5';
   ctx.font = `600 26px ${SANS}`;
-  ctx.fillText(`${agent.name} is free`, bx, by + 34);
+  ctx.fillText(t('world.term.free', { name: agent.name }), bx, by + 34);
   ctx.fillStyle = '#b8b8dd';
   ctx.font = `18px ${SANS}`;
-  ctx.fillText(agent.role === 'ceo' ? 'thinking about the company…' : 'waiting for work…', bx, by + 62);
+  ctx.fillText(agent.role === 'ceo' ? t('world.term.ceoThinking') : t('world.term.waiting'), bx, by + 62);
   ctx.textAlign = 'left';
 }
 
@@ -214,19 +215,19 @@ function drawBrowser(ctx: CanvasRenderingContext2D, x: number, y: number, w: num
     ctx.fillStyle = '#9aa1b2';
     ctx.textAlign = 'center';
     ctx.font = `16px ${SANS}`;
-    ctx.fillText('🌐 loading page…', area.x + area.w / 2, area.y + area.h / 2);
+    ctx.fillText(t('world.term.loading'), area.x + area.w / 2, area.y + area.h / 2);
     ctx.textAlign = 'left';
   }
 }
 
 // ---------- kanban whiteboard ----------
 
-const COLS: { key: keyof KanbanColumns; title: string; chip: string; note: string }[] = [
-  { key: 'backlog', title: '📋 Backlog', chip: '#ffd166', note: '#fff3b0' },
-  { key: 'progress', title: '🔨 In progress', chip: '#4cc9f0', note: '#cfeefd' },
-  { key: 'qa', title: '🔍 In QA', chip: '#ff9f68', note: '#ffe3cf' },
-  { key: 'ready', title: '✅ Ready to merge', chip: '#80ed99', note: '#d8f9df' },
-  { key: 'merged', title: '🎉 Merged', chip: '#c77dff', note: '#eadcff' },
+const COLS: { key: keyof KanbanColumns; title: () => string; chip: string; note: string }[] = [
+  { key: 'backlog', title: () => t('world.board.backlog'), chip: '#ffd166', note: '#fff3b0' },
+  { key: 'progress', title: () => t('world.board.progress'), chip: '#4cc9f0', note: '#cfeefd' },
+  { key: 'qa', title: () => t('world.board.qa'), chip: '#ff9f68', note: '#ffe3cf' },
+  { key: 'ready', title: () => t('world.board.ready'), chip: '#80ed99', note: '#d8f9df' },
+  { key: 'merged', title: () => t('world.board.merged'), chip: '#c77dff', note: '#eadcff' },
 ];
 
 /** The whiteboard's columns, left to right. */
@@ -315,8 +316,8 @@ export function drawKanban(ctx: CanvasRenderingContext2D, w: number, h: number, 
   ctx.textBaseline = 'middle';
   const statsLeft = extras.stats ? drawStatsCorner(ctx, w - 40, 48, extras.stats) : w - 40;
   ctx.font = `500 26px ${SANS}`;
-  const synced = repo.lastSync ? `synced ${new Date(repo.lastSync).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'syncing…';
-  const status = `${repo.autoAssign ? '⚡ auto-assign on · ' : ''}${synced}`;
+  const synced = repo.lastSync ? t('world.board.synced', { at: formatTime(repo.lastSync) }) : t('world.board.syncing');
+  const status = `${repo.autoAssign ? t('world.board.auto') : ''}${synced}`;
   const statusW = ctx.measureText(status).width;
   ctx.font = `700 46px ${SANS}`;
   const nameW = Math.min(ctx.measureText(repo.fullName).width, statsLeft - 40 - 40);
@@ -339,7 +340,7 @@ export function drawKanban(ctx: CanvasRenderingContext2D, w: number, h: number, 
     ctx.fill();
     ctx.fillStyle = '#1f2233';
     ctx.font = `600 30px ${SANS}`;
-    ctx.fillText(`${c.title}  ${cards.length}`, x0 + 30, top + 27);
+    ctx.fillText(`${c.title()}  ${cards.length}`, x0 + 30, top + 27);
     if (ci > 0) {
       ctx.strokeStyle = '#d9dbe3';
       ctx.lineWidth = 3;
@@ -359,12 +360,12 @@ export function drawKanban(ctx: CanvasRenderingContext2D, w: number, h: number, 
       ctx.fillStyle = '#6c7086';
       ctx.font = `600 26px ${SANS}`;
       const n = kanbanNoteRect(ci, shown.length, w);
-      ctx.fillText(`+${cards.length - shown.length} more`, n.x + 14, n.y + n.h / 2);
+      ctx.fillText(t('world.board.more', { n: cards.length - shown.length }), n.x + 14, n.y + n.h / 2);
     }
     if (cards.length === 0) {
       ctx.fillStyle = '#b4b7c5';
       ctx.font = `italic 500 26px ${SANS}`;
-      ctx.fillText(c.key === 'backlog' ? 'no open issues' : 'nothing here yet', x0 + 30, top + 110);
+      ctx.fillText(c.key === 'backlog' ? t('world.board.noIssues') : t('world.board.empty'), x0 + 30, top + 110);
     }
   });
   for (const p of extras.strings ?? []) drawString(ctx, w, p);
@@ -605,10 +606,10 @@ export function drawCandidateTag(ctx: CanvasRenderingContext2D, w: number, h: nu
   };
   ctx.fillStyle = '#23263a';
   ctx.font = `700 40px ${SANS}`;
-  ctx.fillText(fit(`Candidate: ${name}`, w - 100), 80, h * 0.36);
+  ctx.fillText(fit(t('world.candidate.title', { name }), w - 100), 80, h * 0.36);
   ctx.fillStyle = '#5c6078';
   ctx.font = `600 28px ${SANS}`;
-  ctx.fillText(fit(`${detail}${floor ? ` · Floor ${floor}` : ''}`, w - 100), 80, h * 0.72);
+  ctx.fillText(fit(`${detail}${floor ? t('world.candidate.floor', { floor }) : ''}`, w - 100), 80, h * 0.72);
 }
 
 export function drawSign(ctx: CanvasRenderingContext2D, w: number, h: number, lines: { text: string; size: number; color?: string; weight?: number }[], bg: string, fg = '#ffffff') {
@@ -685,20 +686,20 @@ export function drawFacade(ctx: CanvasRenderingContext2D, w: number, h: number, 
 
 // ---------- the floor's app monitor ----------
 
-const APP_STEPS: { status: PreviewStatus; label: string }[] = [
-  { status: 'preparing', label: 'Checking out the code' },
-  { status: 'installing', label: 'Installing dependencies' },
-  { status: 'starting', label: 'Starting the app' },
+const APP_STEPS: { status: PreviewStatus; label: () => string }[] = [
+  { status: 'preparing', label: () => t('world.app.checkout') },
+  { status: 'installing', label: () => t('world.app.install') },
+  { status: 'starting', label: () => t('world.app.start') },
 ];
 
-const APP_BADGE: Record<PreviewStatus, { text: string; bg: string }> = {
-  unconfigured: { text: 'NOT SET UP', bg: '#5c6078' },
-  stopped: { text: 'STOPPED', bg: '#5c6078' },
-  preparing: { text: 'STARTING', bg: '#f4a261' },
-  installing: { text: 'STARTING', bg: '#f4a261' },
-  starting: { text: 'STARTING', bg: '#f4a261' },
-  running: { text: '● LIVE', bg: '#ef233c' },
-  error: { text: 'ERROR', bg: '#e63946' },
+const APP_BADGE: Record<PreviewStatus, { text: () => string; bg: string }> = {
+  unconfigured: { text: () => t('world.app.notSetUp'), bg: '#5c6078' },
+  stopped: { text: () => t('world.app.stopped'), bg: '#5c6078' },
+  preparing: { text: () => t('world.app.starting'), bg: '#f4a261' },
+  installing: { text: () => t('world.app.starting'), bg: '#f4a261' },
+  starting: { text: () => t('world.app.starting'), bg: '#f4a261' },
+  running: { text: () => t('world.app.live'), bg: '#ef233c' },
+  error: { text: () => t('world.app.error'), bg: '#e63946' },
 };
 
 /** Shorten text with an ellipsis until it fits in max pixels, in the context's current font. */
@@ -744,7 +745,7 @@ export function drawAppScreen(ctx: CanvasRenderingContext2D, w: number, h: numbe
   ctx.fillStyle = info.color;
   ctx.fillRect(0, headH - 6, w, 6);
   ctx.font = `700 34px ${SANS}`;
-  const chip = `FLOOR ${info.floor}`;
+  const chip = t('world.app.floor', { n: info.floor });
   const chipW = ctx.measureText(chip).width + 44;
   roundRect(ctx, 40, 30, chipW, 54, 27);
   ctx.fillStyle = info.color;
@@ -752,7 +753,7 @@ export function drawAppScreen(ctx: CanvasRenderingContext2D, w: number, h: numbe
   ctx.fillStyle = '#ffffff';
   ctx.fillText(chip, 62, 58);
 
-  const badge = APP_BADGE[p.status];
+  const badge = { ...APP_BADGE[p.status], text: APP_BADGE[p.status].text() };
   ctx.font = `700 38px ${SANS}`;
   const badgeW = ctx.measureText(badge.text).width + 52;
   roundRect(ctx, w - 40 - badgeW, 28, badgeW, 58, 29);
@@ -781,7 +782,7 @@ export function drawAppScreen(ctx: CanvasRenderingContext2D, w: number, h: numbe
 
   const bodyTop = headH;
   const midY = bodyTop + (h - headH - footH) / 2;
-  const ref = p.ref ?? 'the app';
+  const ref = p.ref ?? t('world.app.theApp');
 
   if (p.status === 'stopped') {
     // a big play button
@@ -797,26 +798,26 @@ export function drawAppScreen(ctx: CanvasRenderingContext2D, w: number, h: numbe
     ctx.lineTo(w / 2 + 44, cy);
     ctx.closePath();
     ctx.fill();
-    centred(`Press ${info.use} to open the app`, midY + 80, 70, '#ffffff');
-    footer("The app isn't running. Start it from the viewer.");
+    centred(t('world.app.pressOpen', { key: info.use }), midY + 80, 70, '#ffffff');
+    footer(t('world.app.notRunning'));
   } else if (p.status === 'unconfigured') {
     centred('⚙️', midY - 90, 110, '#ffffff', 400);
-    centred('No run command yet.', midY + 40, 66, '#ffffff');
-    centred("Set one in the manager's console.", midY + 120, 44, '#b8b8cc', 600);
-    footer(`Press ${info.use} to open the app`);
+    centred(t('world.app.noCommand'), midY + 40, 66, '#ffffff');
+    centred(t('world.app.setOne'), midY + 120, 44, '#b8b8cc', 600);
+    footer(t('world.app.pressOpen', { key: info.use }));
   } else if (p.status === 'error') {
-    const firstLine = (p.error ?? '').split(/\r?\n/).find((l) => l.trim())?.trim() || 'The app stopped unexpectedly.';
+    const firstLine = (p.error ?? '').split(/\r?\n/).find((l) => l.trim())?.trim() || t('world.app.stoppedUnexpectedly');
     ctx.fillStyle = '#e63946';
     ctx.fillRect(0, midY - 120, w, 130);
     ctx.font = `700 44px ${SANS}`;
     ctx.fillStyle = '#ffffff';
     ctx.fillText(fitText(ctx, `⚠ ${firstLine}`, w - 100), 50, midY - 55);
-    centred("The app couldn't start.", midY + 90, 52, '#ffffff');
-    footer(`Press ${info.use} to see the log and try again`, '#ffb4ba');
+    centred(t('world.app.couldntStart'), midY + 90, 52, '#ffffff');
+    footer(t('world.app.seeLog', { key: info.use }), '#ffb4ba');
   } else if (p.status !== 'running') {
     const at = Math.max(0, APP_STEPS.findIndex((s) => s.status === p.status));
-    centred(`Getting ${ref} ready…`, bodyTop + 80, 46, '#b8b8cc', 600);
-    centred(`${APP_STEPS[at].label}…`, midY - 20, 72, '#ffffff');
+    centred(t('world.app.getting', { ref }), bodyTop + 80, 46, '#b8b8cc', 600);
+    centred(`${APP_STEPS[at].label()}…`, midY - 20, 72, '#ffffff');
     // a three-step progress bar
     const gap = 18;
     const segW = (w - 200 - gap * (APP_STEPS.length - 1)) / APP_STEPS.length;
@@ -829,17 +830,17 @@ export function drawAppScreen(ctx: CanvasRenderingContext2D, w: number, h: numbe
       ctx.font = `600 28px ${SANS}`;
       ctx.fillStyle = i <= at ? TERM.text : '#6c6c88';
       ctx.textAlign = 'center';
-      ctx.fillText(`${i < at ? '✓ ' : ''}${s.label}`, x + segW / 2, y + 70);
+      ctx.fillText(`${i < at ? '✓ ' : ''}${s.label()}`, x + segW / 2, y + 70);
       ctx.textAlign = 'left';
     });
-    footer(`Step ${at + 1} of ${APP_STEPS.length} · press ${info.use} to watch`);
+    footer(t('world.app.step', { at: at + 1, of: APP_STEPS.length, key: info.use }));
   } else {
     // running: where it's served and what's deployed, plus the latest thing an agent on this floor looked at
     const left = 56;
     const colW = info.shot ? w * 0.5 : w - 2 * left;
     ctx.font = `600 34px ${SANS}`;
     ctx.fillStyle = '#b8b8cc';
-    ctx.fillText('Serving at', left, bodyTop + 72);
+    ctx.fillText(t('world.app.serving'), left, bodyTop + 72);
     ctx.font = `700 50px ${MONO}`;
     ctx.fillStyle = TERM.tool;
     ctx.fillText(fitText(ctx, (p.url ?? '').replace(/^https?:\/\//, '').replace(/\/$/, ''), colW), left, bodyTop + 140);
@@ -859,7 +860,7 @@ export function drawAppScreen(ctx: CanvasRenderingContext2D, w: number, h: numbe
     if (p.startedAt) {
       ctx.font = `500 32px ${SANS}`;
       ctx.fillStyle = '#8d8da8';
-      ctx.fillText(`up since ${new Date(p.startedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`, left, bodyTop + 330);
+      ctx.fillText(t('world.app.upSince', { at: formatTime(p.startedAt) }), left, bodyTop + 330);
     }
 
     if (info.shot) {
@@ -875,9 +876,9 @@ export function drawAppScreen(ctx: CanvasRenderingContext2D, w: number, h: numbe
       ctx.drawImage(img, 0, 0, tw / scale, th / scale, tx, ty, tw, th);
       ctx.font = `500 26px ${SANS}`;
       ctx.fillStyle = '#8d8da8';
-      ctx.fillText(fitText(ctx, info.shotCaption ?? 'latest agent screenshot', tw), tx, ty + th + 36);
+      ctx.fillText(fitText(ctx, info.shotCaption ?? t('world.app.latestShot'), tw), tx, ty + th + 36);
     }
-    footer(`Press ${info.use} to open the app`, TERM.done);
+    footer(t('world.app.pressOpen', { key: info.use }), TERM.done);
   }
   if (strip) drawChannelStrip(ctx, w, h, strip, info.color);
 }

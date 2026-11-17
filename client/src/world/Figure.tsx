@@ -1,8 +1,10 @@
-import { useLayoutEffect, type RefObject } from 'react';
+import { useLayoutEffect, useRef, type RefObject } from 'react';
+import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { AgentLook, AgentRole } from '../../../shared/types';
 import { ACCENTS, BUILD_SHAPE, type Appearance } from './appearance';
-import { PARTS } from './characterParts';
+import { PARTS, PROPELLER_TOP } from './characterParts';
+import { reduceMotion } from '../ui/a11y';
 import { EYES, MORPHS, MORPH_AT, type FaceState } from './face';
 import { Piece } from './Batched';
 import { mix, shade } from './materials';
@@ -38,6 +40,28 @@ function Headphones({ agent }: { agent: Who }) {
       <Piece geometry={PARTS.headphones.shell} color={SUIT} castShadow />
       <Piece geometry={PARTS.headphones.covers} color={shade(agent.color, 0.12)} />
     </>
+  );
+}
+
+const PROPELLER_COLORS = ['#e63946', '#ffd166', '#118ab2', '#06d6a0'];
+
+/** The propeller cap: four coloured quarters and a propeller that keeps turning (one rotation a frame, nothing else). */
+function PropellerCap() {
+  const spin = useRef<THREE.Group>(null);
+  useFrame((_, delta) => {
+    if (spin.current && !reduceMotion()) spin.current.rotation.y += Math.min(delta, 0.1) * 9;
+  });
+  const cap = PARTS.propellerCap;
+  return (
+    <group position={[0, 0.02, 0.015]} rotation={[0.18, 0, 0]}>
+      {cap.quarters.map((g, i) => (
+        <Piece key={i} geometry={g} color={PROPELLER_COLORS[i]} castShadow outline={0.012} />
+      ))}
+      <Piece geometry={cap.stem} color={GOLD} />
+      <group ref={spin} position={[0, PROPELLER_TOP, 0]}>
+        <Piece geometry={cap.blades} color={PROPELLER_COLORS[0]} />
+      </group>
+    </group>
   );
 }
 
@@ -127,6 +151,7 @@ export function HeadParts({ agent, look, busy, face }: { agent: Who; look: Appea
       {clip && <Piece position={[0.15, 0.13, -0.08]} rotation={[0, 0, 0.5]} geometry={PARTS.hairClip} color={shade(agent.color, 0.15)} />}
       {glassesGeo && <Piece geometry={glassesGeo} color={FRAMES[look.accent]} />}
       {hatGeo && <Piece geometry={hatGeo} color={look.accent === 0 ? shade(agent.color, -0.2) : ACCENTS[look.accent]} castShadow outline={0.012} />}
+      {look.headwear === 'propeller' && <PropellerCap />}
       {phonesOn(look, busy) && <Headphones agent={agent} />}
     </>
   );

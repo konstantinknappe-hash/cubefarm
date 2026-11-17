@@ -1,3 +1,4 @@
+import { t } from '../../../../shared/i18n';
 import { ELEVATOR, HALF_D, PLAYER_RADIUS } from '../layout';
 import { DOG_R, byDoors, randomSpot, standNear, type DogPlaces, type NapSpot } from './dogPlaces';
 import { clear, planPath, segmentClear, type Nav, type Pt } from './roombaBrain';
@@ -410,25 +411,25 @@ export const dogAsleep = (d: Dog) => d.state === 'nap' && d.pose === 'sleep';
 export function dogStatus(d: Dog): string {
   switch (d.state) {
     case 'nap':
-      return d.pose === 'sleep' ? 'napping' : 'off for a nap';
+      return d.pose === 'sleep' ? t('world.dog.napping') : t('world.dog.offNap');
     case 'visit':
-      return 'keeping someone company';
+      return t('world.dog.company');
     case 'party':
-      return 'celebrating';
+      return t('world.dog.party');
     case 'follow':
-      return 'following you';
+      return t('world.dog.follow');
     case 'eager':
-      return 'watching the ball';
+      return t('world.dog.ball');
     case 'fetch':
     case 'bring':
-      return 'fetching';
+      return t('world.dog.fetch');
     case 'leave':
     case 'board':
-      return 'off to the elevator';
+      return t('world.dog.elevator');
     case 'sniff':
-      return 'sniffing about';
+      return t('world.dog.sniff');
     default:
-      return 'wandering';
+      return t('world.dog.wander');
   }
 }
 

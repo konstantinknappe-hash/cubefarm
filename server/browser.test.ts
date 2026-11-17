@@ -58,6 +58,7 @@ describe('the Playwright MCP server', () => {
       role: 'agent',
       additionalDirectories: [],
       files: { settings: 's', mcp: null, system: 'i' },
+      officeMcp: null,
       notify: { script: 'n.cjs', url: 'http://127.0.0.1:1/x' },
       codexHook: 'h.cjs',
       plugin: 'file:///p.mjs',

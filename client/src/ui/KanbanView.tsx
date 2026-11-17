@@ -3,6 +3,7 @@ import { api } from '../api';
 import { agentsOnRepo, kanbanFor, useStore, type Agent, type KanbanCard } from '../store';
 import { confirmDialog } from './Confirm';
 import { Panel } from './Panel';
+import { useT } from '../i18n';
 
 /** Who has the card; "QA" while they're testing it. */
 function AgentChip({ agent, card }: { agent?: Agent; card: KanbanCard }) {
@@ -17,6 +18,7 @@ function AgentChip({ agent, card }: { agent?: Agent; card: KanbanCard }) {
 }
 
 export function IssueForm({ repoId, agents, onDone }: { repoId: string; agents: Agent[]; onDone?: () => void }) {
+  const t = useT();
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [assignTo, setAssignTo] = useState('');
@@ -42,19 +44,19 @@ export function IssueForm({ repoId, agents, onDone }: { repoId: string; agents: 
         }
       }}
     >
-      <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Issue title, e.g. Add a dark mode toggle" aria-label="Issue title" autoFocus />
-      <textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="Describe what you want. Acceptance criteria help the agent who builds it and the one who tests it a lot." aria-label="Issue description" rows={5} />
+      <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t('kanban.issue.title')} aria-label={t('kanban.issue.titleAria')} autoFocus />
+      <textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder={t('kanban.issue.desc')} aria-label={t('kanban.issue.descAria')} rows={5} />
       <div className="row">
-        <select value={assignTo} onChange={(e) => setAssignTo(e.target.value)} aria-label="Who works on it">
-          <option value="">Leave in backlog (auto-assign picks it up if enabled)</option>
+        <select value={assignTo} onChange={(e) => setAssignTo(e.target.value)} aria-label={t('kanban.issue.assignAria')}>
+          <option value="">{free.length ? t('kanban.assignTo') : t('kanban.busy')}</option>
           {free.map((a) => (
             <option key={a.id} value={a.id}>
-              Give it to {a.name} right away
+              {t('kanban.issue.giveNow').replace('{name}', a.name)}
             </option>
           ))}
         </select>
         <button className="btn btn-good" disabled={busy || !title.trim()}>
-          {busy ? 'Filing…' : 'File issue on GitHub'}
+          {busy ? t('kanban.issue.filing') : t('kanban.issue.file')}
         </button>
       </div>
     </form>
@@ -73,15 +75,17 @@ function Frame({ embedded, ...props }: Parameters<typeof Panel>[0] & { embedded?
 }
 
 function QaLink({ card }: { card: KanbanCard }) {
+  const t = useT();
   if (!card.qa?.commentUrl) return null;
   return (
     <a className="small" href={card.qa.commentUrl} target="_blank" rel="noreferrer" title={card.qa.summary ?? ''}>
-      QA report ↗
+      {t('kanban.qaReport')}
     </a>
   );
 }
 
 export function KanbanView({ repoId, embedded }: { repoId: string; embedded?: boolean }) {
+  const t = useT();
   const repo = useStore((s) => s.repos.find((r) => r.id === repoId));
   const allAgents = useStore((s) => s.agents);
   const qaRecords = useStore((s) => s.qa);
@@ -95,7 +99,7 @@ export function KanbanView({ repoId, embedded }: { repoId: string; embedded?: bo
   if (!repo || !cols) {
     return (
       <Frame title="Kanban" embedded={embedded}>
-        <p className="muted">This floor no longer exists.</p>
+        <p className="muted">{t('kanban.noFloor')}</p>
       </Frame>
     );
   }
@@ -116,12 +120,17 @@ export function KanbanView({ repoId, embedded }: { repoId: string; embedded?: bo
     const passed = c.qa?.status === 'passed';
     const ok = await confirmDialog(
       passed
-        ? { icon: '🎉', title: `Merge PR #${c.number}?`, body: `“${c.title}” passed QA. It will be squash-merged into ${repo.defaultBranch}.`, confirm: 'Squash & merge' }
+        ? {
+            icon: '🎉',
+            title: t('kanban.mergeTitle.passed').replace('{n}', String(c.number)),
+            body: t('kanban.mergeBody.passed').replace('{title}', c.title).replace('{branch}', repo.defaultBranch),
+            confirm: t('kanban.mergeConfirm.passed'),
+          }
         : {
             tone: 'warn',
-            title: `Merge PR #${c.number} without QA?`,
-            body: `“${c.title}” has not passed QA yet. Merge it into ${repo.defaultBranch} anyway?`,
-            confirm: 'Merge anyway',
+            title: t('kanban.mergeTitle.warn').replace('{n}', String(c.number)),
+            body: t('kanban.mergeBody.warn').replace('{title}', c.title).replace('{branch}', repo.defaultBranch),
+            confirm: t('kanban.mergeConfirm.warn'),
           },
     );
     if (ok) void act(c.key, () => api.mergePull(repo.id, c.number));
@@ -130,46 +139,46 @@ export function KanbanView({ repoId, embedded }: { repoId: string; embedded?: bo
     let note = '';
     const ok = await confirmDialog({
       icon: '🔧',
-      title: `Send PR #${c.number} back for a fix?`,
+      title: t('kanban.sendBackTitle').replace('{n}', String(c.number)),
       body: (
         <>
-          <p>Its author, or any free agent, fixes it with QA's findings, then it's tested once more.</p>
+          <p>{t('kanban.sendBackBody')}</p>
           <input
             maxLength={1000}
-            placeholder="Optional note, e.g. merge main and keep both e2e tests"
-            aria-label="Note for whoever fixes it"
+            placeholder={t('kanban.sendBackNote')}
+            aria-label={t('kanban.sendBackNoteAria')}
             ref={(el) => void (el && setTimeout(() => el.focus(), 0))}
             onChange={(e) => (note = e.target.value)}
           />
         </>
       ),
-      confirm: 'Send back',
+      confirm: t('kanban.sendBackConfirm'),
     });
     if (ok) void act(c.key, () => api.sendBack(repo.id, c.number, note.trim() || undefined));
   };
   const closePr = async (c: KanbanCard) => {
     const ok = await confirmDialog({
       tone: 'danger',
-      title: `Close PR #${c.number}?`,
-      body: `“${c.title}” will be closed without merging, and any QA or fix work on it stops. Its issue stays open and waits for you to assign it again. The branch stays on GitHub.`,
-      confirm: 'Close PR',
+      title: t('kanban.closeTitle').replace('{n}', String(c.number)),
+      body: t('kanban.closeBody').replace('{title}', c.title),
+      confirm: t('kanban.closeConfirm'),
     });
     if (ok) void act(c.key, () => api.closePull(repo.id, c.number));
   };
   const closeButton = (c: KanbanCard) => (
     <button className="btn btn-small btn-ghost" disabled={pending === c.key} onClick={() => void closePr(c)}>
-      Close
+      {t('kanban.close')}
     </button>
   );
   const previewButton = (c: KanbanCard) => (
-    <button className="btn btn-small" title={`Run PR #${c.number} beside ${repo.defaultBranch} and open it in the app viewer`} onClick={() => openOverlay({ kind: 'app', repoId: repo.id, pr: c.number })}>
-      Preview
+    <button className="btn btn-small" title={t('kanban.previewTitle').replace('{n}', String(c.number)).replace('{branch}', repo.defaultBranch)} onClick={() => openOverlay({ kind: 'app', repoId: repo.id, pr: c.number })}>
+      {t('kanban.preview')}
     </button>
   );
   const terminalButton = (c: KanbanCard) =>
     c.agent && (
       <button className="btn btn-small" onClick={() => openOverlay({ kind: 'terminal', agentId: c.agent!.id })}>
-        Terminal
+        {t('kanban.terminal')}
       </button>
     );
 
@@ -215,23 +224,23 @@ export function KanbanView({ repoId, embedded }: { repoId: string; embedded?: bo
     >
       <div className="kanban-toolbar">
         <button className="btn btn-good" onClick={() => setShowForm((v) => !v)}>
-          {showForm ? 'Cancel' : '+ New issue'}
+          {showForm ? t('kanban.cancel') : t('kanban.newIssue')}
         </button>
         <label className="toggle">
           <input type="checkbox" checked={repo.autoAssign} onChange={(e) => void api.updateRepo(repo.id, { autoAssign: e.target.checked }).catch(() => undefined)} />
-          ⚡ Auto-assign work to free agents
+          {t('kanban.autoAssign')}
         </label>
-        <label className="toggle" title="Merge a PR as soon as QA has signed off on its latest commit and GitHub's checks are green">
+        <label className="toggle" title={t('kanban.autoMergeTip')}>
           <input type="checkbox" checked={repo.autoMerge} onChange={(e) => void api.updateRepo(repo.id, { autoMerge: e.target.checked }).catch(() => undefined)} />
-          🔀 Auto-merge when QA and checks pass
+          {t('kanban.autoMerge')}
         </label>
         <span className="spacer" />
-        <button className="btn" onClick={() => openOverlay({ kind: 'app', repoId: repo.id })} title="Open this floor's running app">
-          🖥️ View app
+        <button className="btn" onClick={() => openOverlay({ kind: 'app', repoId: repo.id })} title={t('kanban.viewAppTitle')}>
+          {t('kanban.viewApp')}
         </button>
-        <span className="muted small">{repo.lastSync ? `Synced ${new Date(repo.lastSync).toLocaleTimeString()}` : 'Syncing…'}</span>
+        <span className="muted small">{repo.lastSync ? t('kanban.synced').replace('{time}', new Date(repo.lastSync).toLocaleTimeString()) : t('kanban.syncing')}</span>
         <button className="btn" disabled={pending === 'sync'} onClick={() => act('sync', () => api.syncRepo(repo.id))}>
-          ⟳ Sync
+          {t('kanban.sync')}
         </button>
       </div>
       {repo.syncError && <div className="term-error">⚠️ {repo.syncError}</div>}
@@ -239,7 +248,7 @@ export function KanbanView({ repoId, embedded }: { repoId: string; embedded?: bo
 
       <div className="kanban kanban-5">
         {column(
-          '📋 Backlog',
+          t('kanban.backlog'),
           'kcol-backlog',
           cols.backlog,
           (c) => (
@@ -249,9 +258,9 @@ export function KanbanView({ repoId, embedded }: { repoId: string; embedded?: bo
                 value=""
                 disabled={pending === c.key || free.length === 0}
                 onChange={(e) => e.target.value && act(c.key, () => api.assign(e.target.value, c.number))}
-                aria-label={`Assign issue #${c.number}`}
+                aria-label={`${t('kanban.assignTo')} #${c.number}`}
               >
-                <option value="">{free.length ? 'Assign to…' : 'Everyone is busy'}</option>
+                <option value="">{free.length ? t('kanban.assignTo') : t('kanban.busy')}</option>
                 {free.map((a) => (
                   <option key={a.id} value={a.id}>
                     {a.name}
@@ -260,10 +269,10 @@ export function KanbanView({ repoId, embedded }: { repoId: string; embedded?: bo
               </select>
             </div>
           ),
-          'No open issues. File one above!',
+          t('kanban.backlog.empty'),
         )}
         {column(
-          '🔨 In progress',
+          t('kanban.progress'),
           'kcol-progress',
           cols.progress,
           (c) => (
@@ -274,10 +283,10 @@ export function KanbanView({ repoId, embedded }: { repoId: string; embedded?: bo
               {terminalButton(c)}
             </div>
           ),
-          'Nobody is coding right now.',
+          t('kanban.progress.empty'),
         )}
         {column(
-          '🔍 In QA',
+          t('kanban.qa'),
           'kcol-qa',
           cols.qa,
           (c) => {
@@ -292,27 +301,27 @@ export function KanbanView({ repoId, embedded }: { repoId: string; embedded?: bo
                 {(st === 'testing' || st === 'fixing') && terminalButton(c)}
                 {(!st || st === 'needs-human') && (
                   <button className="btn btn-small btn-good" disabled={pending === c.key} onClick={() => act(c.key, () => api.sendToQa(repo.id, c.number))}>
-                    {st === 'needs-human' ? 'Retry QA' : 'Send to QA'}
+                    {st === 'needs-human' ? t('kanban.retryQa') : t('kanban.sendToQa')}
                   </button>
                 )}
                 {(st === 'needs-human' || st === 'failed') && (
-                  <button className="btn btn-small" disabled={pending === c.key} title="Hand it to its author, or any free agent, with QA's findings and your note, without another QA round first" onClick={() => sendBack(c)}>
-                    Send back for a fix
+                  <button className="btn btn-small" disabled={pending === c.key} title={t('kanban.sendBackHint')} onClick={() => sendBack(c)}>
+                    {t('kanban.sendBack')}
                   </button>
                 )}
                 {st === 'needs-human' && (
                   <button className="btn btn-small btn-ghost" disabled={pending === c.key} onClick={() => merge(c)}>
-                    Merge anyway
+                    {t('kanban.mergeAnyway')}
                   </button>
                 )}
                 {closeButton(c)}
               </div>
             );
           },
-          'Nothing waiting for testing.',
+          t('kanban.qa.empty'),
         )}
         {column(
-          '✅ Ready to merge',
+          t('kanban.ready'),
           'kcol-review',
           cols.ready,
           (c) => {
@@ -328,16 +337,16 @@ export function KanbanView({ repoId, embedded }: { repoId: string; embedded?: bo
                 <QaLink card={c} />
                 {previewButton(c)}
                 <button className="btn btn-small btn-good" disabled={pending === c.key || pr?.isDraft} onClick={() => merge(c)}>
-                  Merge
+                  {t('kanban.merge')}
                 </button>
                 {closeButton(c)}
               </div>
             );
           },
-          'No tested pull requests yet.',
+          t('kanban.ready.empty'),
         )}
         {column(
-          '🎉 Merged',
+          t('kanban.merged'),
           'kcol-merged',
           cols.merged,
           (c) => (
@@ -345,7 +354,7 @@ export function KanbanView({ repoId, embedded }: { repoId: string; embedded?: bo
               <AgentChip agent={c.agent} card={c} />
             </div>
           ),
-          'Nothing merged yet.',
+          t('kanban.merged.empty'),
         )}
       </div>
     </Frame>

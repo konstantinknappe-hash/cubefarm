@@ -3,6 +3,8 @@
 import { memo, useLayoutEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { ACHIEVEMENTS, type AchievementView } from '../../../../shared/progress';
+import { t } from '../../i18n';
+import { achievementName } from './actions';
 import { useStore } from '../../store';
 import { useKeyName } from '../../ui/controls';
 import { roundRect, SANS } from '../draw';
@@ -17,7 +19,7 @@ export function Kiosk() {
   const coins = useStore((s) => Object.values(s.progress.floors).reduce((n, f) => n + f.coins, 0));
   const floors = useStore((s) => s.repos.length);
   const use = useKeyName('interact');
-  const ref = useInteractable<THREE.Group>({ id: 'kiosk', label: 'Browse the decoration catalogue', action: { kind: 'catalogue' } }, 3.5);
+  const ref = useInteractable<THREE.Group>({ id: 'kiosk', label: t('world.kiosk.label'), action: { kind: 'catalogue' } }, 3.5);
   const tex = useCanvasTexture(
     512,
     360,
@@ -31,10 +33,10 @@ export function Kiosk() {
       ctx.textBaseline = 'middle';
       ctx.fillStyle = '#ffd166';
       ctx.font = `700 52px ${SANS}`;
-      ctx.fillText('🛍️ Catalogue', 256, 64);
+      ctx.fillText(t('world.kiosk.title'), 256, 64);
       ctx.fillStyle = '#ffffff';
       ctx.font = `600 34px ${SANS}`;
-      ctx.fillText('Decorate your floors', 256, 132);
+      ctx.fillText(t('world.kiosk.sub'), 256, 132);
       roundRect(ctx, 96, 176, 320, 70, 35);
       ctx.fillStyle = 'rgba(255,255,255,0.14)';
       ctx.fill();
@@ -43,7 +45,7 @@ export function Kiosk() {
       ctx.fillText(`🪙 ${coins}`, 256, 212);
       ctx.fillStyle = '#c9c9ee';
       ctx.font = `500 26px ${SANS}`;
-      ctx.fillText(floors ? `across ${floors} floor${floors === 1 ? '' : 's'} · press ${use}` : 'merges earn coins', 256, 300);
+      ctx.fillText(floors ? t('world.kiosk.across', { count: floors, key: use }) : t('world.kiosk.earn'), 256, 300);
     },
     [coins, floors, use],
   );
@@ -122,7 +124,7 @@ function Plaques({ row, won }: { row: number; won: Map<string, AchievementView> 
 const Trophy = memo(function Trophy({ a, i }: { a: AchievementView; i: number }) {
   const def = ACHIEVEMENTS[i];
   const p = trophySpot(i);
-  const ref = useInteractable<THREE.Group>({ id: `trophy:${a.id}`, label: `${def.icon} ${def.name}: what it was for, and when`, action: { kind: 'trophy', id: a.id } }, 3.5);
+  const ref = useInteractable<THREE.Group>({ id: `trophy:${a.id}`, label: t('world.trophy.label', { icon: def.icon, name: achievementName(def.id) }), action: { kind: 'trophy', id: a.id } }, 3.5);
   return (
     <group ref={ref} position={[p.x, p.y + 0.14, p.z]}>
       <mesh visible={false}>
@@ -163,7 +165,7 @@ export function TrophyShelf() {
       ctx.textBaseline = 'middle';
       ctx.fillStyle = '#5c3d2e';
       ctx.font = `700 58px ${SANS}`;
-      ctx.fillText(`🏆 Trophies · ${won.size}/${ACHIEVEMENTS.length}`, 384, 68);
+      ctx.fillText(t('world.trophy.shelf', { n: won.size, of: ACHIEVEMENTS.length }), 384, 68);
     },
     [won.size],
   );

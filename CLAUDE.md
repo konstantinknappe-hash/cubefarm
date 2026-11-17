@@ -8,9 +8,11 @@ It ships on npm as `cubefarm` (`npx cubefarm`); it used to be called Office Swar
 
 ## SAFETY (read first)
 
-- The live office runs from `C:\Projects\office-swarm` on this machine, on ports 4317 (server) and 5317 (Vite),
-  with its state in `~/.cubefarm`. Never edit or run anything there, never read or write `~/.cubefarm` directly, and
-  never use ports 4317 or 5317.
+- The live office runs from `C:\Projects\office-swarm` on upstream's Windows machine, on ports 4317 (server) and
+  5317 (Vite), with its state in `~/.cubefarm`. Never edit or run anything there, never read or write `~/.cubefarm`
+  directly, and never use ports 4317 or 5317. Keep the separately installed office here protected. Keep the former
+  Hetzner office at `/opt/cubefarm-de` with state in `/home/cubefarm/.cubefarm` protected too; do not modify,
+  restart, deploy or remove it as part of local work.
 - Test only in demo mode (fake GitHub, fake agents, no Claude usage), with an isolated `SWARM_HOME` and your reserved
   `SWARM_PORT` (from your job instructions):
 
@@ -25,11 +27,10 @@ It ships on npm as `cubefarm` (`npx cubefarm`); it used to be called Office Swar
   ```
   Then open `http://localhost:<your port>` (the server serves the built `dist/`). The startup banner must say
   `DEMO MODE` and print a `state:` path inside your `SWARM_HOME`. Stop it when done; don't commit `.swarm-home`.
-- Never real mode (no `--demo`), and never `npm run dev` / `npm run demo` / `npm start` / `npx cubefarm`: they default
-  to 4317, and `dev`/`demo` default Vite to 5317. The first three run `scripts/office.mjs`, the launcher, which also
-  updates its own folder (git fetch + merge, npm install, build) when the office or you ask for it (`u`). Run it
-  only in a throwaway clone outside the live office, with `--demo` and your `SWARM_HOME`, `SWARM_PORT` and
-  `SWARM_CLIENT_PORT`.
+- Never run real mode for development, tests or QA. The only real-mode exception is the manager-approved local
+  production instance described below. Never run `npm run dev` / `npm run demo` / `npm start` / `npx cubefarm`:
+  they use reserved defaults, and the launcher can update its own folder. For demo checks, use an isolated
+  `SWARM_HOME`, the reserved `SWARM_PORT`, and `--demo` as described above.
 - Agents are ordinary coding-agent CLI sessions on the manager's own setup, unsandboxed, by the manager's choice. The
   office's workflow rules (no pushes to the default branch, no merging, QA leaves GitHub alone) live in their prompts
   and instructions, not in enforcement: don't add hooks, permission rules or sandboxes that refuse tool calls.
@@ -109,6 +110,9 @@ Server (`server/`, Node + Express 5 + ws, run by tsx in development; esbuild bun
   apps' webhooks (secrets in `secrets.json`, push keys and devices in `push.json`), behind `Backend.notify`; `notify.ts`
   is its pure part (formatting, the per-event rate limit, webhook checks), `webPush.ts` VAPID and RFC 8291 encryption,
   `shared/notify.ts` the settings. `pwa.ts`: the installable app's service worker, served at `/sw.js`.
+- `trading.ts`: the trading wallboard's feed (docs/trading-wallboard.md): reads MoneyPrint's read-only endpoint (GET
+  only, server-side, cached), samples equity history, falls back to the marked mock (`tradingMock.ts`); `tradingSource.ts`
+  parses its answers into `shared/trading.ts`, the contract.
 - `journal.ts`: the time-lapse journal (`<SWARM_HOME>/journal/<day>/`): records what `Swarm.broadcast` sends, a file
   per 10-minute keyframe, pruning, and the reads behind `/api/journal/*`. The rules (what's kept, secrets, seeking,
   marks) are in `shared/journal.ts`; `journalSample.ts` is the demo's made-up day.
@@ -159,6 +163,8 @@ Client (`client/`, Vite root; React 19, R3F, drei, zustand):
   `PhotoScene.tsx` (its own camera; frozen, the frame loop stops and it draws on change), `post.ts` (filters and depth
   of field on the finished picture), `recorder.ts` / `instantReplay.ts` (MediaRecorder; `webmRing.ts` keeps the last 15 s),
   `PhotoPanel.tsx`, and pure `flight.ts`, `shots.ts`, `filters.ts`.
+- The trading wallboard: `src/world/TradingWall.tsx` (the wall on the trading floor, `tradingDraw.ts` paints it,
+  `tradingChart.ts` the chart's pure geometry) and `src/ui/TradingPanel.tsx` (the same numbers up close).
 - `src/store.ts`: the zustand store; `apply(ServerEvent)` folds websocket events into UI state.
 - `src/api.ts`: REST calls; errors become toasts.
 - `src/net.ts`: the websocket connection with reconnect; it sends the tab's watch (`src/watch.ts`) as it changes.
@@ -213,5 +219,21 @@ Client (`client/`, Vite root; React 19, R3F, drei, zustand):
 - Never push to `main`, never force-push, never merge your own PR.
 
 ## Fork
+
+### Manager-approved local production instance
+
+After this rule has been merged into the exact checkout being run, an explicit manager task may authorize
+operating the manager's local CubeFarm installation on the ThinkPad. This exception applies only to that
+local installation; it does not authorize access to or changes to the protected offices above.
+
+- Set `SWARM_HOME` to the dedicated, mounted gocryptfs directory outside the repository. Never use the
+  default `~/.cubefarm`, `.swarm-home`, or a path shared with another office.
+- Set `SWARM_PORT` to a port the manager selected and verified as free. Never use 4317 or 5317.
+- Run the built server directly with `node dist-server/index.js`; do not use an auto-updating launcher.
+  Do not start a second process against the same `SWARM_HOME`.
+- Do not stop or change the Hetzner office until local migration and verification succeed and the manager
+  separately authorizes that action.
+- Buchhaltung agents may use synthetic fixtures only. Keep production databases, bank credentials and
+  real financial documents outside agent-accessible repositories, worktrees and prompts.
 
 This is a fork of leonvanzyl/cubefarm: see docs/fork.md. AGENTS.md repeats the safety rules for Codex and OpenCode.

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import * as THREE from 'three';
 import type { RepoView } from '../../../shared/types';
+import { t } from '../i18n';
 import { qaKey, useStore, type Agent } from '../store';
 import { loadScreenshot } from '../screenshot';
 import { channelLabel, channelLed, channelPulls, chipRects, prAsPreview, qaShotUrl, stripPulls, type ChipRect } from '../ui/channels';
@@ -67,10 +68,10 @@ export function AppMonitor({ repo, agents }: { repo: RepoView; agents: Agent[] }
   );
   const chips: (ScreenChip & { pr: number | null; aim: string })[] = pulls.length
     ? [
-        { pr: null, label: repo.defaultBranch, on: channel == null, led: channelLed(repo.preview.status), aim: `Watch ${repo.defaultBranch}` },
+        { pr: null, label: repo.defaultBranch, on: channel == null, led: channelLed(repo.preview.status), aim: t('world.appMon.watch', { what: repo.defaultBranch }) },
         ...shown.map((n) => {
           const pull = pulls.find((x) => x.number === n)!;
-          return { pr: n, label: `#${n}`, on: channel === n, led: channelLed(prPreviews[qaKey(repo.id, n)]?.status), aim: `Watch ${channelLabel(pull, qa[qaKey(repo.id, n)])}` };
+          return { pr: n, label: `#${n}`, on: channel === n, led: channelLed(prPreviews[qaKey(repo.id, n)]?.status), aim: t('world.appMon.watch', { what: channelLabel(pull, qa[qaKey(repo.id, n)]) }) };
         }),
       ]
     : [];
@@ -89,7 +90,7 @@ export function AppMonitor({ repo, agents }: { repo: RepoView; agents: Agent[] }
       if (!qaShot) return setShot(null);
       let alive = true;
       const img = new Image();
-      img.onload = () => alive && setShot({ img, caption: `QA's screenshot of PR #${channel}` });
+      img.onload = () => alive && setShot({ img, caption: t('world.appMon.qaShot', { n: channel }) });
       img.src = qaShot;
       return () => {
         alive = false;
@@ -98,7 +99,7 @@ export function AppMonitor({ repo, agents }: { repo: RepoView; agents: Agent[] }
     }
     if (!latest) return setShot(null);
     const [id, at, by] = latest.split('|');
-    return loadScreenshot(id, Number(at), (img) => setShot({ img, caption: `latest from ${by}'s browser` }));
+    return loadScreenshot(id, Number(at), (img) => setShot({ img, caption: t('world.appMon.latestFrom', { name: by }) }));
   }, [live, latest, channel, qaShot]);
 
   const use = useKeyName('interact');
@@ -108,7 +109,7 @@ export function AppMonitor({ repo, agents }: { repo: RepoView; agents: Agent[] }
     (ctx) => drawAppScreen(ctx, PX[0], PX[1], { floor: repo.floor, name, color: repo.color, preview: p, shot: shot?.img ?? null, shotCaption: shot?.caption ?? null, channels: chips, use }),
     [repo.floor, name, repo.color, p.status, p.url, p.ref, p.commit, p.startedAt, p.error, shot, chipKey, use],
   );
-  const ref = useInteractable<THREE.Group>({ id: `app-${repo.id}`, label: channel == null ? 'Open the app' : `Open PR #${channel}`, action: { kind: 'app', repoId: repo.id, pr: channel } }, 6);
+  const ref = useInteractable<THREE.Group>({ id: `app-${repo.id}`, label: channel == null ? t('world.appMon.open') : t('world.appMon.openPr', { n: channel }), action: { kind: 'app', repoId: repo.id, pr: channel } }, 6);
 
   const s = APP_SCREEN;
   const outerW = s.w + s.bezel * 2;

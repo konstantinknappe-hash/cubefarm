@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import { Billboard } from '@react-three/drei';
 import * as THREE from 'three';
 import type { OpsAlarm } from '../../../shared/types';
+import { t as tr } from '../i18n';
 import { usageMeter } from '../ops';
 import { officeNow } from '../officeTime';
 import { useStore, type Focus } from '../store';
@@ -114,7 +115,7 @@ export function Beacon({ on, size = 0.11 }: { on: boolean; size?: number }) {
 /** E on an alarm: the console at its card. The label is the alarm without its details ("PR #7 needs you"). */
 const alarmFocus = (id: string, a: OpsAlarm): Focus => ({
   id,
-  label: `🚨 ${a.text.split(':')[0]} on floor ${a.floor}: open it in the console`,
+  label: tr('world.ops.alarmLabel', { alarm: a.text.split(':')[0], floor: a.floor }),
   action: { kind: 'manager', tab: 'ops', card: a.id },
 });
 
@@ -161,21 +162,21 @@ export function MissionControl() {
   const m = usageMeter(usage, officeNow());
   const meterData: UsageScreen = {
     ...m,
-    hint: usage.state === 'pacing' ? `Press ${use} to resume full speed` : usage.state === 'paused' ? "A pause at the limit can't be cleared early" : 'New work starts at full speed',
+    hint: usage.state === 'pacing' ? tr('world.ops.hintResume', { key: use }) : usage.state === 'paused' ? tr('world.ops.hintPaused') : tr('world.ops.hintNormal'),
   };
   const meter = useScreen('usage', BOTTOM_PX, meterData, drawUsage);
   const cost = useScreen('cost', BOTTOM_PX, { floors: tags.map(({ tag, n }) => ({ ...tag, usd: n.costToday })), ceo: ops.ceoCostToday, total: t.costToday }, drawCost);
   const alarm = ops.alarms[0] ?? null;
-  const strip = useScreen('strip', [2048, 171], { alarms: ops.alarms.map((a) => (ops.floors.length > 1 ? `${a.text} · floor ${a.floor}` : a.text)) }, drawStrip);
+  const strip = useScreen('strip', [2048, 171], { alarms: ops.alarms.map((a) => (ops.floors.length > 1 ? tr('world.ops.alarmFloor', { alarm: a.text, floor: a.floor }) : a.text)) }, drawStrip);
 
   const wall = useInteractable<THREE.Group>(
-    alarm ? alarmFocus('mission-control', alarm) : { id: 'mission-control', label: 'Mission control: open it in the console', action: { kind: 'manager', tab: 'ops' } },
+    alarm ? alarmFocus('mission-control', alarm) : { id: 'mission-control', label: tr('world.ops.wallLabel'), action: { kind: 'manager', tab: 'ops' } },
     9,
   );
   const meterRef = useInteractable<THREE.Group>(
     usage.state === 'pacing'
-      ? { id: 'usage-meter', label: "Resume full speed (Claude's usage is pacing new work)", action: { kind: 'resume' } }
-      : { id: 'usage-meter', label: `Claude usage: ${m.state.toLowerCase()} · open it in the console`, action: { kind: 'manager', tab: 'ops', card: 'usage' } },
+      ? { id: 'usage-meter', label: tr('world.ops.resumeLabel'), action: { kind: 'resume' } }
+      : { id: 'usage-meter', label: tr('world.ops.meterLabel', { state: tr(`ui.ops.state.${m.state.toLowerCase()}`) }), action: { kind: 'manager', tab: 'ops', card: 'usage' } },
     5,
   );
 

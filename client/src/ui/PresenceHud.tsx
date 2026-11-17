@@ -1,7 +1,8 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { create } from 'zustand';
-import { EMOTE_EMOJI, EMOTE_LABEL } from '../../../shared/presence';
+import { EMOTE_EMOJI } from '../../../shared/presence';
 import type { EmoteId } from '../../../shared/types';
+import { t } from '../i18n';
 import { useStore } from '../store';
 import { photoActive } from '../photo/gate';
 import { cameraMode } from '../world/camera/rig';
@@ -100,8 +101,8 @@ function EmoteWheel() {
   const key = useKeyName('emote');
   if (!open) return null;
   return (
-    <div className="emote-wheel" role="menu" aria-label="Emotes">
-      <div className="emote-hub">{pick ? EMOTE_LABEL[pick] : `Point, then let go of ${key}`}</div>
+    <div className="emote-wheel" role="menu" aria-label={t('ui.emote.aria')}>
+      <div className="emote-hub">{pick ? t(`ui.emote.${pick}`) : t('ui.emote.hint', { key })}</div>
       {WHEEL.map((e, i) => {
         const at = wheelSpot(i, RADIUS);
         return (
@@ -112,7 +113,7 @@ function EmoteWheel() {
             style={{ transform: `translate(${at.x}px, ${at.y}px)` }}
             onMouseEnter={() => useWheel.setState({ pick: e })}
             onClick={() => close(e)}
-            title={`${EMOTE_LABEL[e]} (${i + 1})`}
+            title={`${t(`ui.emote.${e}`)} (${i + 1})`}
           >
             <span className="emote-emoji">{EMOTE_EMOJI[e]}</span>
             <kbd>{i + 1}</kbd>
@@ -136,7 +137,7 @@ function MyEmote() {
   if (!mine || performance.now() - mine.at > EMOTE_MS) return null;
   return (
     <div className="my-emote" key={mine.at} aria-live="polite">
-      {EMOTE_EMOJI[mine.e]} <span>{EMOTE_LABEL[mine.e]}</span>
+      {EMOTE_EMOJI[mine.e]} <span>{t(`ui.emote.${mine.e}`)}</span>
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { useEffect, useRef, useSyncExternalStore } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { PerformanceMonitor, type PerformanceMonitorApi } from '@react-three/drei';
 import type * as THREE from 'three';
+import { t } from './i18n';
 import { coversView, useStore } from './store';
 import { gfxLabel } from './world/gfx/useGraphics';
 
@@ -175,9 +176,9 @@ export function StatsReadout() {
         }}
         hidden={paused}
       >
-        measuring…
+        {t('ui.perf.measuring')}
       </span>
-      {paused && <span>⏸ 3D view paused</span>}
+      {paused && <span>{t('ui.perf.paused')}</span>}
     </div>
   );
 }

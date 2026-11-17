@@ -4,6 +4,7 @@
 // captions on or off (the other alert cues come with a toast, which screen readers already hear). CaptionStrip.tsx draws them; window.__swarmCaptions keeps the last 30 shown, for QA and e2e.
 
 import { create } from 'zustand';
+import { t } from '../../../shared/i18n';
 import { CEO_ID } from '../../../shared/types';
 import { needsManager } from '../qaCard';
 import { useStore } from '../store';
@@ -86,9 +87,9 @@ function anchorOf(name: string): Vec3 | null {
 function alarmDetail(): string | undefined {
   const { ops, qa } = useStore.getState();
   const last = ops.alarms[ops.alarms.length - 1];
-  if (last) return last.kind === 'pr' && last.prNumber !== null ? `PR #${last.prNumber} needs you` : last.text.split(':')[0];
+  if (last) return last.kind === 'pr' && last.prNumber !== null ? t('ui.cap.prNeedsYou', { n: last.prNumber }) : last.text.split(':')[0];
   const q = Object.values(qa).find((r) => needsManager(r));
-  return q ? `PR #${q.prNumber} needs you` : undefined;
+  return q ? t('ui.cap.prNeedsYou', { n: q.prNumber }) : undefined;
 }
 
 async function detailOf(name: string): Promise<string | undefined> {

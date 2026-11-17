@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { t as tr } from '../i18n';
 import { agentsOnRepo, useStore, type Agent } from '../store';
 import { CEO_ID, INSTALL_STEP, type LogLine, type RepoView } from '../../../shared/types';
 import { VisitorsList } from './VisitorsList';
@@ -19,14 +20,14 @@ function latest(l: LogLine | undefined): { text: string; kind: LogLine['kind']; 
   const text = l.text
     .trim()
     .replace(/^[⏺●✻✔⎿▶]\s*/u, '')
-    .replace(/^Manager:\s*/, 'you: ');
-  return { text: l.kind === 'thinking' ? 'thinking…' : text, kind: l.kind, t: l.t };
+    .replace(/^Manager:\s*/, tr('ui.workers.you'));
+  return { text: l.kind === 'thinking' ? tr('ui.workers.thinking') : text, kind: l.kind, t: l.t };
 }
 
 function doing(a: Agent) {
   if (a.role === 'ceo') return a.issueTitle;
   if (a.task === 'qa') return `QA · PR #${a.prNumber}`;
-  if (a.task === 'fix') return `fixing PR #${a.prNumber}`;
+  if (a.task === 'fix') return tr('world.term.fixing', { n: a.prNumber ?? '?' });
   return a.issueNumber ? `#${a.issueNumber}` : null;
 }
 
@@ -43,7 +44,7 @@ function Row({ a, now }: { a: Agent; now: number }) {
   const last = found && (!a.startedAt || found.t >= a.startedAt) ? found : null;
   const task = doing(a);
   return (
-    <button className="wk-row" onClick={() => openOverlay({ kind: 'terminal', agentId: a.id })} title={`Watch ${a.name}'s screen`}>
+    <button className="wk-row" onClick={() => openOverlay({ kind: 'terminal', agentId: a.id })} title={tr('ui.workers.watch', { name: a.name })}>
       <span className="wk-dot" style={{ background: a.color }} />
       <span className="wk-main">
         <span className="wk-name">
@@ -52,7 +53,7 @@ function Row({ a, now }: { a: Agent; now: number }) {
         </span>
         <span className="wk-line">
           <span className={`wk-last wk-last-${last?.kind ?? 'none'}`} title={last?.text}>
-            {a.status === 'preparing' ? (a.currentTool === INSTALL_STEP ? 'installing dependencies…' : 'setting up the worktree…') : (last?.text ?? (a.issueTitle ? `working on ${a.issueTitle}` : 'starting…'))}
+            {a.status === 'preparing' ? (a.currentTool === INSTALL_STEP ? tr('ui.workers.installing') : tr('ui.workers.worktree')) : (last?.text ?? (a.issueTitle ? tr('ui.workers.workingOn', { title: a.issueTitle }) : tr('ui.workers.starting')))}
           </span>
           {last && a.status !== 'preparing' && <span className="wk-ago">{ago(last.t, now)}</span>}
         </span>
@@ -141,11 +142,11 @@ export function WorkersPanel() {
   const ceo = agents[CEO_ID];
   const floors = [...repos].sort((x, y) => (x.floor === floor ? -1 : y.floor === floor ? 1 : x.floor - y.floor));
   const groups: Group[] = [
-    ...(ceo && isWorking(ceo) ? [{ key: 'hq', label: 'HQ', title: 'The CEO, in the lobby', color: ceo.color, list: [ceo] }] : []),
+    ...(ceo && isWorking(ceo) ? [{ key: 'hq', label: 'HQ', title: tr('ui.workers.ceoTitle'), color: ceo.color, list: [ceo] }] : []),
     ...floors.map((r: RepoView) => ({
       key: r.id,
       label: `${r.floor} · ${r.fullName.split('/')[1]}`,
-      title: `Floor ${r.floor}: ${r.fullName}`,
+      title: tr('ui.workers.floorTitle', { n: r.floor, name: r.fullName }),
       color: r.color,
       list: agentsOnRepo(agents, r.id).filter(isWorking),
     })),
@@ -154,9 +155,9 @@ export function WorkersPanel() {
 
   return (
     <div className={`workers ${open ? '' : 'workers-closed'}`}>
-      <button className="wk-head" onClick={toggle} title={open ? `Hide the list (${key})` : `Show who is working (${key})`}>
+      <button className="wk-head" onClick={toggle} title={open ? tr('ui.workers.hide', { key }) : tr('ui.workers.show', { key })}>
         <span>
-          Working <b>{total}</b>
+          {tr('ui.workers.working')} <b>{total}</b>
         </span>
         <span className="wk-chevron">
           <Key action="workers" /> {open ? '▾' : '▸'}
@@ -165,12 +166,12 @@ export function WorkersPanel() {
       {open && (
         <div className="wk-list">
           <VisitorsList />
-          {total === 0 && <div className="wk-empty">Nobody is working right now.</div>}
+          {total === 0 && <div className="wk-empty">{tr('ui.workers.nobody')}</div>}
           {groups.map((g) => {
             const shut = collapsed.has(g.key);
             return (
               <div key={g.key} className="wk-group">
-                <button className="wk-group-head" onClick={() => toggleGroup(g.key)} title={`${g.title} · click to ${shut ? 'expand' : 'collapse'}`}>
+                <button className="wk-group-head" onClick={() => toggleGroup(g.key)} title={`${g.title} · ${shut ? tr('ui.workers.expand') : tr('ui.workers.collapse')}`}>
                   <span className="wk-group-arrow">{shut ? '▸' : '▾'}</span>
                   <span className="wk-swatch" style={{ background: g.color }} />
                   <span className="wk-group-name">{g.label}</span>

@@ -1,6 +1,7 @@
 // What the blimp's banner and the skywriter say: real, recent news from the office (the last merge, a busy floor's
 // merges today, the PRs in flight), or a friendly line when there's none. Pure, so it's tested without a browser.
 
+import { t } from '../../../../shared/i18n';
 import type { PullInfo, RepoView } from '../../../../shared/types';
 
 type Floor = Pick<RepoView, 'floor' | 'fullName'> & { pulls: readonly Pick<PullInfo, 'number' | 'state' | 'mergedAt'>[] };
@@ -16,15 +17,15 @@ export function bannerLines(floors: readonly Floor[], now: number, company = '')
     f.pulls.filter((p) => p.mergedAt && Number.isFinite(Date.parse(p.mergedAt))).map((p) => ({ floor: f.floor, number: p.number, at: Date.parse(p.mergedAt!) })),
   );
   const latest = merged.filter((m) => now - m.at < DAY_MS && m.at <= now + 60_000).sort((a, b) => b.at - a.at)[0];
-  if (latest) lines.push(`PR #${latest.number} merged! 🎉`);
+  if (latest) lines.push(t('world.news.merged', { n: latest.number }));
   const busiest = floors
     .map((f) => ({ floor: f.floor, n: merged.filter((m) => m.floor === f.floor && m.at >= midnight && m.at <= now + 60_000).length }))
     .filter((x) => x.n >= 2)
     .sort((a, b) => b.n - a.n)[0];
-  if (busiest) lines.push(`Floor ${busiest.floor}: ${busiest.n} merges today`);
+  if (busiest) lines.push(t('world.news.busiest', { floor: busiest.floor, n: busiest.n }));
   const open = floors.reduce((n, f) => n + f.pulls.filter((p) => p.state === 'OPEN').length, 0);
-  if (open > 0) lines.push(`${open} PR${open === 1 ? '' : 's'} in flight 🚀`);
-  lines.push(`${company.trim() || 'cubefarm'} ♥ its team`);
+  if (open > 0) lines.push(t('world.news.inFlight', { count: open }));
+  lines.push(t('world.news.love', { company: company.trim() || 'cubefarm' }));
   return lines;
 }
 

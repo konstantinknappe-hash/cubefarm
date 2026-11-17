@@ -23,7 +23,7 @@ export interface MergeRecord {
 /** Bookkeeping the caller writes onto the record as it is (it doesn't count as a change to the record). */
 export type MergeBookkeeping = Partial<Pick<MergeRecord, 'passedSha' | 'pendingSince' | 'alerted'>>;
 
-export type MergePull = Pick<PullInfo, 'isDraft' | 'mergeable' | 'mergeState' | 'headSha' | 'checks' | 'failedChecks' | 'pendingChecks'>;
+export type MergePull = Pick<PullInfo, 'title' | 'reviewDecision' | 'isDraft' | 'mergeable' | 'mergeState' | 'headSha' | 'checks' | 'failedChecks' | 'pendingChecks'>;
 
 /** What auto-merge does next with a QA-passed PR. */
 export type MergeStep = { set: MergeBookkeeping } & (
@@ -33,6 +33,7 @@ export type MergeStep = { set: MergeBookkeeping } & (
   | { do: 'rerun'; runIds: number[]; reason: 'checks'; instructions: string; needsHuman: boolean } // re-run these Actions runs' failed jobs; the rest is the send-back if that can't be done
   | { do: 'send-back'; reason: 'checks' | 'conflict'; instructions: string; needsHuman: boolean } // needsHuman: the fix budget ran out
   | { do: 'update-branch' } // the repo only merges up-to-date branches
+  | { do: 'ready' } // a draft QA passed at its head, green and mergeable: mark it ready for review, then it merges as usual
   | { do: 'merge' }
 );
 
@@ -41,7 +42,8 @@ export type MergeStep = { set: MergeBookkeeping } & (
  * and the office. `detailed` means the PR's mergeability has already been asked for, so UNKNOWN is waited out.
  */
 export function mergeStep(pr: MergePull, rec: MergeRecord, now: number, opts: { base: string; detailed?: boolean }): MergeStep {
-  if (pr.isDraft) return { do: 'wait', note: 'a draft: waiting', set: {} };
+  // A draft only moves on once QA signed off a commit; one marked unfinished or with changes requested never does.
+  if (pr.isDraft && (rec.passedSha == null || draftHeld(pr))) return { do: 'wait', note: 'a draft: waiting', set: {} };
   if (!opts.detailed && (pr.mergeable === 'UNKNOWN' || pr.mergeState === 'UNKNOWN')) return { do: 'details', set: {} };
   const set: MergeBookkeeping = {};
   if (rec.passedSha == null) set.passedSha = pr.headSha; // signed off before the office tracked commits
@@ -68,9 +70,15 @@ export function mergeStep(pr: MergePull, rec: MergeRecord, now: number, opts: { 
   }
   set.pendingSince = null;
   if (pr.mergeable === 'UNKNOWN') return { do: 'wait', note: 'GitHub is checking it can merge', set };
+  if (pr.isDraft) return rec.mergeRetryAt && now < rec.mergeRetryAt ? { do: 'wait', set } : { do: 'ready', set };
   if (pr.mergeState === 'BEHIND') return { do: 'update-branch', set };
   if (rec.mergeRetryAt && now < rec.mergeRetryAt) return { do: 'wait', set };
   return { do: 'merge', set };
+}
+
+/** A draft someone said isn't done: changes requested, or WIP / do not merge in its title. */
+export function draftHeld(pr: Pick<PullInfo, 'title' | 'reviewDecision'>): boolean {
+  return pr.reviewDecision === 'CHANGES_REQUESTED' || /\bwip\b|do\s*n[o']t\s+merge|\bunfinished\b|\bblocked\b/i.test(pr.title);
 }
 
 /** The GitHub Actions runs behind failed checks (from their log URLs), once each. Other checks can't be re-run from here. */
