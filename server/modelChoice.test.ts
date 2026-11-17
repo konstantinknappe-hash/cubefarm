@@ -13,6 +13,7 @@ type Agent = { id: string; model: string; cli: AgentCli | ''; role: string; stat
 type Internals = {
   clis: CliView[];
   ensureCeo(interrupted: unknown[]): void;
+  agentSetup(agent: Agent): { codingAgent: AgentCli; model: string };
   state: { agents: Agent[]; rejectedModels: Record<string, string>; settings: { defaultCli: AgentCli; defaultModel: string } };
   isFree(a: Agent): boolean;
   noteRejection(a: Agent, used: { cli: AgentCli; model: string }, result: SessionResult): void;
@@ -74,6 +75,15 @@ describe('picking a model', () => {
     swarm.updateAgent(ceo.id, { model: 'gpt-5.6-sol' });
     expect(ceo.model).toBe('gpt-5.6-sol');
     expect(() => swarm.updateAgent(ceo.id, { model: 'claude-opus-5-5' })).toThrow();
+  });
+
+  it('uses the Codex default for a CEO with a stale Claude model setting', async () => {
+    const { internals } = await office();
+    internals.ensureCeo([]);
+    const ceo = internals.state.agents.find((a) => a.role === 'ceo')!;
+    ceo.cli = 'codex';
+    ceo.model = 'sonnet';
+    expect(internals.agentSetup(ceo).model).toBe('the coding agent default');
   });
 
   it('redetects installed CLIs when the model list is refreshed', async () => {
