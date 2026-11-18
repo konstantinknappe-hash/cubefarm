@@ -103,6 +103,7 @@ export const api = {
   fireAgent: (id: string) => call('DELETE', `/api/agents/${id}`),
   /** waitForDeps: refuse an issue that still waits for open ones, as the whiteboard's stickies do. */
   assign: (id: string, issueNumber: number, note?: string, waitForDeps?: boolean) => call('POST', `/api/agents/${id}/assign`, { issueNumber, note, waitForDeps }),
+  requeue: (id: string) => call('POST', `/api/agents/${id}/requeue`),
   stop: (id: string) => call('POST', `/api/agents/${id}/stop`),
   reset: (id: string) => call('POST', `/api/agents/${id}/reset`),
   message: (id: string, text: string) => call('POST', `/api/agents/${id}/message`, { text }),

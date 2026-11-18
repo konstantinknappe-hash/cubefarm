@@ -72,6 +72,11 @@ function AgentCard({ agent, repo }: { agent: Agent; repo: RepoView }) {
       </div>
       {agent.lastError && !working && <div className="term-error small pk-error">⚠️ {agent.lastError}</div>}
       <div className="pk-actions">
+        {working && agent.task && (
+          <button className="btn btn-small btn-ghost" disabled={busy} onClick={() => void run(() => api.requeue(agent.id))}>
+            ↶ Return task to queue
+          </button>
+        )}
         {can.stop && (
           <button className="btn btn-small btn-bad" disabled={busy} onClick={() => void run(() => api.stop(agent.id))}>
             ■ Stop
@@ -168,6 +173,7 @@ function CeoCard() {
 export function Team({ focusRepo }: { focusRepo: string | null }) {
   const repos = useStore((s) => s.repos);
   const agents = useStore((s) => s.agents);
+  const qa = useStore((s) => s.qa);
   const focus = useRef<HTMLElement>(null);
   useEffect(() => focus.current?.scrollIntoView({ block: 'start' }), []);
   return (
@@ -176,12 +182,22 @@ export function Team({ focusRepo }: { focusRepo: string | null }) {
       {repos.length === 0 && <p className="muted">No floors yet, so no team.</p>}
       {repos.map((repo) => {
         const team = agentsOnRepo(agents, repo.id);
+        const cols = kanbanFor(repo, team, qa);
+        const blocked = cols.backlog.filter((c) => c.note?.startsWith('⏳ after ')).length;
+        const held = cols.backlog.filter((c) => c.note?.startsWith('⏸ PR ')).length;
+        const skipped = cols.backlog.filter((c) => repo.issues.find((i) => i.number === c.number)?.labels.some((label) => /^(swarm:skip|wontfix|question)$/i.test(label))).length;
+        const ready = Math.max(0, cols.backlog.length - blocked - held - skipped);
+        const free = team.filter((a) => a.role !== 'ceo' && a.status === 'idle').length;
         return (
           <section key={repo.id} ref={repo.id === focusRepo ? focus : undefined} className="pk-section" style={{ ['--accent' as string]: repo.color }}>
             <h3 className="pk-h">
               <span className="floor-badge">{repo.floor}</span> {repo.fullName.split('/')[1]}
               <span className="muted small"> · {team.length} {team.length === 1 ? 'agent' : 'agents'}</span>
             </h3>
+            <div className="pk-queue-summary" role="status" aria-label="Issue queue status">
+              <b>{ready}</b> ready · <b>{blocked}</b> waiting on dependencies · <b>{held}</b> held for manager review · <b>{skipped}</b> excluded by issue label · <b>{free}</b> agents free · auto-start <b>{repo.autoAssign ? 'on' : 'off'}</b>
+              {!repo.autoAssign && ready > 0 && <span> · Assign manually from an agent card</span>}
+            </div>
             {team.length === 0 && <p className="muted small">Nobody works here yet.</p>}
             {team.map((a) => (
               <AgentCard key={a.id} agent={a} repo={repo} />

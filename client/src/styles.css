@@ -4118,6 +4118,19 @@ input.inline:focus {
   margin: 8px 2px 0;
   font-size: 1rem;
 }
+.pk-queue-summary {
+  margin: -2px 2px 4px;
+  padding: 9px 11px;
+  border: 1px solid var(--line, #d7e1dd);
+  border-radius: 8px;
+  background: var(--surface, #f6faf8);
+  color: var(--muted, #63746d);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+.pk-queue-summary b {
+  color: var(--ink, #1f3029);
+}
 .pk-section {
   display: flex;
   flex-direction: column;
