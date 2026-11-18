@@ -5,6 +5,7 @@ import { blockers } from '../../shared/issues';
 import { latestListed } from '../../shared/watch';
 import { DEFAULT_WEATHER, DEFAULT_WORLD_EVENTS, EMPTY_WEATHER_VIEW, type WeatherView } from '../../shared/outside';
 import { emptyTradingView, type TradingView } from '../../shared/trading';
+import { emptyBriefingView, type BriefingView } from '../../shared/briefing';
 import { DEFAULT_NOTIFY } from '../../shared/notify';
 import { speechText } from '../../shared/speech';
 import { showDesktopNote } from './notifications';
@@ -42,7 +43,9 @@ export type Overlay =
   /** The floor as a list (Settings → Accessibility): who is there, their status and what they're doing. */
   | { kind: 'floorList' }
   /** The trading wallboard up close (TradingPanel.tsx): the same read-only numbers as the wall. */
-  | { kind: 'trading' };
+  | { kind: 'trading' }
+  /** The desk briefing board up close (BriefingPanel.tsx): the CEO briefing, the watchlist and questions. */
+  | { kind: 'briefing' };
 
 /** Help's tabs: how the office works, and the controls (keys, mouse, gamepad). */
 export type HelpTab = 'office' | 'controls';
@@ -131,6 +134,7 @@ interface State {
   voiceSpeaking: number | null; // the phone message being read aloud in this tab (ui/voiceMessages.ts)
   weather: WeatherView; // the real local weather's place and latest reading (Settings → Weather)
   trading: TradingView; // the trading wallboard's MoneyPrint paper account (docs/trading-wallboard.md)
+  briefing: BriefingView; // the desk briefing board: CEO briefing, questions, watchlist (docs/desk-briefing.md)
   ticker: TickerItem[]; // the floors' recent activity lines, oldest first (world/ActivityTicker.tsx)
   notifyChannels: NotifyChannelsView; // which chat apps have a webhook saved (hints only) and how many devices get push
   pong: Record<string, PongRow[]>; // each floor's ping-pong leaderboard by repo id, best first
@@ -259,6 +263,7 @@ export const useStore = create<State>((set, get) => ({
   voiceSpeaking: null,
   weather: EMPTY_WEATHER_VIEW,
   trading: emptyTradingView(),
+  briefing: emptyBriefingView(),
   ticker: [],
   notifyChannels: { webhooks: { ntfy: { set: false, hint: '' } }, pushDevices: 0 },
   pong: {},
@@ -329,6 +334,7 @@ export const useStore = create<State>((set, get) => ({
           voiceCache: d.voiceCache ?? { clips: 0, bytes: 0, saved: [] },
           weather: d.weather ?? EMPTY_WEATHER_VIEW,
           trading: d.trading ?? emptyTradingView(),
+          briefing: d.briefing ?? emptyBriefingView(),
           ticker: d.ticker ?? [],
           notifyChannels: d.notifyChannels ?? get().notifyChannels,
           progress: d.progress ?? { floors: {}, achievements: [], coffees: 0, merges: 0 },
@@ -512,6 +518,9 @@ export const useStore = create<State>((set, get) => ({
         break;
       case 'trading':
         set((st) => ({ trading: { ...ev.trading, history: ev.history ?? st.trading.history } }));
+        break;
+      case 'briefing':
+        set({ briefing: ev.briefing });
         break;
       case 'ticker':
         set({ ticker: [...get().ticker.slice(-(TICKER_KEEP - 1)), ev.item] });

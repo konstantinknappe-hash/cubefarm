@@ -5,6 +5,7 @@ import type { ProgressView, RewardView } from './progress.ts';
 import type { WeatherSettings, WeatherView, WorldEventSettings } from './outside.ts';
 import type { ThemeSettings } from './themes.ts';
 import type { TradingView } from './trading.ts';
+import type { BriefingView } from './briefing.ts';
 import type { AgentStyle } from './looks.ts';
 
 export type AgentStatus =
@@ -610,6 +611,7 @@ export interface WorldSnapshot {
   voiceCache: VoiceCacheView;
   weather: WeatherView; // the real local weather's place and latest reading (Settings → Weather)
   trading?: TradingView; // the MoneyPrint paper account on the trading wallboard (docs/trading-wallboard.md)
+  briefing?: BriefingView; // the desk briefing board: CEO briefing, questions, watchlist (docs/desk-briefing.md)
   ticker?: TickerItem[]; // the floors' recent ticker lines, oldest first
   notifyChannels: NotifyChannelsView;
   progress: ProgressView; // coins, decorations and achievements (#210)
@@ -655,6 +657,8 @@ export type ServerEvent =
   | { type: 'weather'; weather: WeatherView }
   /** The trading wallboard's latest read; `history` only when it changed (it's the big part). */
   | { type: 'trading'; trading: Omit<TradingView, 'history'>; history?: TradingView['history'] }
+  /** The desk briefing board's latest read or a question just sent. */
+  | { type: 'briefing'; briefing: BriefingView }
   | { type: 'ticker'; item: TickerItem }
   | { type: 'notifyChannels'; notifyChannels: NotifyChannelsView }
   | { type: 'notify'; note: NoteView }

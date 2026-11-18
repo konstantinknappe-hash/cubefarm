@@ -27,6 +27,12 @@ describe('MoneyPrint analyst run bridge contract', () => {
     expect(parseAnalystRunRequest(validRequest({ timeout_seconds: 9000 }), 'run-1').timeoutMs).toBe(900_000);
   });
 
+  it('allows up to four parallel analyst sessions', () => {
+    expect(parseAnalystRunRequest(validRequest({ max_parallel_analyst_sessions: 4 }), 'run-1').maxParallel).toBe(4);
+    expect(() => parseAnalystRunRequest(validRequest({ max_parallel_analyst_sessions: 5 }), 'run-1')).toThrow(AnalystRunInputError);
+    expect(() => parseAnalystRunRequest(validRequest({ max_parallel_analyst_sessions: 0 }), 'run-1')).toThrow(AnalystRunInputError);
+  });
+
   it('rejects mismatched idempotency keys and any order or file access', () => {
     expect(() => parseAnalystRunRequest(validRequest(), 'other')).toThrow(AnalystRunInputError);
     expect(() => parseAnalystRunRequest(validRequest({ permissions: { filesystem: 'write', repository: 'none', orders: 'none', web_tools: [] } }), 'run-1')).toThrow(AnalystRunInputError);

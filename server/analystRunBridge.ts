@@ -1,5 +1,8 @@
 /** Validate and deduplicate MoneyPrint's synchronous visible analyst-run requests. */
 
+/** At most this many MoneyPrint analyst sessions run at once (each one is a reserved agent's visible CLI). */
+export const MAX_ANALYST_SESSIONS = 4;
+
 export type AnalystRunCli = 'codex_cli' | 'claude_cli';
 
 export interface AnalystRunRequest {
@@ -48,8 +51,8 @@ export function parseAnalystRunRequest(body: unknown, idempotencyKey: string | u
     throw new AnalystRunInputError('Only WebSearch and WebFetch can be enabled.');
   }
   const parallel = Number(value.max_parallel_analyst_sessions);
-  if (!Number.isInteger(parallel) || parallel < 1 || parallel > 2) {
-    throw new AnalystRunInputError('max_parallel_analyst_sessions must be 1 or 2.');
+  if (!Number.isInteger(parallel) || parallel < 1 || parallel > MAX_ANALYST_SESSIONS) {
+    throw new AnalystRunInputError(`max_parallel_analyst_sessions must be 1 to ${MAX_ANALYST_SESSIONS}.`);
   }
   const timeout = Number(value.timeout_seconds);
   const timeoutMs = Number.isFinite(timeout) ? Math.max(10_000, Math.min(timeout * 1_000, 900_000)) : 120_000;

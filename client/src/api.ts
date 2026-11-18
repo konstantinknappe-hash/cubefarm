@@ -1,3 +1,4 @@
+import type { Inquiry } from '../../shared/briefing';
 import { t } from '../../shared/i18n';
 import { useStore } from './store';
 import type { PongResult } from '../../shared/pong';
@@ -54,6 +55,7 @@ export interface FloorOptions {
 }
 
 export const api = {
+  askResearch: (question: string) => call<Inquiry>('POST', '/api/briefing/inquiries', { question }),
   githubRepos: (owner?: string) => call<GhRepoSummary[]>('GET', `/api/github/repos${owner ? `?owner=${encodeURIComponent(owner)}` : ''}`),
   connectRepo: (fullName: string, floor: FloorOptions = {}) => call<RepoView>('POST', '/api/repos', { fullName, ...floor }),
   createRepo: (body: FloorOptions & { name: string; description: string; visibility: 'private' | 'public'; owner?: string }) =>

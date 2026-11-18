@@ -10,6 +10,7 @@ import { ControlsSettings } from './ControlsSettings';
 import { ElevatorPanel } from './ElevatorPanel';
 import { FloorList } from './FloorList';
 import { TradingPanel } from './TradingPanel';
+import { BriefingPanel } from './BriefingPanel';
 import { Key, MoveKeys } from './Key';
 import { Interview } from './Interview';
 import { KanbanView } from './KanbanView';
@@ -889,5 +890,7 @@ export function Overlays() {
       return <FloorList />;
     case 'trading':
       return <TradingPanel />;
+    case 'briefing':
+      return <BriefingPanel />;
   }
 }
