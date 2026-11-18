@@ -4944,7 +4944,8 @@ export class Swarm {
     const repo = this.floorRepo(x.floor);
     const agent = this.agentByRef(x.agent_id);
     if (agent.repoId !== repo.id) throw new Error(`${agent.name} is not on floor ${repo.floor} (${repo.fullName}).`);
-    await this.assign(agent.id, x.number, x.note);
+    if (!this.available(repo).some((candidate) => candidate.id === agent.id)) throw new Error(`${agent.name} is not free to take work right now.`);
+    await this.assign(agent.id, x.number, x.note, true);
     return `Assigned #${x.number} on floor ${repo.floor} (${repo.fullName}) to ${agent.name}.`;
   }
 
