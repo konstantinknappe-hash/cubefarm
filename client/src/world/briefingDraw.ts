@@ -124,12 +124,22 @@ export function drawBriefingWall(ctx: CanvasRenderingContext2D, w: number, h: nu
     line(ctx, `${m.when} · ${m.action.toUpperCase()} ${m.symbol}`, cx[0] + 22, y - 4, 22, stanceColor(m.action), cw - 40, 700);
     line(ctx, `${t('briefing.because')} ${m.because}`, cx[0] + 22, y + 20, 18, TC.dim, cw - 40, 500);
   });
-  card(ctx, cx[1], r2, cw, r2h, t('briefing.sectors'), TC.violet);
-  (b?.sectors ?? []).slice(0, 4).forEach((sv, i) => {
-    const y = r2 + 90 + i * 52;
-    line(ctx, `${sv.sector.replace(/_/g, ' ')}${sv.symbols.length ? ` · ${sv.symbols.slice(0, 4).join(', ')}` : ''}`, cx[1] + 22, y - 4, 22, TC.violet, cw - 40, 700);
-    line(ctx, sv.view, cx[1] + 22, y + 20, 18, TC.text, cw - 40, 500);
-  });
+  // the research team's long-term savings plan (the sectors are in the panel)
+  const sp = v.savingsPlan;
+  card(ctx, cx[1], r2, cw, r2h, sp ? `${t('briefing.savings', { month: sp.month })} · ${t(`briefing.stage.${sp.stage === 'final' ? 'final' : sp.stage === 'research' ? 'research' : 'proposal'}`)}` : t('briefing.savings', { month: '' }), TC.green);
+  if (!sp) line(ctx, t('briefing.savingsNone'), cx[1] + 22, r2 + 96, 20, TC.dim, cw - 40, 500);
+  else if (sp.allocation.length)
+    sp.allocation.slice(0, 4).forEach((a, i) => {
+      const y = r2 + 90 + i * 52;
+      line(ctx, `${a.symbol || a.name} · ${Math.round(a.eur).toLocaleString('de-DE')} €`, cx[1] + 22, y - 4, 22, TC.green, cw - 40, 700);
+      line(ctx, a.why || a.name, cx[1] + 22, y + 20, 18, TC.text, cw - 40, 500);
+    });
+  else
+    sp.lookingAt.slice(0, 4).forEach((c, i) => {
+      const y = r2 + 90 + i * 52;
+      line(ctx, `${c.symbol || c.name} · ${c.status}`, cx[1] + 22, y - 4, 22, TC.green, cw - 40, 700);
+      line(ctx, c.why, cx[1] + 22, y + 20, 18, TC.text, cw - 40, 500);
+    });
   card(ctx, cx[2], r2, cw, r2h, t('briefing.questions'), TC.cyan);
   const q = v.inquiries[0];
   if (!q) line(ctx, t('briefing.noQuestions'), cx[2] + 22, r2 + 96, 22, TC.dim, cw - 40, 500);

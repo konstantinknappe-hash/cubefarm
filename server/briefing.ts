@@ -203,6 +203,24 @@ export function mockBriefing(now: number) {
       { kind: 'research_theme', desk: 'robotics', status: 'running' as const, symbol: 'robotics', title: 'Mock: Aktuatoren und Getriebe', since: now - 300_000 },
       { kind: 'review_proposal', desk: 'insider_politics', status: 'queued' as const, symbol: 'NVDA', title: 'Mock: CFO-Verkauf nach 10b5-1-Plan', since: null },
     ],
+    savingsPlan: {
+      month: '2026-11',
+      stage: 'proposal',
+      summary: 'Mock: breiter Welt-ETF als Kern, Robotik und Gesundheit als Beimischung.',
+      lookingAt: [
+        { symbol: 'IWDA', name: 'Mock: MSCI World UCITS', status: 'favorite', why: 'Mock: breit gestreut, günstig' },
+        { symbol: 'RBOT', name: 'Mock: Robotik UCITS', status: 'candidate', why: 'Mock: Aktuatoren-Nachfrage' },
+      ],
+      allocation: [
+        { symbol: 'IWDA', name: 'Mock: MSCI World', isin: 'IE00B4L5Y983', eur: 1400, why: 'Mock: Kern' },
+        { symbol: 'RBOT', name: 'Mock: Robotik', isin: 'IE00BYZK4552', eur: 400, why: 'Mock: Beimischung' },
+        { symbol: 'TMO', name: 'Mock: Thermo Fisher', isin: 'US8835561023', eur: 200, why: 'Mock: Bio-Werkzeuge' },
+      ],
+      changes: 'Mock: erster Plan',
+      risks: 'Mock: Themen-ETFs schwanken stark',
+      sources: [],
+    },
+    savingsPlanAt: now - 3_600_000,
     decisions: [
       { desk: 'news', at: now - 120_000, symbol: 'TMO', action: 'buy', confidence: 0.56, reason: 'Mock: Umsatz und EPS über Konsens' },
       { desk: 'positions', at: now - 600_000, symbol: 'LTC/USD', action: 'close', confidence: 0.99, reason: 'Mock: Zeitlimit abgelaufen' },

@@ -131,4 +131,12 @@ export const trading = {
   'briefing.running': 'läuft',
   'briefing.queued': 'wartet',
   'briefing.noActivity': 'Gerade arbeitet niemand.',
+  'briefing.savings': 'Sparplan {month}',
+  'briefing.savingsNone': 'Noch kein Sparplan: Das Research-Team erstellt ihn jede Woche.',
+  'briefing.stage.research': 'Recherche',
+  'briefing.stage.proposal': 'Vorschlag, kann sich ändern',
+  'briefing.stage.final': 'final',
+  'briefing.lookingAt': 'Im Blick',
+  'briefing.allocation': 'Monatliche Aufteilung',
+  'briefing.changes': 'Änderungen',
 } satisfies TranslationOf<typeof English>;

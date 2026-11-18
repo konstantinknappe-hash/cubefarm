@@ -130,4 +130,12 @@ export const trading = {
   'briefing.running': 'running',
   'briefing.queued': 'waiting',
   'briefing.noActivity': 'Nobody is working right now.',
+  'briefing.savings': 'Savings plan {month}',
+  'briefing.savingsNone': 'No savings plan yet: the research team writes one every week.',
+  'briefing.stage.research': 'research',
+  'briefing.stage.proposal': 'proposal, may change',
+  'briefing.stage.final': 'final',
+  'briefing.lookingAt': 'Looking at',
+  'briefing.allocation': 'Monthly allocation',
+  'briefing.changes': 'Changes',
 } as const;

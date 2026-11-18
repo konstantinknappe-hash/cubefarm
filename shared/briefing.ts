@@ -77,6 +77,17 @@ export interface DecisionItem {
   confidence: number | null;
   reason: string;
 }
+/** The research team's long-term monthly savings plan (separate from the trading desk). */
+export interface SavingsPlan {
+  month: string;
+  stage: string;
+  summary: string;
+  lookingAt: { symbol: string; name: string; status: string; why: string }[];
+  allocation: { symbol: string; name: string; isin: string; eur: number; why: string }[];
+  changes: string;
+  risks: string;
+  sources: string[];
+}
 export interface WatchEntry {
   symbol: string;
   source: string;
@@ -97,6 +108,8 @@ export interface BriefingView {
   watchlist: WatchEntry[];
   activity: ActivityItem[];
   decisions: DecisionItem[];
+  savingsPlan: SavingsPlan | null;
+  savingsPlanAt: number | null;
 }
 
 export const emptyBriefingView = (): BriefingView => ({
@@ -111,6 +124,8 @@ export const emptyBriefingView = (): BriefingView => ({
   watchlist: [],
   activity: [],
   decisions: [],
+  savingsPlan: null,
+  savingsPlanAt: null,
 });
 
 // ---------- parsing ----------
@@ -169,8 +184,30 @@ function parseAnswer(v: unknown): InquiryAnswer | null {
   };
 }
 
+function parseSavingsPlan(v: unknown): SavingsPlan | null {
+  const p = obj(v);
+  if (!Object.keys(p).length) return null;
+  return {
+    month: str(p.month, 20),
+    stage: str(p.stage, 20),
+    summary: str(p.summary, 1200),
+    lookingAt: list(p.looking_at, 12).map((c) => {
+      const o = obj(c);
+      return { symbol: str(o.symbol, 20), name: str(o.name, 80), status: str(o.status, 20), why: str(o.why, 400) };
+    }).filter((c) => c.symbol || c.name),
+    allocation: list(p.allocation, 12).map((c) => {
+      const o = obj(c);
+      const eur = typeof o.eur === 'number' && Number.isFinite(o.eur) ? Math.max(0, o.eur) : 0;
+      return { symbol: str(o.symbol, 20), name: str(o.name, 80), isin: str(o.isin, 20), eur, why: str(o.why, 400) };
+    }).filter((c) => c.symbol || c.name),
+    changes: str(p.changes, 600),
+    risks: str(p.risks, 800),
+    sources: httpsOnly(strings(p.sources, 12, 300)),
+  };
+}
+
 /** MoneyPrint's `moneyprint.briefing/v1` answer as the board's fields; throws on another format. */
-export function parseBriefing(raw: unknown): Pick<BriefingView, 'briefingAt' | 'briefing' | 'history' | 'inquiries' | 'watchlist' | 'activity' | 'decisions'> {
+export function parseBriefing(raw: unknown): Pick<BriefingView, 'briefingAt' | 'briefing' | 'history' | 'inquiries' | 'watchlist' | 'activity' | 'decisions' | 'savingsPlan' | 'savingsPlanAt'> {
   const r = obj(raw);
   if (r.schema !== 'moneyprint.briefing/v1') throw new Error('unknown format');
   return {
@@ -208,6 +245,8 @@ export function parseBriefing(raw: unknown): Pick<BriefingView, 'briefingAt' | '
       const c = typeof o.confidence === 'number' && Number.isFinite(o.confidence) ? Math.min(1, Math.max(0, o.confidence)) : null;
       return { desk: str(o.desk, 40), at: time(o.at), symbol: str(o.symbol, 20), action: str(o.action, 12), confidence: c, reason: str(o.reason, 400) };
     }).filter((d) => d.symbol),
+    savingsPlan: parseSavingsPlan(r.savings_plan),
+    savingsPlanAt: time(r.savings_plan_at),
   };
 }
 

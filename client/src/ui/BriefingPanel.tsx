@@ -161,6 +161,66 @@ export function BriefingPanel() {
 
         <AskBox />
 
+        <section className="trading-card">
+          <h3>
+            {v.savingsPlan ? `${t('briefing.savings', { month: v.savingsPlan.month })} · ${t(`briefing.stage.${v.savingsPlan.stage === 'final' ? 'final' : v.savingsPlan.stage === 'research' ? 'research' : 'proposal'}`)}` : t('briefing.savings', { month: '' })}
+          </h3>
+          {!v.savingsPlan ? (
+            <p className="trading-muted">{t('briefing.savingsNone')}</p>
+          ) : (
+            <>
+              <p>{v.savingsPlan.summary}</p>
+              {!!v.savingsPlan.allocation.length && (
+                <>
+                  <b>{t('briefing.allocation')}</b>
+                  <ul className="briefing-list">
+                    {v.savingsPlan.allocation.map((a, i) => (
+                      <li key={i}>
+                        <span className="sym">{a.symbol || a.name}</span> <b>{Math.round(a.eur).toLocaleString('de-DE')} €</b> {a.name}
+                        {a.isin && <span className="trading-muted"> · {a.isin}</span>}
+                        <br />
+                        {a.why}
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+              {!!v.savingsPlan.lookingAt.length && (
+                <>
+                  <b>{t('briefing.lookingAt')}</b>
+                  <ul className="briefing-list">
+                    {v.savingsPlan.lookingAt.map((c, i) => (
+                      <li key={i}>
+                        <span className="sym">{c.symbol || c.name}</span> <span className="briefing-stance">{c.status}</span> {c.why}
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+              {v.savingsPlan.changes && (
+                <p>
+                  <b>{t('briefing.changes')}:</b> {v.savingsPlan.changes}
+                </p>
+              )}
+              {v.savingsPlan.risks && (
+                <p>
+                  <b>{t('briefing.risks')}:</b> {v.savingsPlan.risks}
+                </p>
+              )}
+              {!!v.savingsPlan.sources.length && (
+                <p className="briefing-sources">
+                  <b>{t('briefing.sources')}:</b>{' '}
+                  {v.savingsPlan.sources.map((u, i) => (
+                    <a key={u} href={u} target="_blank" rel="noreferrer noopener">
+                      [{i + 1}]
+                    </a>
+                  ))}
+                </p>
+              )}
+            </>
+          )}
+        </section>
+
         <div className="trading-cols">
           <section className="trading-card">
             <h3>{t('briefing.activity')}</h3>

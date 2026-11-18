@@ -30,7 +30,7 @@ export function BriefingWall() {
     return () => clearInterval(id);
   }, []);
   const state = briefingState(v, clock);
-  const sig = useMemo(() => JSON.stringify([v.briefingAt, v.briefing, v.inquiries[0], v.error, v.activity, v.decisions]), [v]);
+  const sig = useMemo(() => JSON.stringify([v.briefingAt, v.briefing, v.inquiries[0], v.error, v.activity, v.decisions, v.savingsPlan]), [v]);
   const tex = useCanvasTexture(BRIEFING_PX[0], BRIEFING_PX[1], (ctx) => drawBriefingWall(ctx, BRIEFING_PX[0], BRIEFING_PX[1], v, state), [sig, state]);
   const ref = useInteractable<THREE.Group>({ id: 'briefing-wall', label: t('briefing.open'), action: { kind: 'briefing' } }, 7);
   const s = BRIEFING_WALL;
