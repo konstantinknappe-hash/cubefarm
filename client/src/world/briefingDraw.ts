@@ -57,7 +57,8 @@ const stanceColor = (s: string) => (/long|buy|kauf/i.test(s) ? TC.green : /short
 
 const KINDS = new Set(['decide', 'review_proposal', 'process_finding', 'assess_news_batch', 'research_news', 'research_crypto_news', 'research_earnings', 'research_disclosures', 'research_theme', 'review_positions', 'reflect_trade', 'desk_review', 'desk_briefing', 'inquiry']);
 /** What a task kind means, in words; an unknown one shows as it is. */
-export const kindLabel = (kind: string) => (KINDS.has(kind) ? t(`briefing.kind.${kind}` as 'briefing.kind.decide') : kind);
+export const kindLabel = (kind: string) =>
+  KINDS.has(kind) ? t(`briefing.kind.${kind.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase())}` as 'briefing.kind.decide') : kind;
 
 export function drawBriefingWall(ctx: CanvasRenderingContext2D, w: number, h: number, v: BriefingView, state: BriefingState) {
   ctx.fillStyle = TC.bg;
