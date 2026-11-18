@@ -42,6 +42,16 @@ describe('parseBriefing', () => {
     expect(r.watchlist.map((w) => w.symbol)).toEqual(['SLV']);
   });
 
+  it('reads what the desk works on and its latest decisions', () => {
+    const r = parseBriefing({
+      schema: 'moneyprint.briefing/v1',
+      activity: [{ kind: 'decide', desk: 'news', status: 'running', symbol: 'AMD', title: 'Q3', since: '2026-11-18T14:00:00Z' }, { status: 'queued' }],
+      decisions: [{ desk: 'news', at: 'x', symbol: 'NVDA', action: 'buy', confidence: 2, reason: 'Beat' }],
+    });
+    expect(r.activity).toEqual([{ kind: 'decide', desk: 'news', status: 'running', symbol: 'AMD', title: 'Q3', since: Date.parse('2026-11-18T14:00:00Z') }]);
+    expect(r.decisions).toEqual([{ desk: 'news', at: null, symbol: 'NVDA', action: 'buy', confidence: 1, reason: 'Beat' }]);
+  });
+
   it('refuses another format and tolerates an empty briefing', () => {
     expect(() => parseBriefing({ schema: 'other' })).toThrow('unknown format');
     expect(parseBriefing({ schema: 'moneyprint.briefing/v1', briefing: null }).briefing).toBeNull();

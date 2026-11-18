@@ -101,7 +101,8 @@ export const OfficeFloor = memo(function OfficeFloor({ repo }: { repo: RepoView 
       <KanbanBoard repo={repo} agents={agents} />
       <ActivityTicker repoId={repo.id} />
       {agents.map((a) => <ActivityIcon key={a.id} agent={a} />)}
-      <AppMonitor repo={repo} agents={agents} />
+      {/* The trading floor's app monitor gives way to the desk briefing board (docs/desk-briefing.md). */}
+      {repo.floor !== tradingFloor && <AppMonitor repo={repo} agents={agents} />}
       <MergeConfetti repo={repo} agents={agents} />
       <CoinBurst repo={repo} agents={agents} />
       <DeskStory agents={agents} />
@@ -165,7 +166,7 @@ export const OfficeFloor = memo(function OfficeFloor({ repo }: { repo: RepoView 
       <Plant position={[-7.1, 0, -HALF_D + 0.7]} />
       <Plant position={[7.1, 0, -HALF_D + 0.7]} />
       <Plant position={[-HALF_W + 0.7, 0, HALF_D - 0.8]} scale={1.2} />
-      <Plant position={[-11, 0, -HALF_D + 0.7]} scale={1.1} />
+      {repo.floor !== tradingFloor && <Plant position={[-11, 0, -HALF_D + 0.7]} scale={1.1} />}
       <Plant position={[HALF_W - 0.7, 0, HALF_D - 0.7]} scale={0.9} pot="#8338ec" />
       <Couch position={[-HALF_W + 0.9, 0, 6.5]} rotationY={-Math.PI / 2} color={shade(repo.color, -0.05)} />
       <CoffeeTable position={[-HALF_W + 2.6, 0, 6.5]} rotationY={Math.PI / 2} />

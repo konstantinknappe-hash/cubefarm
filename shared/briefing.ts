@@ -59,6 +59,24 @@ export interface Inquiry {
   answeredAt: number | null;
   answer: InquiryAnswer | null;
 }
+/** A task an analyst runs or is about to: what, on which symbol, about what. */
+export interface ActivityItem {
+  kind: string;
+  desk: string;
+  status: 'running' | 'queued';
+  symbol: string;
+  title: string;
+  since: number | null;
+}
+/** A decider's latest verdict on a symbol, and why. */
+export interface DecisionItem {
+  desk: string;
+  at: number | null;
+  symbol: string;
+  action: string;
+  confidence: number | null;
+  reason: string;
+}
 export interface WatchEntry {
   symbol: string;
   source: string;
@@ -77,6 +95,8 @@ export interface BriefingView {
   history: { at: number | null; headline: string }[];
   inquiries: Inquiry[];
   watchlist: WatchEntry[];
+  activity: ActivityItem[];
+  decisions: DecisionItem[];
 }
 
 export const emptyBriefingView = (): BriefingView => ({
@@ -89,6 +109,8 @@ export const emptyBriefingView = (): BriefingView => ({
   history: [],
   inquiries: [],
   watchlist: [],
+  activity: [],
+  decisions: [],
 });
 
 // ---------- parsing ----------
@@ -148,7 +170,7 @@ function parseAnswer(v: unknown): InquiryAnswer | null {
 }
 
 /** MoneyPrint's `moneyprint.briefing/v1` answer as the board's fields; throws on another format. */
-export function parseBriefing(raw: unknown): Pick<BriefingView, 'briefingAt' | 'briefing' | 'history' | 'inquiries' | 'watchlist'> {
+export function parseBriefing(raw: unknown): Pick<BriefingView, 'briefingAt' | 'briefing' | 'history' | 'inquiries' | 'watchlist' | 'activity' | 'decisions'> {
   const r = obj(raw);
   if (r.schema !== 'moneyprint.briefing/v1') throw new Error('unknown format');
   return {
@@ -170,6 +192,22 @@ export function parseBriefing(raw: unknown): Pick<BriefingView, 'briefingAt' | '
       const o = obj(w);
       return { symbol: str(o.symbol, 20), source: str(o.source, 20), note: str(o.note, 200) };
     }).filter((w) => w.symbol),
+    activity: list(r.activity, 10).map((a) => {
+      const o = obj(a);
+      return {
+        kind: str(o.kind, 40),
+        desk: str(o.desk, 40),
+        status: o.status === 'running' ? ('running' as const) : ('queued' as const),
+        symbol: str(o.symbol, 20),
+        title: str(o.title, 160),
+        since: time(o.since),
+      };
+    }).filter((a) => a.kind),
+    decisions: list(r.decisions, 12).map((d) => {
+      const o = obj(d);
+      const c = typeof o.confidence === 'number' && Number.isFinite(o.confidence) ? Math.min(1, Math.max(0, o.confidence)) : null;
+      return { desk: str(o.desk, 40), at: time(o.at), symbol: str(o.symbol, 20), action: str(o.action, 12), confidence: c, reason: str(o.reason, 400) };
+    }).filter((d) => d.symbol),
   };
 }
 

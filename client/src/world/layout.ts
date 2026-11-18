@@ -214,10 +214,10 @@ export const APP_SCREEN = { x: -13.7, y: 2.25, w: 3.2, h: 1.8, bezel: 0.09, dept
 // ticker strip at its bottom; depth is how far the case sticks out from the wall.
 export const TRADING_WALL = { x: 9.8, y: 2.2, w: 4.3, h: 2.14, ticker: 0.118, bezel: 0.07, depth: 0.1 };
 
-// The desk briefing board (BriefingWall.tsx): on the trading floor, on the west wall between its middle window (to
-// z 2.2) and the south one (from z 5.8), above the lounge corner's tall decoration slot. It faces east into the room;
-// z and y are the picture's middle.
-export const BRIEFING_WALL = { z: 4, y: 2.45, w: 3.2, h: 1.8, bezel: 0.06, depth: 0.1 };
+// The desk briefing board (BriefingWall.tsx): on the trading floor it takes the north wall west of the gong, where
+// other floors have their app monitor and a plant: from near the west wall (x -15.4) to just short of the wall clock
+// (x -10.4), up to under the ceiling lights. x and y are the picture's middle.
+export const BRIEFING_WALL = { x: -12.9, y: 2.05, w: 5, h: 2.5, bezel: 0.07, depth: 0.1 };
 
 // The foam blaster rack stands against the south wall: on office floors west of the floor sign near the couch,
 // in the lobby in the south-west corner (clear of the basketball hoop further east). d is how far it sticks out.

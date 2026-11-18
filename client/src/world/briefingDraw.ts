@@ -6,7 +6,7 @@ import { formatTime, t } from '../i18n';
 import { roundRect, SANS } from './draw';
 import { TC } from './tradingDraw';
 
-export const BRIEFING_PX: [number, number] = [1600, 900];
+export const BRIEFING_PX: [number, number] = [2000, 1000];
 
 export const BRIEFING_STATE_COLOR: Record<BriefingState, string> = { live: TC.green, stale: TC.amber, offline: TC.red, mock: TC.violet };
 
@@ -53,69 +53,93 @@ function card(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h:
   line(ctx, title.toUpperCase(), x + 34, y + 38, 22, TC.dim, w - 50, 700);
 }
 
-const stanceColor = (s: string) => (/long|buy|kauf/i.test(s) ? TC.green : /short|sell|verk/i.test(s) ? TC.red : TC.amber);
+const stanceColor = (s: string) => (/long|buy|kauf/i.test(s) ? TC.green : /short|sell|close|reduce|verk/i.test(s) ? TC.red : TC.amber);
+
+const KINDS = new Set(['decide', 'review_proposal', 'process_finding', 'assess_news_batch', 'research_news', 'research_crypto_news', 'research_earnings', 'research_disclosures', 'research_theme', 'review_positions', 'reflect_trade', 'desk_review', 'desk_briefing', 'inquiry']);
+/** What a task kind means, in words; an unknown one shows as it is. */
+export const kindLabel = (kind: string) => (KINDS.has(kind) ? t(`briefing.kind.${kind}` as 'briefing.kind.decide') : kind);
 
 export function drawBriefingWall(ctx: CanvasRenderingContext2D, w: number, h: number, v: BriefingView, state: BriefingState) {
   ctx.fillStyle = TC.bg;
   ctx.fillRect(0, 0, w, h);
   // header
-  line(ctx, t('briefing.title'), 40, 66, 52, TC.text, 700, 800);
-  line(ctx, t('briefing.subtitle'), 40, 104, 24, TC.dim, 900, 500);
+  line(ctx, t('briefing.title'), 40, 70, 56, TC.text, 700, 800);
+  line(ctx, t('briefing.subtitle'), 40, 108, 24, TC.dim, 900, 500);
   const color = BRIEFING_STATE_COLOR[state];
-  ctx.font = `700 24px ${SANS}`;
+  ctx.font = `700 26px ${SANS}`;
   const label = t(`briefing.state.${state}`);
-  const pw = ctx.measureText(label).width + 30;
-  roundRect(ctx, w - 40 - pw, 40, pw, 40, 20);
+  const pw = ctx.measureText(label).width + 32;
+  roundRect(ctx, w - 40 - pw, 40, pw, 44, 22);
   ctx.strokeStyle = color;
   ctx.lineWidth = 3;
   ctx.stroke();
-  line(ctx, label, w - 40 - pw + 15, 68, 24, color, pw, 700);
-  if (v.briefingAt) line(ctx, t('briefing.at', { time: formatTime(v.briefingAt) }), w - 40 - pw - 260, 68, 22, TC.dim, 240, 500);
-  if (state === 'mock') line(ctx, t('briefing.mockBanner'), w / 2 - 260, 104, 22, TC.violet, 520, 700);
+  line(ctx, label, w - 40 - pw + 16, 71, 26, color, pw, 700);
+  if (v.briefingAt) line(ctx, t('briefing.at', { time: formatTime(v.briefingAt) }), w - 40 - pw - 280, 71, 24, TC.dim, 260, 500);
+  if (state === 'mock') line(ctx, t('briefing.mockBanner'), 760, 71, 24, TC.violet, 600, 700);
 
   const b = v.briefing;
-  // the headline and what changed
-  card(ctx, 30, 126, w - 60, 150, b?.headline || t('briefing.none'), TC.cyan);
+  // the CEO's headline and what changed
+  card(ctx, 30, 126, w - 60, 120, b?.headline || t('briefing.none'), TC.cyan);
   ctx.font = `500 26px ${SANS}`;
-  wrap(ctx, b?.what_changed ? `${t('briefing.changed')}: ${b.what_changed}` : '', w - 120, 3).forEach((l, i) => line(ctx, l, 52, 186 + i * 32, 26, TC.text, w - 110, 500));
+  wrap(ctx, b?.what_changed ? `${t('briefing.changed')}: ${b.what_changed}` : '', w - 110, 2).forEach((l, i) => line(ctx, l, 54, 196 + i * 32, 26, TC.text, w - 100, 500));
 
-  // the watchlist: symbol, stance, why, trigger
-  const colW = (w - 90) / 2;
-  card(ctx, 30, 292, colW, 380, t('briefing.watchlist'), TC.green);
+  const gap = 20;
+  const cw = (w - 60 - gap * 2) / 3;
+  const cx = [30, 30 + cw + gap, 30 + (cw + gap) * 2];
+  // row 1: watchlist · working on now · latest decisions
+  const r1 = 262;
+  const r1h = 420;
+  card(ctx, cx[0], r1, cw, r1h, t('briefing.watchlist'), TC.green);
   (b?.watchlist ?? []).slice(0, 5).forEach((item, i) => {
-    const y = 360 + i * 64;
-    line(ctx, item.symbol, 52, y, 28, stanceColor(item.stance), 140, 800);
-    line(ctx, item.why, 200, y - 4, 22, TC.text, colW - 190, 500);
-    line(ctx, `${t('briefing.trigger')}: ${item.trigger}`, 200, y + 24, 20, TC.dim, colW - 190, 500);
+    const y = r1 + 92 + i * 68;
+    line(ctx, item.symbol, cx[0] + 22, y, 28, stanceColor(item.stance), 130, 800);
+    line(ctx, item.why, cx[0] + 160, y - 6, 22, TC.text, cw - 180, 500);
+    line(ctx, `${t('briefing.trigger')}: ${item.trigger}`, cx[0] + 160, y + 22, 20, TC.dim, cw - 180, 500);
   });
-  // planned moves and positions
-  const rx = 60 + colW;
-  card(ctx, rx, 292, colW, 190, t('briefing.planned'), TC.amber);
-  (b?.planned ?? []).slice(0, 3).forEach((m, i) => {
-    const y = 360 + i * 40;
-    line(ctx, `${m.when} · ${m.action.toUpperCase()} ${m.symbol}`, rx + 22, y, 24, stanceColor(m.action), 330, 700);
-    line(ctx, `${t('briefing.because')} ${m.because}`, rx + 360, y, 20, TC.text, colW - 380, 500);
+  card(ctx, cx[1], r1, cw, r1h, t('briefing.activity'), TC.amber);
+  if (!v.activity.length) line(ctx, t('briefing.noActivity'), cx[1] + 22, r1 + 96, 22, TC.dim, cw - 40, 500);
+  v.activity.slice(0, 6).forEach((a, i) => {
+    const y = r1 + 92 + i * 54;
+    ctx.fillStyle = a.status === 'running' ? TC.green : TC.dim;
+    ctx.beginPath();
+    ctx.arc(cx[1] + 30, y - 8, 7, 0, Math.PI * 2);
+    ctx.fill();
+    line(ctx, `${a.symbol || '—'} · ${kindLabel(a.kind)}`, cx[1] + 48, y - 2, 22, a.status === 'running' ? TC.text : TC.dim, cw - 70, 700);
+    line(ctx, a.title, cx[1] + 48, y + 22, 18, TC.dim, cw - 70, 500);
   });
-  card(ctx, rx, 492, colW, 180, t('briefing.positions'), TC.cyan);
-  (b?.positions ?? []).slice(0, 3).forEach((p, i) => {
-    const y = 556 + i * 38;
-    line(ctx, p.symbol, rx + 22, y, 24, TC.text, 150, 700);
-    line(ctx, `${t('briefing.exit')}: ${p.exit_plan}`, rx + 180, y, 20, TC.dim, colW - 200, 500);
+  card(ctx, cx[2], r1, cw, r1h, t('briefing.decisions'), TC.violet);
+  v.decisions.slice(0, 5).forEach((d, i) => {
+    const y = r1 + 92 + i * 68;
+    const conf = d.confidence == null ? '' : ` ${Math.round(d.confidence * 100)} %`;
+    line(ctx, `${d.action.toUpperCase()} ${d.symbol}${conf}`, cx[2] + 22, y - 6, 24, stanceColor(d.action), cw - 40, 800);
+    line(ctx, d.reason, cx[2] + 22, y + 22, 19, TC.text, cw - 40, 500);
   });
-  // sectors and the latest question
-  card(ctx, 30, 688, colW, 186, t('briefing.sectors'), TC.violet);
-  (b?.sectors ?? []).slice(0, 3).forEach((s, i) => {
-    const y = 752 + i * 38;
-    line(ctx, s.sector.replace(/_/g, ' '), 52, y, 22, TC.violet, 220, 700);
-    line(ctx, s.view, 280, y, 20, TC.text, colW - 270, 500);
+  // row 2: planned moves · sectors · the latest question
+  const r2 = r1 + r1h + 16;
+  const r2h = h - r2 - 20;
+  card(ctx, cx[0], r2, cw, r2h, t('briefing.planned'), TC.amber);
+  (b?.planned ?? []).slice(0, 4).forEach((m, i) => {
+    const y = r2 + 90 + i * 52;
+    line(ctx, `${m.when} · ${m.action.toUpperCase()} ${m.symbol}`, cx[0] + 22, y - 4, 22, stanceColor(m.action), cw - 40, 700);
+    line(ctx, `${t('briefing.because')} ${m.because}`, cx[0] + 22, y + 20, 18, TC.dim, cw - 40, 500);
   });
-  card(ctx, rx, 688, colW, 186, t('briefing.questions'), TC.amber);
+  card(ctx, cx[1], r2, cw, r2h, t('briefing.sectors'), TC.violet);
+  (b?.sectors ?? []).slice(0, 4).forEach((sv, i) => {
+    const y = r2 + 90 + i * 52;
+    line(ctx, `${sv.sector.replace(/_/g, ' ')}${sv.symbols.length ? ` · ${sv.symbols.slice(0, 4).join(', ')}` : ''}`, cx[1] + 22, y - 4, 22, TC.violet, cw - 40, 700);
+    line(ctx, sv.view, cx[1] + 22, y + 20, 18, TC.text, cw - 40, 500);
+  });
+  card(ctx, cx[2], r2, cw, r2h, t('briefing.questions'), TC.cyan);
   const q = v.inquiries[0];
-  if (!q) line(ctx, t('briefing.noQuestions'), rx + 22, 760, 22, TC.dim, colW - 40, 500);
+  if (!q) line(ctx, t('briefing.noQuestions'), cx[2] + 22, r2 + 96, 22, TC.dim, cw - 40, 500);
   else {
-    line(ctx, `„${q.question}“`, rx + 22, 752, 22, TC.text, colW - 40, 600);
+    ctx.font = `600 22px ${SANS}`;
+    wrap(ctx, `„${q.question}“`, cw - 44, 2).forEach((l, i) => line(ctx, l, cx[2] + 22, r2 + 88 + i * 28, 22, TC.text, cw - 40, 600));
     const status = t(`briefing.status.${q.answer ? 'answered' : q.status === 'queued' ? 'queued' : 'sent'}`);
-    line(ctx, q.answer ? `${t('briefing.verdict')}: ${q.answer.verdict}` : status, rx + 22, 792, 22, q.answer ? TC.green : TC.amber, colW - 40, 700);
-    if (q.answer) line(ctx, `${t('briefing.entry')}: ${q.answer.entry_plan}`, rx + 22, 828, 20, TC.dim, colW - 40, 500);
+    line(ctx, q.answer ? `${t('briefing.verdict')}: ${q.answer.verdict}` : status, cx[2] + 22, r2 + 158, 22, q.answer ? TC.green : TC.amber, cw - 40, 700);
+    if (q.answer) {
+      ctx.font = `500 19px ${SANS}`;
+      wrap(ctx, `${t('briefing.entry')}: ${q.answer.entry_plan}`, cw - 44, 3).forEach((l, i) => line(ctx, l, cx[2] + 22, r2 + 192 + i * 24, 19, TC.dim, cw - 40, 500));
+    }
   }
 }

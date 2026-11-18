@@ -198,5 +198,15 @@ export function mockBriefing(now: number) {
       { symbol: 'TER', source: 'theme', note: 'Mock' },
       { symbol: 'SLV', source: 'inquiry', note: 'Mock' },
     ],
+    activity: [
+      { kind: 'decide', desk: 'news', status: 'running' as const, symbol: 'AMD', title: 'Mock: Q3-Zahlen über Erwartung, Prognose angehoben', since: now - 90_000 },
+      { kind: 'research_theme', desk: 'robotics', status: 'running' as const, symbol: 'robotics', title: 'Mock: Aktuatoren und Getriebe', since: now - 300_000 },
+      { kind: 'review_proposal', desk: 'insider_politics', status: 'queued' as const, symbol: 'NVDA', title: 'Mock: CFO-Verkauf nach 10b5-1-Plan', since: null },
+    ],
+    decisions: [
+      { desk: 'news', at: now - 120_000, symbol: 'TMO', action: 'buy', confidence: 0.56, reason: 'Mock: Umsatz und EPS über Konsens' },
+      { desk: 'positions', at: now - 600_000, symbol: 'LTC/USD', action: 'close', confidence: 0.99, reason: 'Mock: Zeitlimit abgelaufen' },
+      { desk: 'news', at: now - 900_000, symbol: 'V', action: 'hold', confidence: 0.4, reason: 'Mock: keine bezifferten Effekte' },
+    ],
   };
 }
