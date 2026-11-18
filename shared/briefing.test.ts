@@ -52,6 +52,17 @@ describe('parseBriefing', () => {
     expect(r.decisions).toEqual([{ desk: 'news', at: null, symbol: 'NVDA', action: 'buy', confidence: 1, reason: 'Beat' }]);
   });
 
+  it('reads the savings plan with EUR amounts and https sources only', () => {
+    const r = parseBriefing({
+      schema: 'moneyprint.briefing/v1',
+      savings_plan_at: '2026-11-18T17:00:00Z',
+      savings_plan: { month: '2026-11', stage: 'proposal', allocation: [{ symbol: 'IWDA', eur: 1400 }, { eur: 'x' }], sources: ['https://a.example', 'javascript:x'] },
+    });
+    expect(r.savingsPlan?.allocation).toEqual([{ symbol: 'IWDA', name: '', isin: '', eur: 1400, why: '' }]);
+    expect(r.savingsPlan?.sources).toEqual(['https://a.example']);
+    expect(r.savingsPlanAt).toBe(Date.parse('2026-11-18T17:00:00Z'));
+  });
+
   it('refuses another format and tolerates an empty briefing', () => {
     expect(() => parseBriefing({ schema: 'other' })).toThrow('unknown format');
     expect(parseBriefing({ schema: 'moneyprint.briefing/v1', briefing: null }).briefing).toBeNull();
