@@ -501,6 +501,8 @@ export class Swarm {
       setFloorProfile: (a) => this.setFloorProfile(a),
       scaleTeam: (a) => this.scaleTeam(a),
       configureAgent: (a) => this.configureAgent(a),
+      assignIssue: (a) => this.ceoAssignIssue(a),
+      returnAgentToQueue: (a) => this.ceoReturnAgentToQueue(a),
       fileIssue: (a) => this.fileIssue(a),
       setDependencies: (a) => this.setDependencies(a),
       closeIssue: (a) => this.closeIssue(a),
@@ -2153,6 +2155,18 @@ export class Swarm {
     this.save();
   }
 
+  /** Stop the current session and return its issue/QA work to the shared queue after the session exits. */
+  returnToQueue(id: string) {
+    const a = this.agent(id);
+    if (a.role === 'ceo') throw new HttpError(400, 'The CEO does not take issue work.');
+    if (!BUSY.includes(a.status) || !a.task) throw new HttpError(409, `${a.name} has no active task to return.`);
+    const work = a.task === 'issue' ? `#${a.issueNumber}` : a.task === 'qa' ? `PR #${a.prNumber} QA` : `PR #${a.prNumber} fix`;
+    this.requeue(a, `the manager returned ${work} to the queue`);
+    this.watchdogTick(false);
+    setTimeout(() => this.schedule(), 200);
+    return this.agentView(a, false);
+  }
+
   /** An agent whose CLI kept working through the office's restart: the office follows its session again. */
   private reattachSession(a: PersistedAgent) {
     const repo = this.state.repos.find((r) => r.id === a.repoId);
@@ -2209,8 +2223,9 @@ export class Swarm {
     if (!issue) throw new HttpError(404, `Issue #${issueNumber} is not open on ${repo.fullName}`);
     const waits = waitForDeps ? blockers(issue.body, new Set(issues.map((i) => i.number))) : [];
     if (waits.length) throw new HttpError(409, waitsMessage(issueNumber, waits));
-    const holder = this.state.agents.find((x) => x.id !== a.id && x.repoId === repo.id && x.issueNumber === issueNumber && BUSY.includes(x.status));
-    if (holder) throw new HttpError(409, `${holder.name} is already working on #${issueNumber}`);
+    const holder = this.state.agents.find((x) => x.repoId === repo.id && x.issueNumber === issueNumber && x.task !== 'qa' && x.status !== 'idle' && x.status !== 'error');
+    if (holder) throw new HttpError(409, holder.id === a.id ? `Clear ${a.name}'s previous task before assigning #${issueNumber} again.` : `${holder.name} still owns #${issueNumber}; return the task to the queue and wait for their session to stop before reassigning it.`);
+    if (this.issueTaken(repo, issueNumber)) throw new HttpError(409, `#${issueNumber} is already covered by an open or recently merged pull request.`);
     if (this.isHeld(repo.id, issueNumber)) {
       // Assigned by hand: its wait after its PR closed is over.
       this.state.held = this.state.held.filter((h) => !(h.repoId === repo.id && h.issue === issueNumber));
@@ -4923,6 +4938,24 @@ export class Swarm {
       null,
       1,
     );
+  }
+
+  private async ceoAssignIssue(x: { floor: number; agent_id: string; number: number; note?: string }) {
+    const repo = this.floorRepo(x.floor);
+    const agent = this.agentByRef(x.agent_id);
+    if (agent.repoId !== repo.id) throw new Error(`${agent.name} is not on floor ${repo.floor} (${repo.fullName}).`);
+    if (!this.available(repo).some((candidate) => candidate.id === agent.id)) throw new Error(`${agent.name} is not free to take work right now.`);
+    await this.assign(agent.id, x.number, x.note, true);
+    return `Assigned #${x.number} on floor ${repo.floor} (${repo.fullName}) to ${agent.name}.`;
+  }
+
+  private ceoReturnAgentToQueue(x: { agent_id: string }) {
+    const agent = this.agentByRef(x.agent_id);
+    if (agent.role === 'ceo') throw new Error('The CEO does not take issue work.');
+    const doing = this.agentDoing(agent);
+    if (!doing) throw new Error(`${agent.name} has no active task to return.`);
+    this.returnToQueue(agent.id);
+    return `Returned ${doing} from ${agent.name} to the shared queue. Their current session must exit before the work can be reassigned.`;
   }
 
   private setFloorProfile(x: { floor: number; summary?: string; qa_brief?: string; preview_command?: string; preview_env?: Record<string, string> }) {

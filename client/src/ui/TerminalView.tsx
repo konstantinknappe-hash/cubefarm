@@ -257,9 +257,16 @@ export function TerminalView({ agentId }: { agentId: string }) {
 
       <div className="term-actions">
         {working ? (
-          <button className="btn btn-bad" disabled={busy} onClick={() => run(() => api.stop(agent.id))}>
-            ■ Stop
-          </button>
+          <>
+            {agent.task && (
+              <button className="btn" disabled={busy} onClick={() => run(() => api.requeue(agent.id))}>
+                ↶ Return task to queue
+              </button>
+            )}
+            <button className="btn btn-bad" disabled={busy} onClick={() => run(() => api.stop(agent.id))}>
+              ■ Stop
+            </button>
+          </>
         ) : (
           <>
             <select value={pick} onChange={(e) => setPick(e.target.value)} aria-label="Work to give them">
