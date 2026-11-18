@@ -1,6 +1,6 @@
 # Desk-Briefing-Tafel
 
-Auf der Trading-Etage hängt an der Westwand, zwischen dem mittleren und dem südlichen Fenster, die **Desk-Briefing-Tafel**.
+Auf der Trading-Etage hängt an der Nordwand, links vom Gong (anstelle von App-Monitor und Pflanze), die **Desk-Briefing-Tafel**.
 Sie zeigt MoneyPrints stündlichen **CEO-Bericht**:
 
 - was sich seit dem letzten Bericht geändert hat,
@@ -8,6 +8,7 @@ Sie zeigt MoneyPrints stündlichen **CEO-Bericht**:
 - die geplanten Schritte mit Zeitpunkt und Grund,
 - die offenen Positionen mit ihrem Ausstiegsplan,
 - die Sicht je Sektor (Robotik, Bioengineering, Edelmetalle),
+- was die Agenten gerade bearbeiten und ihre letzten Entscheidungen mit Begründung,
 - die letzte Frage ans Research-Team.
 
 `E` (oder ein Klick) öffnet das Panel mit allem im Detail. Dort stellt der Manager dem Research-Team Fragen, zum Beispiel

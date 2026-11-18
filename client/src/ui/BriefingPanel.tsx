@@ -7,7 +7,7 @@ import { QUESTION_MAX, type Inquiry } from '../../../shared/briefing';
 import { api } from '../api';
 import { formatDate, formatTime, useT } from '../i18n';
 import { useStore } from '../store';
-import { BRIEFING_STATE_COLOR } from '../world/briefingDraw';
+import { BRIEFING_STATE_COLOR, kindLabel } from '../world/briefingDraw';
 import { briefingState } from '../world/BriefingWall';
 import { Panel } from './Panel';
 
@@ -160,6 +160,42 @@ export function BriefingPanel() {
         </section>
 
         <AskBox />
+
+        <div className="trading-cols">
+          <section className="trading-card">
+            <h3>{t('briefing.activity')}</h3>
+            {v.activity.length ? (
+              <ul className="briefing-list">
+                {v.activity.map((a, i) => (
+                  <li key={i}>
+                    <span className={`briefing-status ${a.status === 'running' ? 'answered' : 'queued'}`}>{t(a.status === 'running' ? 'briefing.running' : 'briefing.queued')}</span>{' '}
+                    <span className="sym">{a.symbol || '—'}</span> {kindLabel(a.kind)}
+                    {a.title && <span className="trading-muted"> · {a.title}</span>}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="trading-muted">{t('briefing.noActivity')}</p>
+            )}
+          </section>
+          <section className="trading-card">
+            <h3>{t('briefing.decisions')}</h3>
+            {v.decisions.length ? (
+              <ul className="briefing-list">
+                {v.decisions.map((d, i) => (
+                  <li key={i}>
+                    <span className="trading-muted">{when(d.at)}</span> <b>{d.action.toUpperCase()}</b> <span className="sym">{d.symbol}</span>
+                    {d.confidence != null && <span className="trading-muted"> · {Math.round(d.confidence * 100)} %</span>}
+                    <br />
+                    {d.reason}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              none
+            )}
+          </section>
+        </div>
 
         <div className="trading-cols">
           <section className="trading-card">
