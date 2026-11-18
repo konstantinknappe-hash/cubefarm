@@ -100,6 +100,8 @@ describe('office tools', () => {
       setFloorProfile: (a) => (floors.push(a), 'saved'),
       scaleTeam: () => '',
       configureAgent: () => '',
+      assignIssue: async () => '',
+      returnAgentToQueue: () => '',
       fileIssue: async () => '',
       setDependencies: async () => '',
       closeIssue: async () => '',
@@ -121,6 +123,7 @@ describe('office tools', () => {
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name).sort()).toEqual([
       'agent_detail',
+      'assign_issue',
       'close_issue',
       'close_pull',
       'company_status',
@@ -129,6 +132,7 @@ describe('office tools', () => {
       'file_issue',
       'rerun_checks',
       'retry_qa',
+      'return_agent_to_queue',
       'scale_team',
       'send_back',
       'set_dependencies',

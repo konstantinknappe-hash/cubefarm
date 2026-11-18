@@ -32,6 +32,8 @@ export interface OfficeHandlers {
   setFloorProfile(a: { floor: number; summary?: string; qa_brief?: string; preview_command?: string; preview_env?: Record<string, string> }): string;
   scaleTeam(a: { floor: number; size: number; reason: string; cli?: AgentCli; model?: string; effort?: string }): string;
   configureAgent(a: { agent_id: string; cli?: AgentCli | ''; model?: string; effort?: string }): string;
+  assignIssue(a: { floor: number; agent_id: string; number: number; note?: string }): Promise<string>;
+  returnAgentToQueue(a: { agent_id: string }): string;
   fileIssue(a: { floor: number; title: string; body: string }): Promise<string>;
   setDependencies(a: { floor: number; number: number; depends_on: number[] }): Promise<string>;
   closeIssue(a: { floor: number; number: number; reason: string }): Promise<string>;
@@ -120,6 +122,23 @@ export function createOfficeTools(h: OfficeHandlers): OfficeTools {
         effort: z.union([EFFORT, z.literal('')]).optional().describe('"" for the office default'),
       },
       (a) => run(() => h.configureAgent(a)),
+    ),
+    tool(
+      'assign_issue',
+      'Assign an open issue on a floor to a specific free agent on that same floor. Use this to balance work across idle agents. Refuses busy agents, duplicate claims, dependencies, and issues already covered by a pull request.',
+      {
+        floor: z.number().int().describe('Floor number from company_status'),
+        agent_id: z.string().describe('Agent id or name from company_status; agent must belong to this floor'),
+        number: z.number().int().positive().describe('Open issue number on this floor'),
+        note: z.string().max(1000).optional().describe('Optional task-specific direction'),
+      },
+      (a) => run(() => h.assignIssue(a)),
+    ),
+    tool(
+      'return_agent_to_queue',
+      'Stop an agent’s current issue, QA, or pull-request fix session and return that work to the shared queue after the session exits. Use agent_detail first; do not interrupt useful work without a clear reason.',
+      { agent_id: z.string().describe('Agent id or name from company_status') },
+      (a) => run(() => h.returnAgentToQueue(a)),
     ),
     tool(
       'file_issue',
@@ -270,6 +289,7 @@ export function ceoSystemPrompt(o: {
     '- Read the repositories through their clone paths with Read, Glob and Grep. They are read-only to you. You cannot run shell commands.',
     `- Keep durable notes about the company in ${o.notesFile}: read it at the start, and update it at the end with decisions and anything worth remembering next time.`,
     '- Change things only through the mcp__office__ tools.',
+    '- The manager can ask you to move work directly: use company_status and agent_detail, then assign_issue to give an open issue to a specific free agent on that floor, or return_agent_to_queue to stop an active session and release its work back to the queue. Prefer assigning idle agents to independent ready issues; return work only when the manager asks or the current assignment is clearly blocking progress. Never assign an issue already owned or covered by a pull request.',
     `- ${ONE_TURN}`,
     '',
     'Rules:',

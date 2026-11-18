@@ -501,6 +501,8 @@ export class Swarm {
       setFloorProfile: (a) => this.setFloorProfile(a),
       scaleTeam: (a) => this.scaleTeam(a),
       configureAgent: (a) => this.configureAgent(a),
+      assignIssue: (a) => this.ceoAssignIssue(a),
+      returnAgentToQueue: (a) => this.ceoReturnAgentToQueue(a),
       fileIssue: (a) => this.fileIssue(a),
       setDependencies: (a) => this.setDependencies(a),
       closeIssue: (a) => this.closeIssue(a),
@@ -4936,6 +4938,23 @@ export class Swarm {
       null,
       1,
     );
+  }
+
+  private async ceoAssignIssue(x: { floor: number; agent_id: string; number: number; note?: string }) {
+    const repo = this.floorRepo(x.floor);
+    const agent = this.agentByRef(x.agent_id);
+    if (agent.repoId !== repo.id) throw new Error(`${agent.name} is not on floor ${repo.floor} (${repo.fullName}).`);
+    await this.assign(agent.id, x.number, x.note);
+    return `Assigned #${x.number} on floor ${repo.floor} (${repo.fullName}) to ${agent.name}.`;
+  }
+
+  private ceoReturnAgentToQueue(x: { agent_id: string }) {
+    const agent = this.agentByRef(x.agent_id);
+    if (agent.role === 'ceo') throw new Error('The CEO does not take issue work.');
+    const doing = this.agentDoing(agent);
+    if (!doing) throw new Error(`${agent.name} has no active task to return.`);
+    this.returnToQueue(agent.id);
+    return `Returned ${doing} from ${agent.name} to the shared queue. Their current session must exit before the work can be reassigned.`;
   }
 
   private setFloorProfile(x: { floor: number; summary?: string; qa_brief?: string; preview_command?: string; preview_env?: Record<string, string> }) {
