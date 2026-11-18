@@ -139,4 +139,9 @@ export const trading = {
   'briefing.lookingAt': 'Im Blick',
   'briefing.allocation': 'Monatliche Aufteilung',
   'briefing.changes': 'Änderungen',
+  'briefing.sleeve.core': 'Kern',
+  'briefing.sleeve.dividend': 'Dividende',
+  'briefing.sleeve.growth': 'Wachstum',
+  'briefing.sleeve.tactical': 'kurzfristig',
+  'briefing.holdFor': 'Halten',
 } satisfies TranslationOf<typeof English>;

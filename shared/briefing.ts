@@ -83,7 +83,7 @@ export interface SavingsPlan {
   stage: string;
   summary: string;
   lookingAt: { symbol: string; name: string; status: string; why: string }[];
-  allocation: { symbol: string; name: string; isin: string; eur: number; why: string }[];
+  allocation: { symbol: string; name: string; isin: string; eur: number; why: string; sleeve: string; holdFor: string; exitPlan: string }[];
   changes: string;
   risks: string;
   sources: string[];
@@ -198,7 +198,7 @@ function parseSavingsPlan(v: unknown): SavingsPlan | null {
     allocation: list(p.allocation, 12).map((c) => {
       const o = obj(c);
       const eur = typeof o.eur === 'number' && Number.isFinite(o.eur) ? Math.max(0, o.eur) : 0;
-      return { symbol: str(o.symbol, 20), name: str(o.name, 80), isin: str(o.isin, 20), eur, why: str(o.why, 400) };
+      return { symbol: str(o.symbol, 20), name: str(o.name, 80), isin: str(o.isin, 20), eur, why: str(o.why, 400), sleeve: str(o.sleeve, 20), holdFor: str(o.hold_for, 80), exitPlan: str(o.exit_plan, 400) };
     }).filter((c) => c.symbol || c.name),
     changes: str(p.changes, 600),
     risks: str(p.risks, 800),

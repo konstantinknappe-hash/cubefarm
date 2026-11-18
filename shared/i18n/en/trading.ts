@@ -138,4 +138,9 @@ export const trading = {
   'briefing.lookingAt': 'Looking at',
   'briefing.allocation': 'Monthly allocation',
   'briefing.changes': 'Changes',
+  'briefing.sleeve.core': 'core',
+  'briefing.sleeve.dividend': 'dividend',
+  'briefing.sleeve.growth': 'growth',
+  'briefing.sleeve.tactical': 'tactical',
+  'briefing.holdFor': 'Hold',
 } as const;

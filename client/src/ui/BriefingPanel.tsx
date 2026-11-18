@@ -178,8 +178,17 @@ export function BriefingPanel() {
                       <li key={i}>
                         <span className="sym">{a.symbol || a.name}</span> <b>{Math.round(a.eur).toLocaleString('de-DE')} €</b> {a.name}
                         {a.isin && <span className="trading-muted"> · {a.isin}</span>}
+                        {a.sleeve && <span className="briefing-stance"> {t(`briefing.sleeve.${['core', 'dividend', 'growth', 'tactical'].includes(a.sleeve) ? a.sleeve : 'core'}` as 'briefing.sleeve.core')}</span>}
                         <br />
                         {a.why}
+                        {(a.holdFor || a.exitPlan) && (
+                          <span className="trading-muted">
+                            <br />
+                            {a.holdFor && `${t('briefing.holdFor')}: ${a.holdFor}`}
+                            {a.holdFor && a.exitPlan && ' · '}
+                            {a.exitPlan && `${t('briefing.exit')}: ${a.exitPlan}`}
+                          </span>
+                        )}
                       </li>
                     ))}
                   </ul>
