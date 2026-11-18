@@ -366,6 +366,19 @@ describe('prepareDesk', { timeout: 60_000 }, () => {
     expect(await fs.readFile(path.join(desk, 'README.md'), 'utf8')).toMatch(/^# Test/);
   });
 
+  it("falls back to a same-repository PR head branch when refs/pull/N/head is unavailable", async () => {
+    const r = await makeRepos();
+    const branch = 'swarm/issue-37-helga';
+    await commitFile(r.upstream, 'seed.txt', 'synthetic fixture\n');
+    await git(['push', '-q', 'origin', `HEAD:refs/heads/${branch}`], { cwd: r.upstream });
+    const expected = await head(r.upstream);
+
+    const desk = await prepareDesk(r.fullName, { defaultBranch: 'main', pr: 37, headRefName: branch }, 'kai-5678', 'swarm/fix-pr-37-kai');
+
+    expect(await head(desk)).toBe(expected);
+    expect(await branchOf(desk)).toBe('swarm/fix-pr-37-kai');
+  });
+
   it('clears a stale index.lock and reuses the desk in place, node_modules and all', async () => {
     const r = await makeRepos();
     const desk = await prepareDesk(r.fullName, { defaultBranch: 'main' }, 'tim-1a2b', 'swarm/issue-108-tim');
