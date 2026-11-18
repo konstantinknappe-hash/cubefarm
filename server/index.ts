@@ -20,7 +20,7 @@ import { screenStatus } from './screenReply.ts';
 import { parseSendBackNote } from './sendBack.ts';
 import { PresenceHub } from './presence.ts';
 import { HttpError, Swarm } from './swarm.ts';
-import { AnalystRunCache, AnalystRunInputError, parseAnalystRunRequest } from './analystRunBridge.ts';
+import { AnalystRunCache, AnalystRunInputError, MAX_ANALYST_SESSIONS, parseAnalystRunRequest } from './analystRunBridge.ts';
 
 const swarm = new Swarm(DEMO ? createDemoBackend(DEMO_SCALE) : realBackend);
 // Who else is in the 3D office (shared presence): relayed between tabs over /ws, never saved. The demo adds fake visitors.
@@ -103,7 +103,7 @@ const invokeAnalystRun = route(async (req) => {
   const repoId = process.env.MONEYPRINT_CUBEFARM_REPO_ID?.trim();
   if (!repoId) throw new HttpError(503, 'MoneyPrint repo is not configured for analyst runs.');
   const configuredParallel = Number(process.env.MONEYPRINT_CUBEFARM_PARALLEL_SESSIONS ?? 1);
-  const parallelLimit = Number.isInteger(configuredParallel) ? Math.max(1, Math.min(2, configuredParallel)) : 1;
+  const parallelLimit = Number.isInteger(configuredParallel) ? Math.max(1, Math.min(MAX_ANALYST_SESSIONS, configuredParallel)) : 1;
   if (!analystRunCache.has(input.requestId) && analystRunCache.activeCount >= Math.min(parallelLimit, input.maxParallel)) {
     throw new HttpError(429, 'No visible analyst session is free; retry the queued task later.');
   }
