@@ -1,4 +1,4 @@
-import type { UsageView, UsageWarningView } from '../shared/types.ts';
+import type { AgentCli, UsageView, UsageWarningView } from '../shared/types.ts';
 import { clock, limitName, usedPercent } from '../shared/usage.ts';
 
 export { clock };
@@ -25,6 +25,16 @@ export function mayStart(kind: WorkKind, c: UsageClock & { running: number; paci
   if (c.now < c.pausedUntil) return false;
   if (kind === 'issue' && c.now < c.pacingUntil) return c.running < c.pacingSessions;
   return true;
+}
+
+/**
+ * The coding agent a new session runs on. While Claude is paused at its limit, or pacing because it warned the limit
+ * is near, a Claude agent's (and the CEO's) new work runs on Codex when Codex is installed, so the office carries on;
+ * once Claude is clear again it goes back by itself. Other CLIs never change.
+ */
+export function failoverCli(cli: AgentCli, c: UsageClock & { codexReady: boolean }): AgentCli {
+  const claudeLimited = c.now < c.pausedUntil || c.now < c.pacingUntil;
+  return cli === 'claude' && c.codexReady && claudeLimited ? 'codex' : cli;
 }
 
 /** The usage state for the snapshot, with the last warning's details for the usage meter. */

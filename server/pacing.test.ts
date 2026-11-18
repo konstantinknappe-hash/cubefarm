@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clampPacingSessions, clock, mayStart, pacingMessage, resumeRefusal, usageLabel, usageView, waived, warningView, type WorkKind } from './pacing.ts';
+import { clampPacingSessions, clock, failoverCli, mayStart, pacingMessage, resumeRefusal, usageLabel, usageView, waived, warningView, type WorkKind } from './pacing.ts';
 
 const NOW = new Date(2026, 8, 28, 12, 0).getTime();
 const HOUR = 60 * 60_000;
@@ -105,5 +105,19 @@ describe('resume full speed', () => {
     expect(waived(warn('five_hour', NOW + 7 * HOUR), waiver, NOW)).toBe(false); // the usage was reset: a new window
     expect(waived(warn('five_hour', NOW + 2 * HOUR), waiver, NOW + 2 * HOUR)).toBe(false); // the waived window is over
     expect(waived(warn('five_hour', NOW + 2 * HOUR), null, NOW)).toBe(false);
+  });
+});
+
+describe('failoverCli', () => {
+  const clock = { now: 1_000, pausedUntil: 0, pacingUntil: 0 };
+  it('moves Claude work to Codex while Claude is paused or pacing, if Codex is there', () => {
+    expect(failoverCli('claude', { ...clock, pausedUntil: 2_000, codexReady: true })).toBe('codex');
+    expect(failoverCli('claude', { ...clock, pacingUntil: 2_000, codexReady: true })).toBe('codex');
+    expect(failoverCli('claude', { ...clock, pausedUntil: 2_000, codexReady: false })).toBe('claude');
+  });
+  it('goes back once Claude is clear and never touches other CLIs', () => {
+    expect(failoverCli('claude', { ...clock, pausedUntil: 900, pacingUntil: 900, codexReady: true })).toBe('claude');
+    expect(failoverCli('opencode', { ...clock, pausedUntil: 2_000, codexReady: true })).toBe('opencode');
+    expect(failoverCli('codex', { ...clock, codexReady: true })).toBe('codex');
   });
 });

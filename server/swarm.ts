@@ -33,7 +33,7 @@ import { pruneQaShots, qaShotsDir, readQaShot, removeQaShots, saveQaShots } from
 import { agentPromptPreview, ceoPromptPreview, devBranch, devSystemPrompt, failedLogLines, noPushNudge, ownPrLine, qaBranch, qaSystemPrompt } from './prompts.ts';
 import { QA_RESUME_PROMPT, qaRetry } from './qaRetry.ts';
 import { drainDecision, lastUpdateMessage, POSTPONE_MS, type DrainInput, type LastUpdate } from './officeUpdate.ts';
-import { clampPacingSessions, DEFAULT_PACING_SESSIONS, mayStart, PACING_MS, pacingMessage, resumeRefusal, usageLabel, usageView, waived, warningView, type UsageWarning, type Waiver, type WorkKind } from './pacing.ts';
+import { clampPacingSessions, DEFAULT_PACING_SESSIONS, failoverCli, mayStart, PACING_MS, pacingMessage, resumeRefusal, usageLabel, usageView, waived, warningView, type UsageWarning, type Waiver, type WorkKind } from './pacing.ts';
 import { emptyHistory, loadHistory, opsView, recordChecks, recordCost, recordMerges, recordQa, type OpsFloorState, type OpsHistory } from './metrics.ts';
 import { clampTrimIdleMin, DEFAULT_TRIM_IDLE_MIN, desksToTrim, formatBytes, freedMessage, idleSince, TRIM_SWEEP_MS } from './deskTrim.ts';
 import { cliLabel, isCli } from './clis.ts';
@@ -59,7 +59,7 @@ import { dayKey, journalFrame, legacyAgent, legacyRequest } from '../shared/jour
 import { cleanStyle, HAIR_COLORS, SKIN_TONES, type AgentStyle } from '../shared/looks.ts';
 import { achievementDef, type ProgressView } from '../shared/progress.ts';
 import { parsePongResult, PONG_PLAYER, recordGame } from '../shared/pong.ts';
-import { describeModelProblem, effectiveModel, effortsFor, fitEffort, modelProblem, modelRejection, rejectionKey, type ModelProblem } from '../shared/models.ts';
+import { describeModelProblem, effectiveModel, effortsFor, fitEffort, isClaudeModel, modelProblem, modelRejection, rejectionKey, type ModelProblem } from '../shared/models.ts';
 import { DEFAULT_WEATHER, DEFAULT_WORLD_EVENTS, weatherSettings, worldEventSettings } from '../shared/outside.ts';
 import { DEFAULT_THEME_SETTINGS, dueGreeting, themeSettings } from '../shared/themes.ts';
 import { CEO_ID, DEFAULT_DOG_NAME, DEFAULT_MAX_AGENTS, FLOOR_SEATS, INSTALL_STEP } from '../shared/types.ts';
@@ -2344,6 +2344,11 @@ export class Swarm {
   }
 
   /** The coding agent is installed here (or the office hasn't looked yet: then the session says so if it isn't). */
+  /** Codex can take over Claude agents' new work while Claude is at its limit (terminal runtime, Codex installed). */
+  private failoverReady() {
+    return this.state.settings.runtime === 'terminal' && !!this.backend.terminals && this.clis.some((c) => c.id === 'codex' && c.installed);
+  }
+
   private cliReady(cli: AgentCli) {
     return !this.clis.length || this.clis.some((c) => c.id === cli && c.installed);
   }
@@ -2614,6 +2619,12 @@ export class Swarm {
       else if (a.sessionCli !== 'claude') resume = undefined;
     }
     if (!inTerminal) return { resumeSessionId: resume };
+    const switched = failoverCli(cli, { now: Date.now(), pausedUntil: this.pausedUntil, pacingUntil: this.pacingUntil, codexReady: this.failoverReady() });
+    if (switched !== cli) {
+      // Claude is at (or near) its limit: this session runs on Codex; a Claude session can't be resumed there.
+      cli = switched;
+      if (a.sessionCli !== cli) resume = undefined;
+    }
     const what = a.role === 'ceo' ? a.issueTitle : a.task === 'analysis' ? a.issueTitle : a.task === 'qa' ? `QA · PR #${a.prNumber}` : a.task === 'fix' ? `fixing PR #${a.prNumber}` : a.issueNumber ? `#${a.issueNumber} ${a.issueTitle ?? ''}` : null;
     return { terminal: this.terminalFor(a), cli, label: `${a.name}${what ? ` · ${what}` : ''}`.slice(0, 80).trim(), resumeSessionId: resume };
   }
@@ -3738,7 +3749,8 @@ export class Swarm {
     if (until <= this.pausedUntil) return;
     const fresh = Date.now() >= this.pausedUntil;
     this.pausedUntil = until;
-    if (fresh) this.postMessage('office', `⏸ Claude's usage limit was reached. The office starts no new work until ${new Date(until).toLocaleTimeString()}; sessions already running carry on.`);
+    if (fresh && this.failoverReady()) this.postMessage('office', `🔁 Claude's usage limit was reached. Until ${new Date(until).toLocaleTimeString()} new work of Claude agents and the CEO runs on Codex; sessions already running carry on.`);
+    else if (fresh) this.postMessage('office', `⏸ Claude's usage limit was reached. The office starts no new work until ${new Date(until).toLocaleTimeString()}; sessions already running carry on.`);
     this.emitUsage();
   }
 
@@ -3752,7 +3764,8 @@ export class Swarm {
     const fresh = now >= this.pacingUntil;
     this.pacingUntil = until;
     this.pacingLimit = info.rateLimitType;
-    if (fresh) this.postMessage('office', pacingMessage(info, until, this.state.settings.pacingSessions, now));
+    if (fresh && this.failoverReady()) this.postMessage('office', `🔁 Claude warned that its usage limit is near. Until ${new Date(until).toLocaleTimeString()} new work of Claude agents and the CEO runs on Codex, so the office keeps its pace.`);
+    else if (fresh) this.postMessage('office', pacingMessage(info, until, this.state.settings.pacingSessions, now));
     this.emitUsage();
   }
 
@@ -3785,6 +3798,8 @@ export class Swarm {
 
   /** May work of this kind start now, as far as Claude's usage goes? */
   private mayStart(kind: WorkKind) {
+    // With Codex taking over new sessions, Claude's limit holds nothing back.
+    if (this.failoverReady()) return true;
     return mayStart(kind, { now: Date.now(), pausedUntil: this.pausedUntil, pacingUntil: this.pacingUntil, running: this.running(), pacingSessions: this.state.settings.pacingSessions });
   }
 
@@ -3884,7 +3899,7 @@ export class Swarm {
     this.progressTick();
     if (this.officeUpdateTick()) return; // draining for the office's own update
     this.applyTeamChanges(); // before handing out work, so agents on their way out get none
-    if (this.limited()) return;
+    if (this.limited() && !this.failoverReady()) return;
     // Management first: the CEO's jobs are short and shape everyone else's work.
     this.maybeHeartbeat();
     this.startCeoWork();
@@ -4204,7 +4219,8 @@ export class Swarm {
         cwd: CEO_DIR,
         prompt: ceoJobPrompt(job, floor, triage),
         systemAppend: ceoSystemPrompt(this.ceoPromptInput(a)),
-        model: a.model || (how.cli === 'codex' || how.cli === 'opencode' ? '' : CEO_MODEL),
+        // a Claude model can't run on Codex when the CEO's work moved there at Claude's limit
+        model: (how.cli === 'claude') === isClaudeModel(a.model) && a.model ? a.model : how.cli === 'claude' ? CEO_MODEL : '',
         effort: a.effort || (how.cli === 'codex' || how.cli === 'opencode' ? this.state.settings.defaultEffort : CEO_EFFORT),
         browserTesting: false,
         additionalDirectories: this.state.repos.filter((r) => this.repoRt.get(r.id)?.cloneStatus === 'ready').map((r) => this.backend.mainDir(r.fullName)),
