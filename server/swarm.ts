@@ -2349,9 +2349,10 @@ export class Swarm {
     try {
       if (this.repoRt.get(repo.id)?.cloneStatus !== 'ready') await this.cloneRepo(repo.id);
       const note = (text: string) => this.appendLog(a, [{ kind: 'system', text }]);
+      const headRefName = base.pr == null ? undefined : this.repoRt.get(repo.id)?.pulls.find((p) => p.number === base.pr)?.headRefName;
       const cwd = await setUpDesk(this.agentRt.get(a.id)?.terminal, {
         release: () => this.releaseDesk(a, repo),
-        prepare: () => this.backend.machines.prepareDesk(this.machineOf(a), repo.fullName, { defaultBranch: repo.defaultBranch, pr: base.pr }, branch, note),
+        prepare: () => this.backend.machines.prepareDesk(this.machineOf(a), repo.fullName, { defaultBranch: repo.defaultBranch, pr: base.pr, headRefName }, branch, note),
       });
       this.deskAlerts.delete(a.id);
       if (job) this.prepStrikes.delete(prepKey(repo.id, job.rec.prNumber, job.task));

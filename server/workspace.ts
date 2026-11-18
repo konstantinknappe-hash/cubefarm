@@ -290,6 +290,8 @@ export interface DeskBase {
   defaultBranch: string;
   /** Start from a pull request's head instead of the default branch (QA testing, fixes after QA). */
   pr?: number;
+  /** Same-repository head branch fallback when the remote does not expose refs/pull/N/head. */
+  headRefName?: string;
 }
 
 /** Remove a directory, retrying while Windows still has handles open in it. */
@@ -349,7 +351,18 @@ async function setUpWorktree(main: string, wt: string, fullName: string, base: D
   if (base.pr) {
     // refs/pull/N/head works for branches in this repo and for forks alike
     ref = `origin/pr/${base.pr}`;
-    await git(['fetch', 'origin', `+refs/pull/${base.pr}/head:refs/remotes/${ref}`], { cwd: main, timeoutMs: 180_000 });
+    try {
+      await git(['fetch', 'origin', `+refs/pull/${base.pr}/head:refs/remotes/${ref}`], { cwd: main, timeoutMs: 180_000 });
+    } catch (pullRefError) {
+      if (!base.headRefName) throw pullRefError;
+      // Some Git remotes expose the PR's same-repository branch but not GitHub's synthetic refs/pull/N/head ref.
+      // Keep the same local target so downstream worktree setup is identical. Fork PRs still use the synthetic ref.
+      try {
+        await git(['fetch', 'origin', `+refs/heads/${base.headRefName}:refs/remotes/${ref}`], { cwd: main, timeoutMs: 180_000 });
+      } catch {
+        throw pullRefError;
+      }
+    }
   }
   try {
     await git(['rev-parse', '--verify', ref], { cwd: main });
