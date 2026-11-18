@@ -132,7 +132,7 @@ export function drawBriefingWall(ctx: CanvasRenderingContext2D, w: number, h: nu
     sp.allocation.slice(0, 4).forEach((a, i) => {
       const y = r2 + 90 + i * 52;
       line(ctx, `${a.symbol || a.name} · ${Math.round(a.eur).toLocaleString('de-DE')} €`, cx[1] + 22, y - 4, 22, TC.green, cw - 40, 700);
-      line(ctx, a.why || a.name, cx[1] + 22, y + 20, 18, TC.text, cw - 40, 500);
+      line(ctx, [a.holdFor, a.exitPlan || a.why].filter(Boolean).join(' · ') || a.name, cx[1] + 22, y + 20, 18, TC.text, cw - 40, 500);
     });
   else
     sp.lookingAt.slice(0, 4).forEach((c, i) => {

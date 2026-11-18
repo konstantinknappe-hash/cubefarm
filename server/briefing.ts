@@ -212,9 +212,10 @@ export function mockBriefing(now: number) {
         { symbol: 'RBOT', name: 'Mock: Robotik UCITS', status: 'candidate', why: 'Mock: Aktuatoren-Nachfrage' },
       ],
       allocation: [
-        { symbol: 'IWDA', name: 'Mock: MSCI World', isin: 'IE00B4L5Y983', eur: 1400, why: 'Mock: Kern' },
-        { symbol: 'RBOT', name: 'Mock: Robotik', isin: 'IE00BYZK4552', eur: 400, why: 'Mock: Beimischung' },
-        { symbol: 'TMO', name: 'Mock: Thermo Fisher', isin: 'US8835561023', eur: 200, why: 'Mock: Bio-Werkzeuge' },
+        { symbol: 'IWDA', name: 'Mock: MSCI World', isin: 'IE00B4L5Y983', eur: 1200, why: 'Mock: Kern', sleeve: 'core', holdFor: '10+ Jahre', exitPlan: 'Mock: nur bei Bedarf' },
+        { symbol: 'ALV', name: 'Mock: Allianz', isin: 'DE0008404005', eur: 400, why: 'Mock: Dividende ~5 %', sleeve: 'dividend', holdFor: 'Jahre', exitPlan: 'Mock: bei Dividendenkürzung' },
+        { symbol: 'RBOT', name: 'Mock: Robotik', isin: 'IE00BYZK4552', eur: 250, why: 'Mock: Beimischung', sleeve: 'growth', holdFor: '1-3 Jahre', exitPlan: 'Mock: bei +60 % halbieren' },
+        { symbol: 'TMO', name: 'Mock: Thermo Fisher', isin: 'US8835561023', eur: 150, why: 'Mock: Zahlen-Katalysator', sleeve: 'tactical', holdFor: '2-4 Monate', exitPlan: 'Mock: Ziel 620 USD, Stop 520 USD' },
       ],
       changes: 'Mock: erster Plan',
       risks: 'Mock: Themen-ETFs schwanken stark',
