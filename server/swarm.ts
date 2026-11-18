@@ -51,6 +51,7 @@ import { clip, plainText, stuckAgents } from './notify.ts';
 import { DEFAULT_NOTIFY, notifySettings, officeUrl } from '../shared/notify.ts';
 import { agentActivity, lineActivity, sameActivity, type SeenActivity } from '../shared/activity.ts';
 import { TradingService, tradingConfig } from './trading.ts';
+import { BriefingService, briefingConfig } from './briefing.ts';
 import { WeatherService } from './weather.ts';
 import { blockers, holdUps, waitsMessage } from '../shared/issues.ts';
 import { dayKey, journalFrame, legacyAgent, legacyRequest } from '../shared/journal.ts';
@@ -676,6 +677,8 @@ export class Swarm {
   readonly weather: WeatherService;
   /** The trading wallboard's read-only MoneyPrint feed (docs/trading-wallboard.md); the mock when none is configured. */
   readonly trading: TradingService;
+  /** The desk briefing board's MoneyPrint feed and the manager's questions (docs/desk-briefing.md). */
+  readonly briefing: BriefingService;
   /** What the office looked like over the last week, for the time-lapse replay. The demo keeps its own. */
   readonly journal: Journal;
   private readonly envSecrets = envSecrets(process.env);
@@ -690,6 +693,12 @@ export class Swarm {
       config: trading,
       file: backend.demo ? null : path.join(HOME_DIR, 'trading-history.json'),
       changed: ({ history, ...rest }, historyChanged) => this.broadcast({ type: 'trading', trading: rest, ...(historyChanged ? { history } : {}) }),
+      log: (line) => console.warn(line),
+    });
+    this.briefing = new BriefingService({
+      config: briefingConfig(process.env),
+      demo: backend.demo,
+      changed: (briefing) => this.broadcast({ type: 'briefing', briefing }),
       log: (line) => console.warn(line),
     });
     this.weather = new WeatherService({
@@ -839,6 +848,7 @@ export class Swarm {
     await this.voice.init();
     await this.weather.init();
     void this.trading.init(); // its first read may wait on MoneyPrint: the office doesn't
+    void this.briefing.init();
     await this.notifier.init();
     for (const r of this.state.repos) if (r.localPath) this.backend.setLocalPath(r.fullName, r.localPath);
     const interrupted: PersistedAgent[] = [];
@@ -1178,6 +1188,7 @@ export class Swarm {
       voiceCache: this.voice.cacheInfo(),
       weather: this.weather.current(),
       trading: this.trading.current(),
+      briefing: this.briefing.current(),
       ticker: this.ticker.recent(),
       notifyChannels: this.notifier.channelsView(),
       version: VERSION,
@@ -1937,6 +1948,7 @@ export class Swarm {
    */
   async shutdown(restart = false): Promise<void> {
     this.trading.stop();
+    this.briefing.stop();
     await this.writeState().catch((err) => console.warn('could not save the state', err));
     await this.journal.close().catch((err) => console.warn('could not write the journal', err));
     await this.backend.releaseClis(restart); // before the terminals are saved: whatever they print next waits in the keeper

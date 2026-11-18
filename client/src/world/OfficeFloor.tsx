@@ -30,6 +30,7 @@ import { PongTable } from './PongTable';
 import { Shell } from './Shell';
 import { Toys } from './toys';
 import { TradingWall } from './TradingWall';
+import { BriefingWall } from './BriefingWall';
 
 export function WallSign({
   position,
@@ -172,6 +173,8 @@ export const OfficeFloor = memo(function OfficeFloor({ repo }: { repo: RepoView 
       <WaterCooler position={[HALF_W - 0.5, 0, -9.5]} />
       <Jukebox x={JUKEBOX.officeX} floor={repo.floor} />
       <WallClock position={[-10, 2.75, -HALF_D + 0.05]} />
+      {/* The trading floor's desk briefing board on the west wall (docs/desk-briefing.md). */}
+      {repo.floor === tradingFloor && <BriefingWall />}
       {/* The trading floor's "ship it" sign gives way to the trading wallboard (docs/trading-wallboard.md). */}
       {repo.floor === tradingFloor ? (
         <TradingWall />
