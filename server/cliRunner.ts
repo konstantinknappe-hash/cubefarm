@@ -6,7 +6,7 @@ import type { Request, Response } from 'express';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { browserProblem, playwrightMcp } from './browser.ts';
 import { HOME_DIR } from './config.ts';
-import { cliLabel, CODEX_HOOK_SOURCE, codexThread, commandFor, hookReviewKey, interruptions, isCli, launchArgs, NOTIFY_SOURCE, OPENCODE_PLUGIN_SOURCE, STATUSLINE_SOURCE, trustKey } from './clis.ts';
+import { cliLabel, CODEX_HOOK_SOURCE, codexLimitReset, codexLimits, codexThread, commandFor, hookReviewKey, interruptions, isCli, launchArgs, NOTIFY_SOURCE, OPENCODE_PLUGIN_SOURCE, STATUSLINE_SOURCE, trustKey } from './clis.ts';
 import { adoptPty, discardPty, hooksReady, keeperHookUrl, keeperPid, leaveKeeper, spawnPty, startKeeper, terminalsAvailable, type Pty } from './ptyClient.ts';
 import {
   clip,
@@ -360,6 +360,7 @@ export function startCliSession(opts: SessionOptions, callbacks: SessionCallback
   let turns = 0;
   let lastText = '';
   let turnError: string | null = null; // the turn failed (OpenCode reports errors separately from going idle)
+  const limitsBefore = cli === 'codex' ? codexLimits(term.screen()) : 0; // a limit message from an earlier session doesn't count
   let begun = false; // the CLI took its first prompt
   let finishTimer: NodeJS.Timeout | undefined;
   let bootTimer: NodeJS.Timeout | undefined;
@@ -406,7 +407,20 @@ export function startCliSession(opts: SessionOptions, callbacks: SessionCallback
   };
 
   /** A turn ended: finished, unless the CLI picks up another prompt within the grace period. */
+  /** Codex stopped at its usage limit during this session: report it once, and the turn failed. */
+  let codexLimitHit = false;
+  const checkCodexLimit = () => {
+    if (cli !== 'codex' || codexLimitHit) return codexLimitHit;
+    const screen = term.screen();
+    if (codexLimits(screen) <= limitsBefore) return false;
+    codexLimitHit = true;
+    turnError = `${label} hit its usage limit`;
+    log([{ kind: 'error', text: `✗ ${turnError}` }]);
+    cb.codexLimited?.(codexLimitReset(screen, Date.now()));
+    return true;
+  };
   const turnEnded = (text: string) => {
+    checkCodexLimit();
     lastText = text;
     cb.tool(null);
     clearTimeout(finishTimer);
@@ -575,6 +589,7 @@ export function startCliSession(opts: SessionOptions, callbacks: SessionCallback
       finish({ ok: false, text: '', errors: [`${label} couldn't find the conversation it was resuming, so the next session starts a new one.`] });
       return;
     }
+    if (checkCodexLimit()) return finish({ ok: false, text: lastText, errors: [turnError ?? `${label} hit its usage limit`] });
     const ok = exitCode === 0 && (lastText !== '' || (cli !== 'claude' && Date.now() - started > 20_000));
     finish({ ok, text: lastText, errors: ok ? [] : [`${label} exited${exitCode ? ` with code ${exitCode}` : ''} before finishing.`] });
   };

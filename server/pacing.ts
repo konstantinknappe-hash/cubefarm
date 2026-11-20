@@ -29,12 +29,16 @@ export function mayStart(kind: WorkKind, c: UsageClock & { running: number; paci
 
 /**
  * The coding agent a new session runs on. While Claude is paused at its limit, or pacing because it warned the limit
- * is near, a Claude agent's (and the CEO's) new work runs on Codex when Codex is installed, so the office carries on;
- * once Claude is clear again it goes back by itself. Other CLIs never change.
+ * is near, a Claude agent's (and the CEO's) new work runs on Codex when Codex is installed and not at its own limit;
+ * while Codex is at its limit, a Codex agent's new work runs on Claude unless Claude is paused too. Each goes back by
+ * itself once its limit clears. Other CLIs never change.
  */
-export function failoverCli(cli: AgentCli, c: UsageClock & { codexReady: boolean }): AgentCli {
+export function failoverCli(cli: AgentCli, c: UsageClock & { codexReady: boolean; codexPausedUntil?: number }): AgentCli {
   const claudeLimited = c.now < c.pausedUntil || c.now < c.pacingUntil;
-  return cli === 'claude' && c.codexReady && claudeLimited ? 'codex' : cli;
+  const codexLimited = c.now < (c.codexPausedUntil ?? 0);
+  if (cli === 'claude' && c.codexReady && claudeLimited && !codexLimited) return 'codex';
+  if (cli === 'codex' && codexLimited && c.now >= c.pausedUntil) return 'claude';
+  return cli;
 }
 
 /** The usage state for the snapshot, with the last warning's details for the usage meter. */
