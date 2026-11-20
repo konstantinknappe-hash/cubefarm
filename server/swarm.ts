@@ -2614,12 +2614,14 @@ export class Swarm {
   private sessionRuntime(a: PersistedAgent, resume?: string): { terminal?: AgentTerminal; cli?: AgentCli; label?: string; resumeSessionId?: string } {
     const inTerminal = this.state.settings.runtime === 'terminal' && this.backend.terminals;
     let cli: AgentCli = inTerminal ? a.cli || this.state.settings.defaultCli : 'claude';
+    // The CEO's chat follow-up starts afresh on the CLI it is set to (switched on request, or back after a failover).
+    if (resume && a.role === 'ceo' && a.sessionCli && a.sessionCli !== cli) resume = undefined;
     if (resume && a.sessionCli && a.sessionCli !== cli) {
       if (inTerminal) cli = a.sessionCli;
       else if (a.sessionCli !== 'claude') resume = undefined;
     }
     if (!inTerminal) return { resumeSessionId: resume };
-    const switched = failoverCli(cli, { now: Date.now(), pausedUntil: this.pausedUntil, pacingUntil: this.pacingUntil, codexReady: this.failoverReady() });
+    const switched = failoverCli(cli, { now: Date.now(), pausedUntil: this.pausedUntil, pacingUntil: this.pacingUntil, codexReady: this.failoverReady(), codexPausedUntil: this.codexPausedUntil });
     if (switched !== cli) {
       // Claude is at (or near) its limit: this session runs on Codex; a Claude session can't be resumed there.
       cli = switched;
@@ -2926,6 +2928,7 @@ export class Swarm {
             .catch((err) => console.warn('could not save screenshot', err));
         },
         limited: (at) => this.pauseForLimit(at),
+        codexLimited: (at) => this.pauseCodexForLimit(at),
         usageWarning: (info) => this.paceForWarning(info),
         finished: (result) => void this.onFinished(a, repo, result),
       },
@@ -3256,7 +3259,7 @@ export class Swarm {
     if (next === 'give-up' || !report) {
       if (a.status !== 'stopped') this.fail(a, { ...result, errors: result.errors.length ? result.errors : ['QA finished without a usable report'] }, `QA of PR #${a.prNumber}`);
       if (rec) {
-        const failures = rec.sessionFailures + (this.limited() ? 0 : 1); // the usage limit isn't the PR's fault
+        const failures = rec.sessionFailures + (this.limited() || this.codexLimited() ? 0 : 1); // the usage limit isn't the PR's fault
         const patch = { qaAgentId: null, sessionFailures: failures, summary: a.status === 'stopped' ? QA_STOPPED : rec.summary };
         if (a.status === 'stopped') this.setQa(rec, { ...patch, status: 'needs-human', escalated: true }); // the manager stopped it: theirs to decide
         else if (failures >= MAX_QA_FAILURES) this.stuck(rec, patch, `QA ended without a usable report ${failures} times in a row`);
@@ -3660,6 +3663,7 @@ export class Swarm {
   private nudged = new Set<string>(); // `${repoId}#${issue}`: its agent was asked once to finish the missing PR
   private fixNudged = new Set<string>(); // `${repoId}#${pr}`: its fix session was asked once to push or say why not
   private pausedUntil = 0; // Claude's usage limit was hit: nothing new starts before this
+  private codexPausedUntil = 0; // Codex's usage limit was hit: Codex agents' new work runs on Claude until this
   private pacingUntil = 0; // Claude warned about usage: new issues are paced until this
   private pacingLimit: string | null = null; // which of Claude's limits the pacing is for
   private lastWarning: UsageWarningView | null = null; // the latest usage warning, for the usage meter
@@ -3754,6 +3758,22 @@ export class Swarm {
     this.emitUsage();
   }
 
+  /** Codex stopped a turn at its usage limit: Codex agents' (and the CEO's) new work runs on Claude until it resets. */
+  private pauseCodexForLimit(resetsAt: number | null) {
+    const until = (resetsAt ?? Date.now() + LIMIT_PAUSE_MS) + 30_000;
+    if (until <= this.codexPausedUntil) return;
+    const fresh = Date.now() >= this.codexPausedUntil;
+    this.codexPausedUntil = until;
+    if (!fresh) return;
+    const time = new Date(until).toLocaleTimeString();
+    if (this.limited()) this.postMessage('office', `⏸ Codex's usage limit was reached too, and Claude is paused at its own. Codex agents start no new work until ${time}.`);
+    else this.postMessage('office', `🔁 Codex's usage limit was reached. Until ${time} new work of Codex agents and the CEO runs on Claude; sessions already running carry on.`);
+  }
+
+  private codexLimited() {
+    return Date.now() < this.codexPausedUntil;
+  }
+
   /** Claude warned that usage is getting high: pace new issues until the window resets, rather than run into the limit. */
   private paceForWarning(info: UsageWarning) {
     const now = Date.now();
@@ -3799,7 +3819,7 @@ export class Swarm {
   /** May work of this kind start now, as far as Claude's usage goes? */
   private mayStart(kind: WorkKind) {
     // With Codex taking over new sessions, Claude's limit holds nothing back.
-    if (this.failoverReady()) return true;
+    if (this.failoverReady() && !this.codexLimited()) return true;
     return mayStart(kind, { now: Date.now(), pausedUntil: this.pausedUntil, pacingUntil: this.pacingUntil, running: this.running(), pacingSessions: this.state.settings.pacingSessions });
   }
 
@@ -4243,6 +4263,7 @@ export class Swarm {
         screenshot: () => undefined,
         turn: (text) => this.postMessage('ceo', text),
         limited: (at) => this.pauseForLimit(at),
+        codexLimited: (at) => this.pauseCodexForLimit(at),
         usageWarning: (info) => this.paceForWarning(info),
         finished: (result) => this.onCeoFinished(a, result),
       },
@@ -4262,8 +4283,15 @@ export class Swarm {
     this.state.ceo.job = null;
     if (job?.kind === 'triage') this.endTriage(job);
     if (result.interrupted) this.interrupted(a);
+    const codexLimit = !result.ok && this.codexLimited() && result.errors.some((e) => e.includes('hit its usage limit'));
     if (a.status === 'stopped') {
       // the manager already logged the stop
+    } else if (codexLimit && job && job.kind !== 'triage') {
+      // Codex stopped at its limit mid-job: the job goes back to the front of the queue and runs again on Claude.
+      this.state.ceo.queue.unshift(job);
+      a.status = 'idle';
+      a.lastError = null;
+      this.appendLog(a, [{ kind: 'system', text: '↺ Codex hit its usage limit. Picking the job back up on Claude.' }]);
     } else if (!result.ok) {
       a.status = 'error';
       a.lastError = result.errors.join('; ') || 'Session failed';
@@ -5342,7 +5370,14 @@ export class Swarm {
   /** configure_agent: an agent's coding agent, model or effort, from their next task. */
   private configureAgent(x: { agent_id: string; cli?: string; model?: string; effort?: string }) {
     const a = this.agentByRef(x.agent_id);
-    if (a.role === 'ceo') throw new Error("That's you: the manager sets the CEO up.");
+    if (a.role === 'ceo') {
+      // The manager may ask the CEO to switch its own coding agent (say Claude ↔ Codex); model and effort stay theirs.
+      if (x.cli === undefined || x.model !== undefined || x.effort !== undefined) throw new Error("For yourself only cli can change (when the manager asks); the manager sets your model and effort.");
+      this.updateAgent(a.id, { cli: x.cli }, 'ceo');
+      const setup = this.setupLabel(a) || 'the office defaults';
+      this.appendLog(a, [{ kind: 'system', text: `⚙️ ${a.name} switched to ${setup}.` }]);
+      return `You run ${setup} from your next job.`;
+    }
     if (x.cli === undefined && x.model === undefined && x.effort === undefined) throw new Error('Nothing to change: pass cli, model, effort or a mix.');
     this.updateAgent(a.id, { cli: x.cli, model: x.model, effort: x.effort }, 'ceo');
     const setup = this.setupLabel(a) || 'the office defaults';

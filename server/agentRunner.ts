@@ -73,6 +73,8 @@ export interface SessionCallbacks {
   turn?(text: string): void;
   /** Claude turned the session away for the subscription's usage limit (epoch ms when it resets, if known). */
   limited?(resetsAt: number | null): void;
+  /** Codex stopped a turn at its own usage limit (epoch ms when it resets, if it said). */
+  codexLimited?(resetsAt: number | null): void;
   /** Claude warned that the subscription's usage is getting high (not while on overage). */
   usageWarning?(info: UsageWarning): void;
   finished(result: SessionResult): void;

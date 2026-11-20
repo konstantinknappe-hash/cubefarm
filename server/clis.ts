@@ -323,6 +323,37 @@ export function interruptions(screen: string): number {
   return screen.split('\n').filter((l) => /\binterrupted\b/i.test(l)).length;
 }
 
+const CODEX_LIMIT = /you'?ve hit your usage limit/gi;
+
+/** How often Codex's "You've hit your usage limit" shows on its screen (counted before and after a turn, like interruptions). */
+export function codexLimits(screen: string): number {
+  return (screen.replace(/\s+/g, ' ').match(CODEX_LIMIT) ?? []).length;
+}
+
+/**
+ * When Codex's usage limit resets, from its last limit message ("… try again in 2 days 3 hours 5 minutes." or
+ * "… try again at 5:13 PM."): epoch ms, or null when it doesn't say. `now` decides the day of a clock time.
+ */
+export function codexLimitReset(screen: string, now: number): number | null {
+  const flat = screen.replace(/\s+/g, ' ');
+  const at = flat.toLowerCase().lastIndexOf('hit your usage limit');
+  if (at < 0) return null;
+  const tail = flat.slice(at, at + 400);
+  const rel = /try again in ((?:\d+\s*(?:days?|hours?|hrs?|minutes?|mins?)[\s,and]*)+)/i.exec(tail);
+  if (rel) {
+    let ms = 0;
+    for (const [, n, unit] of rel[1].matchAll(/(\d+)\s*(d|h|m)/gi)) ms += Number(n) * ({ d: 86_400_000, h: 3_600_000, m: 60_000 } as Record<string, number>)[unit.toLowerCase()];
+    return ms ? now + ms : null;
+  }
+  const abs = /try again at (\d{1,2}):(\d{2})\s*(am|pm)?/i.exec(tail);
+  if (!abs) return null;
+  let h = Number(abs[1]) % (abs[3] ? 12 : 24);
+  if (abs[3]?.toLowerCase() === 'pm') h += 12;
+  const d = new Date(now);
+  d.setHours(h, Number(abs[2]), 0, 0);
+  return d.getTime() > now ? d.getTime() : d.getTime() + 86_400_000;
+}
+
 // ---------- helper scripts the CLIs run ----------
 
 /** Claude Code's status line: posts its data (cost, usage limits) to the office and shows the office's line. */

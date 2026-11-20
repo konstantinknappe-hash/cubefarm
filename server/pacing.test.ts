@@ -120,4 +120,11 @@ describe('failoverCli', () => {
     expect(failoverCli('opencode', { ...clock, pausedUntil: 2_000, codexReady: true })).toBe('opencode');
     expect(failoverCli('codex', { ...clock, codexReady: true })).toBe('codex');
   });
+  it('moves Codex work to Claude while Codex is at its limit, unless Claude is paused too', () => {
+    expect(failoverCli('codex', { ...clock, codexReady: true, codexPausedUntil: 2_000 })).toBe('claude');
+    expect(failoverCli('codex', { ...clock, pacingUntil: 2_000, codexReady: true, codexPausedUntil: 2_000 })).toBe('claude');
+    expect(failoverCli('codex', { ...clock, pausedUntil: 2_000, codexReady: true, codexPausedUntil: 2_000 })).toBe('codex');
+    expect(failoverCli('codex', { ...clock, codexReady: true, codexPausedUntil: 900 })).toBe('codex');
+    expect(failoverCli('claude', { ...clock, pausedUntil: 2_000, codexReady: true, codexPausedUntil: 2_000 })).toBe('claude');
+  });
 });

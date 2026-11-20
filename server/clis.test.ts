@@ -2,7 +2,7 @@ import os from 'node:os';
 import path from 'node:path';
 import fs from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { CODEX_HOOK_EVENTS, codexHookCommand, CROSS_TURN_TOOLS, hookReviewKey, interruptions, launchArgs, oneAtATime, trustKey, unwrapCmdShim, type LaunchContext } from './clis.ts';
+import { CODEX_HOOK_EVENTS, codexHookCommand, CROSS_TURN_TOOLS, codexLimitReset, codexLimits, hookReviewKey, interruptions, launchArgs, oneAtATime, trustKey, unwrapCmdShim, type LaunchContext } from './clis.ts';
 import { describeOfficeTool, describeTool, newScreenshots, screenshotFile, summariseResult } from './agentRunner.ts';
 
 const dir = path.join(os.tmpdir(), 'npm-global');
@@ -253,5 +253,19 @@ describe('newScreenshots', () => {
     expect(newScreenshots(dir, seen, later).map((s) => s.name)).toEqual(['page-2026-09-29T10-00-02-000Z.jpeg']);
     expect(newScreenshots(path.join(dir, 'missing'), seen, later)).toEqual([]);
     fs.rmSync(dir, { recursive: true, force: true });
+  });
+});
+
+describe('Codex usage limit', () => {
+  const now = new Date(2026, 10, 20, 9, 0).getTime();
+  it('counts the limit message even when the terminal wrapped it', () => {
+    expect(codexLimits('■ You\'ve hit your\n usage limit. Upgrade to Pro')).toBe(1);
+    expect(codexLimits('all good')).toBe(0);
+  });
+  it('reads when it resets', () => {
+    expect(codexLimitReset("You've hit your usage limit. Upgrade to Pro or try again in 1 day 2 hours 5 minutes.", now)).toBe(now + 86_400_000 + 2 * 3_600_000 + 5 * 60_000);
+    expect(codexLimitReset("You've hit your usage limit. Try again at 5:13 PM.", now)).toBe(new Date(2026, 10, 20, 17, 13).getTime());
+    expect(codexLimitReset("You've hit your usage limit. Try again at 8:00 AM.", now)).toBe(new Date(2026, 10, 21, 8, 0).getTime());
+    expect(codexLimitReset("You've hit your usage limit.", now)).toBeNull();
   });
 });
