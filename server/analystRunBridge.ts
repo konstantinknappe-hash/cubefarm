@@ -2,6 +2,8 @@
 
 /** At most this many MoneyPrint analyst sessions run at once (each one is a reserved agent's visible CLI). */
 export const MAX_ANALYST_SESSIONS = 4;
+/** Seats reserved for MoneyPrint when MONEYPRINT_CUBEFARM_AGENT_IDS names none (each runs Claude or Codex). */
+export const DEFAULT_ANALYST_SEATS = 2;
 
 export type AnalystRunCli = 'codex_cli' | 'claude_cli';
 
