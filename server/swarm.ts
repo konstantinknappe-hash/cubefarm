@@ -52,7 +52,7 @@ import { DEFAULT_NOTIFY, notifySettings, officeUrl } from '../shared/notify.ts';
 import { agentActivity, lineActivity, sameActivity, type SeenActivity } from '../shared/activity.ts';
 import { TradingService, tradingConfig } from './trading.ts';
 import { BriefingService, briefingConfig } from './briefing.ts';
-import { DEFAULT_ANALYST_SEATS, MAX_ANALYST_SESSIONS } from './analystRunBridge.ts';
+import { analystOutput, DEFAULT_ANALYST_SEATS, MAX_ANALYST_SESSIONS } from './analystRunBridge.ts';
 import { WeatherService } from './weather.ts';
 import { blockers, holdUps, waitsMessage } from '../shared/issues.ts';
 import { dayKey, journalFrame, legacyAgent, legacyRequest } from '../shared/journal.ts';
@@ -1529,7 +1529,7 @@ export class Swarm {
       invocation.reject(/auth|login|rate.?limit|quota|usage.?limit|too many requests|http.?401|http.?429/i.test(detail)
         ? new HttpError(503, 'The requested model backend is unavailable or has reached its usage limit.')
         : new Error(detail));
-    } else invocation.resolve({ output: result.structured ?? result.text, model: this.agentRt.get(a.id)?.sessionModel?.model ?? a.model, agent: a.name });
+    } else invocation.resolve({ output: analystOutput(result.structured, result.text), model: this.agentRt.get(a.id)?.sessionModel?.model ?? a.model, agent: a.name });
     this.clearTask(a);
     this.save();
   }

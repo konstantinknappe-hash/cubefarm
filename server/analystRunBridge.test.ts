@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { AnalystRunCache, AnalystRunInputError, parseAnalystRunRequest } from './analystRunBridge.ts';
+import { AnalystRunCache, AnalystRunInputError, analystOutput, parseAnalystRunRequest } from './analystRunBridge.ts';
 
 const validRequest = (overrides: Record<string, unknown> = {}) => ({
   request_id: 'run-1',
@@ -62,5 +62,15 @@ describe('MoneyPrint analyst run bridge contract', () => {
     const cache = new AnalystRunCache<string>();
     await expect(cache.run('retry', async () => { throw new Error('failed'); })).rejects.toThrow('failed');
     await expect(cache.run('retry', async () => 'ok')).resolves.toBe('ok');
+  });
+});
+
+describe('analystOutput', () => {
+  it('turns a terminal answer into JSON, fenced or with a line before it', () => {
+    expect(analystOutput({ a: 1 }, 'ignored')).toEqual({ a: 1 });
+    expect(analystOutput(null, '{"findings":[]}')).toEqual({ findings: [] });
+    expect(analystOutput(null, 'Here it is:\n```json\n{"findings":[1]}\n```')).toEqual({ findings: [1] });
+    expect(analystOutput(null, 'Result: {"decision":{"action":"hold"}} done')).toEqual({ decision: { action: 'hold' } });
+    expect(analystOutput(null, 'no json here')).toBe('no json here');
   });
 });
