@@ -104,3 +104,24 @@ export class AnalystRunCache<T> {
     }
   }
 }
+
+/**
+ * The analyst's answer as JSON. Terminal CLIs return text, and Claude often wraps the JSON in a ```json block or adds
+ * a line before it; MoneyPrint only accepts a parseable result, so take the last fenced block or the outermost braces.
+ */
+export function analystOutput(structured: unknown, text: string): unknown {
+  if (structured !== undefined && structured !== null) return structured;
+  const trimmed = text.trim();
+  const fenced = [...trimmed.matchAll(/```(?:json)?\s*([[{][\s\S]*?[\]}])\s*```/g)].map((m) => m[1]).reverse();
+  const braces = trimmed.slice(trimmed.indexOf('{'), trimmed.lastIndexOf('}') + 1);
+  for (const candidate of [trimmed, ...fenced, braces]) {
+    if (!candidate) continue;
+    try {
+      const parsed: unknown = JSON.parse(candidate);
+      if (parsed && typeof parsed === 'object') return parsed;
+    } catch {
+      // Not this one; try the next candidate.
+    }
+  }
+  return text;
+}
