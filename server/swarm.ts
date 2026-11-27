@@ -52,7 +52,7 @@ import { DEFAULT_NOTIFY, notifySettings, officeUrl } from '../shared/notify.ts';
 import { agentActivity, lineActivity, sameActivity, type SeenActivity } from '../shared/activity.ts';
 import { TradingService, tradingConfig } from './trading.ts';
 import { BriefingService, briefingConfig } from './briefing.ts';
-import { MAX_ANALYST_SESSIONS } from './analystRunBridge.ts';
+import { DEFAULT_ANALYST_SEATS, MAX_ANALYST_SESSIONS } from './analystRunBridge.ts';
 import { WeatherService } from './weather.ts';
 import { blockers, holdUps, waitsMessage } from '../shared/issues.ts';
 import { dayKey, journalFrame, legacyAgent, legacyRequest } from '../shared/journal.ts';
@@ -244,6 +244,8 @@ interface AnalystInvocation {
   cwd: string;
   timedOut: boolean;
   timeout: NodeJS.Timeout;
+  /** The CLI MoneyPrint asked for: a reserved seat runs whichever one, whatever its own CLI is. */
+  cli: AgentCli;
 }
 
 interface RepoRuntime {
@@ -1426,18 +1428,19 @@ export class Swarm {
     this.emitAgent(a);
   }
 
-  /** Reserve up to MAX_ANALYST_SESSIONS existing seats for MoneyPrint only when its bridge credential is configured. */
+  /**
+   * Reserve up to MAX_ANALYST_SESSIONS existing seats for MoneyPrint only when its bridge credential is configured.
+   * Seats are not tied to a CLI (each run uses the CLI MoneyPrint asks for), so the default is the floor's first two.
+   */
   private analystAgentIds(repo: PersistedRepo): string[] {
     if ((process.env.MONEYPRINT_CUBEFARM_TOKEN ?? '').length < 32) return [];
     const configured = (process.env.MONEYPRINT_CUBEFARM_AGENT_IDS ?? '').split(',').map((id) => id.trim()).filter(Boolean).slice(0, MAX_ANALYST_SESSIONS);
     if (configured.length) return configured;
-    const floorAgents = this.state.agents
+    return this.state.agents
       .filter((candidate) => candidate.repoId === repo.id && candidate.role !== 'ceo')
-      .sort((x, y) => x.desk - y.desk);
-    return (['codex', 'claude'] as const).flatMap((cli) => {
-      const first = floorAgents.find((candidate) => (candidate.cli || this.state.settings.defaultCli) === cli);
-      return first ? [first.id] : [];
-    });
+      .sort((x, y) => x.desk - y.desk)
+      .slice(0, DEFAULT_ANALYST_SEATS)
+      .map((candidate) => candidate.id);
   }
 
   // ---------- GitHub / repos ----------
@@ -1462,17 +1465,13 @@ export class Swarm {
     const repo = this.repo(input.repoId);
     const active = [...this.analystInvocations.values()].length;
     if (input.cli === 'claude' && this.limited()) throw new HttpError(503, 'Claude analyst backend is paused by its usage limit.');
+    if (input.cli === 'codex' && this.codexLimited()) throw new HttpError(503, 'Codex analyst backend is paused by its usage limit.');
     if (active >= MAX_ANALYST_SESSIONS || this.slotsFull()) throw new HttpError(429, 'No analyst session is available; retry the queued task later.');
     const reserved = new Set(this.analystAgentIds(repo));
     const pool = this.state.agents.filter((candidate) => candidate.repoId === repo.id && candidate.role !== 'ceo' && reserved.has(candidate.id));
-    if (!pool.some((candidate) => (candidate.cli || this.state.settings.defaultCli) === input.cli)) {
-      throw new HttpError(503, `No ${input.cli} agent is reserved for MoneyPrint on this floor.`);
-    }
-    const a = this.state.agents
-      .filter((candidate) => candidate.repoId === repo.id && candidate.role !== 'ceo' && reserved.has(candidate.id) && this.isFree(candidate))
-      .sort((x, y) => x.desk - y.desk)
-      .find((candidate) => (candidate.cli || this.state.settings.defaultCli) === input.cli);
-    if (!a) throw new HttpError(429, `No free ${input.cli} agent on this floor; retry later.`);
+    if (!pool.length) throw new HttpError(503, 'No agent is reserved for MoneyPrint on this floor.');
+    const a = pool.filter((candidate) => this.isFree(candidate)).sort((x, y) => x.desk - y.desk)[0];
+    if (!a) throw new HttpError(429, 'No free analyst seat on this floor; retry later.');
     if (input.cli === 'codex' && (this.state.settings.runtime !== 'terminal' || !this.backend.terminals)) {
       throw new HttpError(503, 'Codex analyst sessions require the terminal runtime.');
     }
@@ -1487,6 +1486,7 @@ export class Swarm {
         reject,
         cwd: '',
         timedOut: false,
+        cli: input.cli,
         timeout: setTimeout(() => {
           invocation.timedOut = true;
           const session = this.agentRt.get(a.id)?.session;
@@ -2621,7 +2621,13 @@ export class Swarm {
       else if (a.sessionCli !== 'claude') resume = undefined;
     }
     if (!inTerminal) return { resumeSessionId: resume };
-    const switched = failoverCli(cli, { now: Date.now(), pausedUntil: this.pausedUntil, pacingUntil: this.pacingUntil, codexReady: this.failoverReady(), codexPausedUntil: this.codexPausedUntil });
+    const analysis = a.task === 'analysis' ? this.analystInvocations.get(a.id) : undefined;
+    if (analysis) {
+      // MoneyPrint picks the CLI per run (it balances both subscriptions); an analysis never resumes.
+      cli = analysis.cli;
+      resume = undefined;
+    }
+    const switched = analysis ? cli : failoverCli(cli, { now: Date.now(), pausedUntil: this.pausedUntil, pacingUntil: this.pacingUntil, codexReady: this.failoverReady(), codexPausedUntil: this.codexPausedUntil });
     if (switched !== cli) {
       // Claude is at (or near) its limit: this session runs on Codex; a Claude session can't be resumed there.
       cli = switched;
